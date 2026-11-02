@@ -40,13 +40,8 @@ import android.widget.Toast
 import android.widget.VideoView
 import h.Hchat.BuildConfig
 import h.Hchat.R
-import h.Hchat.crash.CrashReportRuntime
-import h.Hchat.crash.CrashReportSettings
-import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.hooks.api.ui.HchatAgentIconDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutFeature
-import h.Hchat.hooks.items.script.market.PluginMarketClient
-import h.Hchat.hooks.items.script.market.PluginMarketSettings
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyph
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphs
@@ -232,21 +227,14 @@ import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalSettings
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardFeature
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardRule
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
 import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleSettings
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupRuntime
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupStore
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsStore
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.custombottombar.FloatingBottomBarSettings
 import h.Hchat.hooks.items.customnotify.CustomNotificationFeature
@@ -292,19 +280,10 @@ import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuSettings
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateSettings
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorFeature
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorSettings
 import h.Hchat.hooks.items.inputhint.InputHintFeature
 import h.Hchat.hooks.items.inputhint.InputHintSettings
 import h.Hchat.hooks.items.inputhint.InputHintStats
 import h.Hchat.hooks.items.inputhint.OutgoingMessageStatsRepository
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveFeature
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveRuntime
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationFeature
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationRuntime
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordRule
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckController
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckActionResult
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
@@ -315,30 +294,15 @@ import h.Hchat.hooks.items.membertitle.MemberTitleSettings
 import h.Hchat.hooks.items.membertitle.MemberTitleStore
 import h.Hchat.hooks.items.messageaffix.MessageAffixFeature
 import h.Hchat.hooks.items.messageaffix.MessageAffixSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleFeature
-import h.Hchat.hooks.items.messagebubble.MessageBubblePickResult
-import h.Hchat.hooks.items.messagebubble.MessageBubblePicker
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSlot
-import h.Hchat.hooks.items.messagebubble.MessageBubbleStore
-import h.Hchat.hooks.items.messagebubble.MessageBubbleKind
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorFeature
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockBinding
 import h.Hchat.hooks.items.messageblock.MessageBlockDefaultRule
 import h.Hchat.hooks.items.messageblock.MessageBlockFeature
 import h.Hchat.hooks.items.messageblock.MessageBlockSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockTemplate
-import h.Hchat.hooks.items.messageforward.MessageForwardFeature
-import h.Hchat.hooks.items.messageforward.MessageForwardSettings
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibSettings
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsSettings
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
-import h.Hchat.hooks.items.musicorder.QQMusicOrderFeature
-import h.Hchat.hooks.items.musicorder.QQMusicOrderSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
 import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
@@ -394,9 +358,6 @@ import h.Hchat.hooks.items.patblock.PatBlockFeature
 import h.Hchat.hooks.items.patblock.PatBlockSettings
 import h.Hchat.hooks.items.profileid.ProfileIdFeature
 import h.Hchat.hooks.items.profileid.ProfileIdSettings
-import h.Hchat.hooks.items.protobuf.ProtobufPacketFeature
-import h.Hchat.hooks.items.protobuf.ProtobufPacketRuntime
-import h.Hchat.hooks.items.protobuf.ProtobufPacketSettings
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearFeature
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearSettings
 import h.Hchat.hooks.items.quickcontactedit.QuickContactEditFeature
@@ -412,50 +373,6 @@ import h.Hchat.hooks.items.realtail.RealNameTailSettings
 import h.Hchat.hooks.items.realtail.RealNameTailStore
 import h.Hchat.hooks.items.roundavatar.RoundAvatarFeature
 import h.Hchat.hooks.items.roundavatar.RoundAvatarSettings
-import h.Hchat.hooks.items.script.ScriptPluginFeature
-import h.Hchat.hooks.items.script.ScriptPluginManager
-import h.Hchat.hooks.items.script.ScriptPluginRuntime
-import h.Hchat.hooks.items.script.ScriptPluginSettings
-import h.Hchat.hooks.items.script.market.PluginMarketHistoryVersion
-import h.Hchat.hooks.items.script.market.PluginMarketInstaller
-import h.Hchat.hooks.items.script.market.PluginMarketException
-import h.Hchat.hooks.items.script.market.PluginMarketFile
-import h.Hchat.hooks.items.script.market.PluginMarketComment
-import h.Hchat.hooks.items.script.market.PluginMarketNotification
-import h.Hchat.hooks.items.script.market.PluginMarketPlugin
-import h.Hchat.hooks.items.script.market.PluginMarketRepository
-import h.Hchat.hooks.items.script.market.PluginMarketReviewStatus
-import h.Hchat.hooks.items.script.market.PluginMarketUserIdentity
-import h.Hchat.hooks.items.script.agent.CodexSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentClient
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentAttachment
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentChatMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentConfig
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentCancellation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentContext
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDiff
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDraft
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentEventIds
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentLocalFiles
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentMcpServer
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentReasoning
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentRequest
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentResumeState
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSession
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSessionStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentProfile
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentQuotedMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSpeech
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentTextMerge
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolEvent
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolResultStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentValidator
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceChange
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceToolConfirmation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceWriteDecision
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceTools
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWriter
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskContentItem
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskFeature
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskItem
@@ -465,13 +382,10 @@ import h.Hchat.hooks.items.selectedmessages.SelectedMessageSnapshot
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesFeature
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesRuntimeCoordinator
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesSettings
-import h.Hchat.hooks.items.settings.PluginAgentEntryProvider
 import h.Hchat.hooks.items.settings.SettingsEntrySettings
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadSettings
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitFeature
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitSettings
 import h.Hchat.hooks.items.swipequote.SwipeQuoteFeature
 import h.Hchat.hooks.items.swipequote.SwipeQuoteSettings
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature
@@ -495,7 +409,6 @@ import h.Hchat.hooks.items.voicepreview.VoicePreviewFeature
 import h.Hchat.hooks.items.voicepreview.VoicePreviewSettings
 import h.Hchat.media.AudioTransformBridge
 import h.Hchat.preferences.HchatStorage
-import h.Hchat.preferences.TermsGate
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
@@ -2322,203 +2235,18 @@ internal fun StatsCard(sp: SharedPreferences) {
     }
 }
 
-internal const val MODULE_UPDATE_PREFS = "hchat_module_updates"
-internal const val MODULE_UPDATE_IGNORED_CODE = "ignored_version_code"
-
 @Composable
 internal fun AboutCard(context: Context) {
     val hostVersion = WeChatApis.version()?.current()?.displayVersion()?.takeIf { it.isNotBlank() } ?: "未知"
     val moduleVersion = BuildConfig.VERSION_NAME.takeIf { it.isNotBlank() } ?: "未知"
-    val activity = context as? Activity
-    val scope = rememberCoroutineScope()
-    var updateInfo by remember { mutableStateOf<ModuleUpdateInfo?>(null) }
-    var showUpdateDialog by remember { mutableStateOf(false) }
-    var updateError by remember { mutableStateOf("") }
-    var historyItems by remember { mutableStateOf<List<ModuleVersionHistory>>(emptyList()) }
-    var showHistoryDialog by remember { mutableStateOf(false) }
-    var historyError by remember { mutableStateOf("") }
-    val updatePrefs = remember { HchatStorage.preferences(context, MODULE_UPDATE_PREFS) }
-    val checkForUpdate: () -> Unit = {
-        updateError = "正在检查更新…"
-        scope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    ModuleUpdateInfo.fromJson(
-                        PluginMarketClient.moduleUpdate(context).getOrThrow(),
-                        PluginMarketSettings.serviceUrl(context)
-                    )
-                }
-            }
-            result.onSuccess { info ->
-                updateInfo = info
-                val hasNewerVersion = info.versionCode > BuildConfig.VERSION_CODE
-                updatePrefs.edit().putBoolean("has_update", hasNewerVersion).apply()
-                if (hasNewerVersion) {
-                    updateError = ""
-                    showUpdateDialog = true
-                } else {
-                    updateError = "已是最新版本"
-                }
-            }.onFailure {
-                updateError = "检查更新失败：${it.message ?: "网络不可用"}"
-            }
-        }
-    }
-    val openHistory: () -> Unit = {
-        historyError = "正在加载历史版本…"
-        scope.launch {
-            val result = withContext(Dispatchers.IO) {
-                PluginMarketClient.moduleVersionHistory(context).map { values ->
-                    values.map { ModuleVersionHistory.fromJson(it, PluginMarketSettings.serviceUrl(context)) }
-                }
-            }
-            result.onSuccess {
-                historyItems = it
-                historyError = if (it.isEmpty()) "暂无历史版本" else ""
-                showHistoryDialog = true
-            }.onFailure {
-                historyError = "加载失败：${it.message ?: "网络不可用"}"
-                showHistoryDialog = true
-            }
-        }
-    }
     SettingsCard {
-        InfoRow(label = "版本", value = moduleVersion, onClick = checkForUpdate)
+        InfoRow(label = "版本", value = moduleVersion)
         InsetDivider()
         InfoRow(label = "宿主", value = hostVersion)
         InsetDivider()
         InfoRow(label = "作者", value = "。。")
-        InsetDivider()
-        InfoRow(label = "历史版本", value = "查看更新说明和下载", onClick = openHistory)
-        if (updateError.isNotBlank()) {
-            Text(updateError, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
-        }
-        updateInfo?.takeIf { it.versionCode > BuildConfig.VERSION_CODE }?.let { update ->
-            InsetDivider()
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                Text("发现新版本", color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
-                Text("${update.versionName}（${update.versionCode}）", color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp))
-            }
-            if (update.releaseNotes.isNotBlank()) {
-                Text(update.releaseNotes, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 12.sp, modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 10.dp))
-            }
-            ActionRow("下载新版本", "打开系统下载") {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl))
-                activity?.startActivity(intent)
-            }
-        }
-    }
-    if (showHistoryDialog) {
-        WindowDialog(
-            show = true,
-            title = "历史版本",
-            onDismissRequest = { showHistoryDialog = false },
-            content = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    if (historyError.isNotBlank()) {
-                        Text(historyError, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 14.sp)
-                    }
-                    historyItems.forEachIndexed { index, version ->
-                        if (index > 0) InsetDivider(start = 0.dp)
-                        Text("${version.versionName}（${version.versionCode}）", color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
-                        Text(version.releaseNotes.ifBlank { "暂无更新说明" }, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                        Text(formatFileSize(version.size), color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-                        TextButton("下载此版本", onClick = {
-                            activity?.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(version.downloadUrl)))
-                        }, colors = ButtonDefaults.textButtonColorsPrimary())
-                    }
-                }
-            }
-        )
-    }
-    if (showUpdateDialog) {
-        updateInfo?.takeIf { it.versionCode > BuildConfig.VERSION_CODE }?.let { update ->
-            WindowDialog(
-                show = true,
-                title = "发现新版本 ${update.versionName}",
-                onDismissRequest = { showUpdateDialog = false },
-                content = {
-                    Column {
-                        Text(update.releaseNotes.ifBlank { "有新的模块版本可用" }, color = MiuixTheme.colorScheme.onSurface, fontSize = 14.sp)
-                        Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton("忽略此版本", onClick = {
-                                updatePrefs.edit().putInt(MODULE_UPDATE_IGNORED_CODE, update.versionCode).putBoolean("has_update", false).apply()
-                                showUpdateDialog = false
-                            }, modifier = Modifier.weight(1f), colors = ButtonDefaults.textButtonColorsPrimary())
-                            TextButton("下载更新", onClick = {
-                                activity?.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl)))
-                                showUpdateDialog = false
-                            }, modifier = Modifier.weight(1f), colors = ButtonDefaults.textButtonColorsPrimary())
-                        }
-                    }
-                }
-            )
-        }
     }
 }
-@Composable
-internal fun ModuleUpdateDialog(
-    context: Context,
-    activity: Activity?,
-    update: ModuleUpdateInfo,
-    prefs: SharedPreferences,
-    onDismiss: () -> Unit
-) {
-    WindowDialog(
-        show = true,
-        title = "发现新版本 ${update.versionName}",
-        onDismissRequest = onDismiss,
-        content = {
-            Column {
-                Text(update.releaseNotes.ifBlank { "有新的模块版本可用" }, color = MiuixTheme.colorScheme.onSurface, fontSize = 14.sp)
-                Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton("忽略此版本", onClick = {
-                        prefs.edit().putInt(MODULE_UPDATE_IGNORED_CODE, update.versionCode).putBoolean("has_update", false).apply()
-                        onDismiss()
-                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.textButtonColorsPrimary())
-                    TextButton("下载更新", onClick = {
-                        activity?.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl)))
-                        onDismiss()
-                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.textButtonColorsPrimary())
-                }
-            }
-        }
-    )
-}
-
-internal data class ModuleVersionHistory(
-    val versionName: String,
-    val versionCode: Int,
-    val releaseNotes: String,
-    val size: Long,
-    val downloadUrl: String
-) {
-    companion object {
-        fun fromJson(value: JSONObject, baseUrl: String): ModuleVersionHistory = ModuleVersionHistory(
-            value.optString("versionName"),
-            value.optInt("versionCode"),
-            value.optString("releaseNotes"),
-            value.optLong("size"),
-            value.optString("apkUrl").let { if (it.startsWith("http")) it else baseUrl.trimEnd('/') + it }
-        )
-    }
-}
-
-internal fun formatFileSize(size: Long): String = when {
-    size >= 1024 * 1024 -> String.format("%.1f MiB", size / (1024.0 * 1024.0))
-    size >= 1024 -> String.format("%.1f KiB", size / 1024.0)
-    else -> "$size B"
-}
-
-internal data class ModuleUpdateInfo(val versionName: String, val versionCode: Int, val releaseNotes: String, val downloadUrl: String) {
-    companion object {
-        fun fromJson(value: JSONObject, baseUrl: String): ModuleUpdateInfo = ModuleUpdateInfo(
-            value.optString("versionName"), value.optInt("versionCode"), value.optString("releaseNotes"),
-            value.optString("apkUrl").let { if (it.startsWith("http")) it else baseUrl.trimEnd('/') + it }
-        )
-    }
-}
-
 
 @Composable
 internal fun ConfigBackupCard(
@@ -2591,10 +2319,6 @@ internal fun ThanksCard(context: Context) {
         InsetDivider()
         InfoRow(label = "Miuix", value = "YuKongA", onClick = {
             openExternalLink(context, "https://github.com/compose-miuix-ui/miuix")
-        })
-        InsetDivider()
-        InfoRow(label = "BeanShell-Android", value = "CopyLibs", onClick = {
-            openExternalLink(context, "https://github.com/CopyLibs/BeanShell-Android")
         })
         InsetDivider()
         InfoRow(label = "Silk Codec", value = "YunJavaPro", onClick = {
@@ -2857,21 +2581,6 @@ internal data class ContactPickerRequest(
     val enableScopeSelection: Boolean = false,
     val singleConfirmText: String = "发送"
 )
-
-internal enum class AutoMessageForwardRoute {
-    MAIN,
-    RULES,
-    EDITOR,
-    CONTACTS,
-    MEMBERS,
-    TYPES,
-    REPLACEMENTS
-}
-
-internal enum class AutoMessageForwardContactField {
-    SOURCES,
-    TARGETS
-}
 
 internal data class FavoritePickerRequest(
     val title: String,
