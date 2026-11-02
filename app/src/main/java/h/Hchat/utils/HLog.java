@@ -1,6 +1,6 @@
 package h.Hchat.utils;
 
-import de.robv.android.xposed.XposedBridge;
+import h.Hchat.compat.xposed.XposedBridge;
 
 /**
  * LSPosed treats Throwable logs as error logs. Use this only for real failures.

@@ -116,15 +116,17 @@ process=main
 | `Method` | `java.lang.reflect.Method` | Java 反射方法。 |
 | `Constructor` | `java.lang.reflect.Constructor` | Java 反射构造函数。 |
 | `Member` | `java.lang.reflect.Member` | 反射成员基类。 |
-| `XposedBridge` | `de.robv.android.xposed.XposedBridge` | Xposed 原生接口。 |
-| `XposedHelpers` | `de.robv.android.xposed.XposedHelpers` | Xposed 辅助接口。 |
-| `XC_MethodHook` | `de.robv.android.xposed.XC_MethodHook` | Xposed Hook 回调类。 |
+| `XposedBridge` | `h.Hchat.compat.xposed.XposedBridge` | Hook 注册接口（libxposed API 102 兼容层）。 |
+| `XposedHelpers` | `h.Hchat.compat.xposed.XposedHelpers` | 反射与 Hook 辅助接口（兼容层）。 |
+| `XC_MethodHook` | `h.Hchat.compat.xposed.XC_MethodHook` | Hook 回调类（兼容层）。 |
 | `WeChatApis` | `h.Hchat.hooks.api.core.WeChatApis` | Hchat 内部微信 API 入口，进阶用法。普通插件优先使用本文档里的 WA 风格函数。 |
 | `KavaReflector` | `h.Hchat.utils.KavaReflector` | Hchat 反射封装，进阶用法。 |
 | `DexKitBridge` | `org.luckypray.dexkit.DexKitBridge` | DexKit 原始桥接类，进阶用法。 |
 | `DexFinder` | `h.Hchat.dexkit.DexFinder` | Hchat DexKit 定位器，进阶用法。 |
 | `DexBridgeHolder` | `h.Hchat.dexkit.DexBridgeHolder` | Hchat DexKit 持有器，进阶用法。 |
 | `PluginCallBack` | `me.hd.wauxv.plugin.api.callback.PluginCallBack` | WA 同款 HTTP/下载回调。 |
+
+> 旧脚本里写 `de.robv.android.xposed.*` 的 import 不用改：加载脚本前 Hchat 会自动把该包名改写成上表的兼容层包名。
 
 同时还注入了这些变量，可以直接使用：
 

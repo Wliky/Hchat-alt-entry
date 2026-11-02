@@ -3,7 +3,12 @@ package h.Hchat;
 import android.app.Application;
 import android.content.Context;
 import android.os.Process;
+import android.util.Log;
 
+import h.Hchat.compat.xposed.XC_MethodHook;
+import h.Hchat.compat.xposed.XposedCompat;
+import h.Hchat.compat.xposed.XposedHelpers;
+import h.Hchat.compat.xposed.XC_LoadPackage;
 import h.Hchat.crash.CrashReportRuntime;
 import h.Hchat.dexkit.DexFinder;
 import h.Hchat.hooks.api.media.WeChatImageApi;
@@ -39,37 +44,72 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedHelpers;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import io.github.libxposed.api.XposedModule;
+import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam;
+import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam;
 
 /**
  * 模块入口。
  *
  * 启动流程：
- * 1. handleLoadPackage → 过滤目标包 + 目标进程
+ * 1. onPackageLoaded → 过滤目标包 + 目标进程
  * 2. 小程序子进程安装必要的缓存 Hook 和显式声明的小程序脚本插件
  * 3. 主进程在 Tinker attach 后优先安装自定义底栏 Hook
  * 4. Application.onCreate 后异步初始化完整模块
  *
  * 进程过滤：普通功能只在微信主进程加载；:appbrand* 使用独立的轻量运行时。
  */
-public class ModuleEntry implements IXposedHookLoadPackage {
+public class ModuleEntry extends XposedModule {
     private static final String TAG = "[Hchat:Entry]";
     private static final String WECHAT_PKG = "com.tencent.mm";
     private static final Object DEXKIT_CREATE_LOCK = new Object();
     private static final Map<String, DexKitBridge> DEXKIT_BRIDGES = new ConcurrentHashMap<>();
 
     // 全局基础设施实例（模块生命周期内单例）
-    private final EventBus eventBus = EventBus.get();
-    private final UIRegistry uiRegistry = UIRegistry.get();
+    private EventBus eventBus;
+    private UIRegistry uiRegistry;
 
+    private String processName;
     private FeatureManager featureManager;
     private FeatureContext featureContext;
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    public void onModuleLoaded(ModuleLoadedParam param) {
+        int apiVersion = getApiVersion();
+        if (apiVersion < 102) {
+            log(Log.ERROR, TAG, "需要 libxposed API 102，当前为 " + apiVersion);
+            return;
+        }
+        XposedCompat.install(this);
+        processName = param.getProcessName();
+        eventBus = EventBus.get();
+        uiRegistry = UIRegistry.get();
+    }
+
+    @Override
+    public void onPackageLoaded(PackageLoadedParam param) {
+        if (!XposedCompat.isInstalled()) return;
+        String packageName = param.getPackageName();
+        if (!isWeChatPackage(packageName)) return;
+
+        String proc = processName;
+        if (proc == null || proc.isEmpty()) {
+            proc = param.getApplicationInfo().processName;
+        }
+        XC_LoadPackage.LoadPackageParam lpparam = new XC_LoadPackage.LoadPackageParam(
+                packageName,
+                proc,
+                resolvePackageClassLoader(param),
+                param.getApplicationInfo(),
+                param.isFirstPackage());
+        try {
+            handleLoadPackage(lpparam);
+        } catch (Throwable throwable) {
+            log(Log.ERROR, TAG, "包加载处理失败: " + packageName, throwable);
+        }
+    }
+
+    private void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         // 1. 包名过滤
         if (!isWeChatPackage(lpparam.packageName)) return;
         if (!Process.is64Bit()) {
@@ -118,10 +158,12 @@ public class ModuleEntry implements IXposedHookLoadPackage {
                         if (TermsGate.INSTANCE.isAccepted(app)) {
                             CrashReportRuntime.install(app, ModuleEntry.this.getClass().getClassLoader());
                             // 标签栏先捕获首页根视图，不能等待后台 DexKit 初始化后再挂载。
-                            try {
-                                ConversationTabsFeature.installEarly(resolveHostClassLoader(app, lpparam));
-                            } catch (Throwable e) {
-                                HLog.e(TAG + " 标签分组早期安装失败", e);
+                            if (!BuildConfig.SLIM_BUILD) {
+                                try {
+                                    ConversationTabsFeature.installEarly(resolveHostClassLoader(app, lpparam));
+                                } catch (Throwable e) {
+                                    HLog.e(TAG + " 标签分组早期安装失败", e);
+                                }
                             }
                             // 悬浮入口不依赖 DexKit，先注册生命周期，避免错过首个 Activity。
                             try {
@@ -145,6 +187,24 @@ public class ModuleEntry implements IXposedHookLoadPackage {
      */
     private boolean isWeChatPackage(String packageName) {
         return packageName != null && packageName.startsWith(WECHAT_PKG);
+    }
+
+    /**
+     * Android 10+ 直接使用框架提供的默认 ClassLoader；旧系统回退到当前线程上下文。
+     */
+    private ClassLoader resolvePackageClassLoader(PackageLoadedParam param) {
+        try {
+            ClassLoader classLoader = param.getDefaultClassLoader();
+            if (classLoader != null) return classLoader;
+        } catch (Throwable ignored) {
+        }
+        try {
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            if (classLoader != null) return classLoader;
+        } catch (Throwable ignored) {
+        }
+        log(Log.WARN, TAG, "无法获取微信默认 ClassLoader，回退到模块 ClassLoader");
+        return ModuleEntry.class.getClassLoader();
     }
 
     /**
@@ -210,7 +270,9 @@ public class ModuleEntry implements IXposedHookLoadPackage {
                                             boolean applicationReady) {
         if (!TermsGate.INSTANCE.isAccepted(context)) return;
         boolean failed = false;
-        if (FakeMiniProgramBaseLibFeature.isEnabled(context)
+        // 正式包不再安装“兼容低版本小程序”的小程序进程 Hook。
+        if (!BuildConfig.SLIM_BUILD
+                && FakeMiniProgramBaseLibFeature.isEnabled(context)
                 && !FakeMiniProgramBaseLibFeature.installAppBrandProcessHook(context, classLoader)) {
             failed = true;
         }
@@ -326,6 +388,8 @@ public class ModuleEntry implements IXposedHookLoadPackage {
     }
 
     private void installCustomBottomBarEarlyHook(XC_LoadPackage.LoadPackageParam lpparam) {
+        // 正式包只保留悬浮底栏，自定义底栏的原生底栏改写不再安装。
+        if (BuildConfig.SLIM_BUILD) return;
         try {
             HookRegistry.get().add(XposedHelpers.findAndHookMethod(
                     "com.tencent.tinker.loader.app.TinkerApplication",
@@ -352,6 +416,7 @@ public class ModuleEntry implements IXposedHookLoadPackage {
     }
 
     private void installCustomBottomBarEarly(Context context, ClassLoader classLoader) {
+        if (BuildConfig.SLIM_BUILD) return;
         try {
             if (!TermsGate.INSTANCE.isAccepted(context)) return;
             CustomBottomBarFeature.installEarly(context, classLoader);

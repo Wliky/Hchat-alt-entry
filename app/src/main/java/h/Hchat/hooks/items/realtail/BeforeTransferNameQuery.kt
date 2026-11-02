@@ -1,6 +1,6 @@
 package h.Hchat.hooks.items.realtail
 
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.core.FeatureContext
 import h.Hchat.hooks.core.HookRegistry

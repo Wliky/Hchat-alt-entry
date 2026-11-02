@@ -2,7 +2,7 @@ package h.Hchat.hooks.items.textspeech
 
 import android.app.Activity
 import android.view.KeyEvent
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.core.BaseFeature

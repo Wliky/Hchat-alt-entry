@@ -1,5 +1,6 @@
 package h.Hchat.hooks.items.settings
 
+import h.Hchat.BuildConfig
 import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.dexkit.SettingsDexFinder
 import h.Hchat.hooks.api.ui.SettingsInjector
@@ -22,8 +23,10 @@ class SettingsFeature : Feature {
     @Throws(Throwable::class)
     override fun onInit(context: FeatureContext) {
         context.uiRegistry().registerProvider(SettingsEntryProvider())
-        context.uiRegistry().registerProvider(PluginAgentEntryProvider())
-        context.uiRegistry().registerProvider(CrashReportSettingsProvider())
+        if (!BuildConfig.SLIM_BUILD) {
+            context.uiRegistry().registerProvider(PluginAgentEntryProvider())
+            context.uiRegistry().registerProvider(CrashReportSettingsProvider())
+        }
     }
 
     @Throws(Throwable::class)

@@ -3,7 +3,7 @@ package h.Hchat.hooks.items.membertitle
 import android.text.SpannableStringBuilder
 import android.view.View
 import android.widget.TextView
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.hooks.api.contact.WeChatChatroomApi
 import h.Hchat.hooks.api.core.WeChatApis

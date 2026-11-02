@@ -18,7 +18,7 @@ import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import de.robv.android.xposed.XposedBridge;
+import h.Hchat.compat.xposed.XposedBridge;
 
 /**
  * Native 库加载器。

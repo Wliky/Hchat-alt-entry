@@ -10,7 +10,7 @@ import h.Hchat.utils.KavaReflector;
 
 import java.lang.reflect.Method;
 
-import de.robv.android.xposed.XC_MethodHook;
+import h.Hchat.compat.xposed.XC_MethodHook;
 
 /**
  * 数据库插入兜底监听。

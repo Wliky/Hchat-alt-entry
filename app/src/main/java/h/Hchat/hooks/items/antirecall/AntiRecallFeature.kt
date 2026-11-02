@@ -1,8 +1,8 @@
 package h.Hchat.hooks.items.antirecall
 
 import android.content.ContentValues
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XposedBridge
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.core.WeChatApis

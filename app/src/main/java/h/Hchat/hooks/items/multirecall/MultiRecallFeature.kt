@@ -3,7 +3,7 @@ package h.Hchat.hooks.items.multirecall
 import android.app.Activity
 import android.view.MenuItem
 import android.widget.Toast
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.api.message.MultiSelectMessageMenuLocator

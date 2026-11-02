@@ -10,9 +10,9 @@ import android.os.SystemClock
 import android.system.Os
 import android.widget.Toast
 import bsh.Interpreter
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XposedBridge
+import h.Hchat.compat.xposed.XposedHelpers
 import dalvik.system.DexClassLoader
 import h.Hchat.BuildConfig
 import h.Hchat.dexkit.DexBridgeHolder
@@ -58,6 +58,8 @@ object ScriptPluginRuntime {
     private const val TAG = "[Hchat:Script]"
     private const val MAIN_FILE = "main.java"
     private const val INFO_FILE = "info.prop"
+    private const val LEGACY_XPOSED_PACKAGE = "de.robv.android.xposed."
+    private const val COMPAT_XPOSED_PACKAGE = "h.Hchat.compat.xposed."
     private const val README_FILE = "README.md"
     private const val SNAPSHOT_SUFFIX = ".bshs"
     private const val RELOAD_DEBOUNCE_MS = 500L
@@ -646,7 +648,7 @@ object ScriptPluginRuntime {
 
     fun evalCode(pluginId: String, interpreter: Interpreter, code: String): Any? {
         return withInterpreterLock(interpreter) {
-            val result = interpreter.eval(code)
+            val result = interpreter.eval(migrateLegacyXposedPackage(code))
             refreshCallbacks(pluginId, interpreter)
             result
         }
@@ -655,9 +657,19 @@ object ScriptPluginRuntime {
     fun loadJava(pluginId: String, pluginDir: File, interpreter: Interpreter, path: String) {
         val file = resolvePluginFile(pluginDir, path)
         withInterpreterLock(interpreter) {
-            interpreter.source(file.absolutePath)
+            val text = file.readText(Charsets.UTF_8)
+            interpreter.eval(migrateLegacyXposedPackage(text))
             refreshCallbacks(pluginId, interpreter)
         }
+    }
+
+    /**
+     * 旧版插件可能仍写着 de.robv.android.xposed.*，模块已迁移到 libxposed API 102，
+     * 这里在交给解释器前把包名改写到兼容层，避免存量脚本直接报找不到类。
+     */
+    private fun migrateLegacyXposedPackage(source: String): String {
+        if (!source.contains(LEGACY_XPOSED_PACKAGE)) return source
+        return source.replace(LEGACY_XPOSED_PACKAGE, COMPAT_XPOSED_PACKAGE)
     }
 
     fun loadDex(
@@ -1551,7 +1563,7 @@ object ScriptPluginRuntime {
             waBridge.bindPluginLog(plugin.name, plugin.dir)
             val interpreter = newInterpreter(currentBridge, plugin, waBridge)
             withInterpreterLock(interpreter) {
-                interpreter.source(plugin.mainFile.absolutePath)
+                interpreter.eval(migrateLegacyXposedPackage(scriptText))
             }
             callLifecycle(interpreter, "onLoad")
             val interpreterFlags = detectCallbacks(interpreter)
@@ -1706,9 +1718,9 @@ object ScriptPluginRuntime {
             set("startedAt", SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()))
             eval(
                 """
-                import de.robv.android.xposed.XC_MethodHook;
-                import de.robv.android.xposed.XposedBridge;
-                import de.robv.android.xposed.XposedHelpers;
+                import h.Hchat.compat.xposed.XC_MethodHook;
+                import h.Hchat.compat.xposed.XposedBridge;
+                import h.Hchat.compat.xposed.XposedHelpers;
                 import h.Hchat.dexkit.DexBridgeHolder;
                 import h.Hchat.dexkit.DexFinder;
                 import h.Hchat.hooks.api.core.WeChatApis;

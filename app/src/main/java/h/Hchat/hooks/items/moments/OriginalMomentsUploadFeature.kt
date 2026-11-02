@@ -1,7 +1,7 @@
 package h.Hchat.hooks.items.moments
 
 import android.content.Intent
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.event.Events
 import h.Hchat.hooks.core.BaseFeature

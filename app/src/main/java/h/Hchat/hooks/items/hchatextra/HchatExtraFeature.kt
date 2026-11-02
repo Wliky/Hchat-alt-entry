@@ -26,7 +26,7 @@ import android.widget.RelativeLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.model.WeChatMessage
@@ -74,6 +74,7 @@ class HchatExtraFeature : BaseFeature() {
         registerSettingsProvider(GroupMemberHistorySettingsProvider())
         registerSettingsProvider(RedPacketDetailsSettingsProvider())
         registerSettingsProvider(SkipWebRiskSettingsProvider())
+        registerSettingsProvider(BackupSettingsProvider())
     }
 
     override fun onFeatureInstall(context: FeatureContext) {

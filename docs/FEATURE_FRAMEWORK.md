@@ -185,12 +185,31 @@ sh ./gradlew :app:assembleRelease --no-daemon --no-watch-fs -x lintVitalAnalyzeR
 
 当前 Gradle 接入方式：
 
-- `settings.gradle.kts` 需要保留 `mavenCentral()`、`maven { url = uri("https://api.xposed.info/") }`，并额外加入 `maven { url = uri("https://jitpack.io") }`
+- `settings.gradle.kts` 需要保留 `mavenCentral()`，并额外加入 `maven { url = uri("https://jitpack.io") }`；旧的 `maven { url = uri("https://api.xposed.info/") }` 只是历史遗留源，模块已不再从它取依赖
+- Xposed API 使用 libxposed 102：`compileOnly("io.github.libxposed:api:102.0.0")`，旧的 `de.robv.android.xposed:api:82` 已移除
+- 模块入口是 `h.Hchat.ModuleEntry`，它继承 `io.github.libxposed.api.XposedModule`，生命周期改为 `onModuleLoaded(ModuleLoadedParam)` / `onPackageLoaded(PackageLoadedParam)`；`assets/xposed_init` 与 Manifest 里的 `xposedmodule`、`xposedminversion`、`xposeddescription`、`xposedscope` 元数据都已删除
+- 运行时元数据放在 `app/src/main/resources/META-INF/xposed/`：`module.prop`（`minApiVersion=102`、`targetApiVersion=102`、`staticScope=false`）、`scope.list`（`com.tencent.mm`）、`java_init.list`（`h.Hchat.ModuleEntry`）；`proguard-rules.pro` 负责保留入口类并适配这些资源内容
+- 业务代码沿用旧式 Hook 写法，但 import 的是兼容层 `h.Hchat.compat.xposed.*`（`XposedBridge`、`XposedHelpers`、`XC_MethodHook`、`XC_LoadPackage`），由它把调用转发到 API 102；不要重新引入 `de.robv.android.xposed`。脚本插件里的旧包名 import 会在加载前自动改写
 - `me.yun.silk.SilkCodec`、`me.yun.silk.AacCodec` 放在 `app/src/main/java/me/yun/silk/`
 - 本分支只支持 `arm64-v8a` 和 64 位微信进程，不再支持 ARM32 / 32 位微信。Native 库只维护 `arm64-v8a`；`libsilk_codec.so`、`libhchat_crash.so` 放在 `app/src/main/jniLibs/arm64-v8a/`，Gradle 依赖中的 native 库也只打包这一 ABI。
 - `libsilk_codec.so` 使用上游 1.0.6 的 16KB ELF LOAD 段对齐产物，`arm64-v8a` 的段对齐为 `0x4000`；16KB 兼容由链接器页大小参数保证，不再对普通音频缓冲区强制执行 16KB 堆内存对齐。
 - `libhchat_crash.so` 由 `scripts/build_crash_native.sh` 使用 Termux Clang/LLD 生成；脚本只生成 `arm64-v8a`、去除调试符号，并校验 ELF 架构、`libc.so` 依赖和 JNI 导出。日常 Gradle/GitHub 构建直接打包已提交的 `.so`，不要求额外安装 NDK。
 - 当前本地接管版本：`1.0.6`（上游提交 `c09fc1f534c7435c7b4c11a84a4632c6d177e1b9`）
+
+## 精简构建（SLIM_BUILD）
+
+`app/build.gradle.kts` 通过 `buildConfigField` 区分两套产物，判定点只有一个：`h.Hchat.BuildConfig.SLIM_BUILD`。
+
+- `debug`：`SLIM_BUILD=false`，保留完整功能（娱乐分组、脚本插件、设置页），仅用于本地对照测试和后续把功能加回来。
+- `release`：`SLIM_BUILD=true`，首页只保留 9 个分组：聊天、语音、红包转账、增强、群组、朋友圈、美化、界面、杂项；底部三个 tab（娱乐 / 插件 / 设置）整体不存在。
+- 精简模式下 `FeatureRegistry.createDefaultManager()` 不注册 `QQMusicOrderFeature`、`ProtobufPacketFeature`、`StatusTextLimitFeature`、`ScriptPluginFeature`、`AutoMessageForwardFeature`、`ConversationTabsFeature`、`KeywordNotificationFeature`、`WeChatKeepAliveFeature`、`FakeMiniProgramBaseLibFeature`；`SettingsFeature` 不挂载 `PluginAgentEntryProvider` 和 `CrashReportSettingsProvider`，R8 会连带删除这些不可达实现。
+- 实名尾字、群昵称自定义颜色、群员头衔、修改聊天记录在正式包保留，设置入口分别位于「群组」和「聊天」分组；它们原先只注册在非精简分支，现已移入主链。
+- 有外部依赖的功能不随分组调整删除：`ConversationGroupFeature`（自定义头像依赖 `ConversationGroupStore` / `ConversationGroupRuntime`）、`CustomNotificationFeature`（@全体提醒与铃声依赖 `CustomNotificationRuntime`）、`GroupChatLabelFeature`（快捷设置群聊标签依赖 `GroupChatLabelStore`）仍注册，仅在对应分组里保留入口。
+- 美化分组在精简模式下只保留输入框提示、隐藏头像、圆角头像、自定义头像、悬浮底栏：`MessageBubbleFeature`、`MessageTextColorFeature`、`HomeTextColorFeature`、`ChatTimeStyleFeature` 移入 `if (!BuildConfig.SLIM_BUILD)` 分支；`CustomBottomBarFeature` 仍注册（悬浮底栏由它提供），但只注册 `FloatingBottomBarSettingsProvider`，不再注册 `CustomBottomBarSettingsProvider`，`ModuleEntry` 也不再安装自定义底栏的早期 Hook，`configureBottomTab()` 里 `customEnabled` 在正式包恒为 `false`。
+- 精简首页由 `MiuixSettingsPage.kt` 的 `SlimHomePage` 渲染：搜索 + `featureGroupMenu("功能", practicalGroups)`，不再有设置页入口，也没有右上角菜单。
+- 配置导出、导入放在「杂项 → 备份」（`BackupSettingsProvider` + `BackupMiuixPage`），页面复用 `ConfigBackupCard` 和 `ConfigImportExportBridge`；`ConfigOverflowAction` 已删除。
+- 搜索页在精简模式下只检索 9 个分组，不检索娱乐分组和脚本插件。
+- 分组 id 列表（如 `practicalFeatureGroups()` 里的「美化」10 项）保持完整，未注册的 provider 会被 `filterByIds` 自动过滤；恢复功能时只需在 `FeatureRegistry` 的非精简分支重新注册对应 `Feature`，不用改分组列表。
 
 ## 微信 APK 横向验证
 
@@ -839,7 +858,7 @@ Object text = invokeMethod("hello", "substring", 2, new Object[]{1, 3});
 Object builder = createInstance(StringBuilder.class, 1, new Object[]{"Hchat"});
 ```
 
-通过 `hookBefore`、`hookAfter`、`hookReplace` 注册的 Hook 会在插件关闭或加载失败时自动清理。脚本也可以直接使用原生 `XposedBridge` / `XposedHelpers` / `XC_MethodHook`、Java 反射，以及 `KavaReflector`。DexKit 只能使用模块共享实例，不要在脚本里自行初始化。
+通过 `hookBefore`、`hookAfter`、`hookReplace` 注册的 Hook 会在插件关闭或加载失败时自动清理。脚本也可以直接使用 `XposedBridge` / `XposedHelpers` / `XC_MethodHook`（兼容层）、Java 反射，以及 `KavaReflector`。DexKit 只能使用模块共享实例，不要在脚本里自行初始化。
 
 ### 脚本插件 API 范围
 

@@ -3,7 +3,7 @@ package h.Hchat.hooks.items.selectedmessages
 import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.api.media.WeChatEmojiApi

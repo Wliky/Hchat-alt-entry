@@ -3,7 +3,7 @@ package h.Hchat.hooks.items.moments
 import android.content.ContentValues
 import android.content.SharedPreferences
 import android.database.Cursor
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.FeatureContext

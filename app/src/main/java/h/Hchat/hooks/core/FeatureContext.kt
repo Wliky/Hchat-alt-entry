@@ -1,7 +1,7 @@
 package h.Hchat.hooks.core
 
 import android.content.Context
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import h.Hchat.compat.xposed.XC_LoadPackage
 import h.Hchat.dexkit.DexBridgeHolder
 import h.Hchat.dexkit.DexFinder
 import h.Hchat.event.EventBus

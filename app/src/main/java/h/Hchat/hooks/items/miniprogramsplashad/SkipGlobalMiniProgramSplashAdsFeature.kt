@@ -1,7 +1,7 @@
 package h.Hchat.hooks.items.miniprogramsplashad
 
 import android.content.Context
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.DexInstallScheduler

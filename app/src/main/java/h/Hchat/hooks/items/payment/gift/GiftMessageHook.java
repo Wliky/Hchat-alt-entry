@@ -10,7 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import de.robv.android.xposed.XC_MethodHook;
+import h.Hchat.compat.xposed.XC_MethodHook;
 
 import h.Hchat.dexkit.DexFinder;
 import h.Hchat.hooks.core.HookRegistry;

@@ -12,7 +12,7 @@ import android.widget.AdapterView
 import android.widget.ListAdapter
 import android.widget.ListView
 import android.widget.Toast
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.core.WeChatApis

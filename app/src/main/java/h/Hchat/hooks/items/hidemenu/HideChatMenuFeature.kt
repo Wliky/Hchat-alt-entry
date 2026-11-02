@@ -1,8 +1,8 @@
 package h.Hchat.hooks.items.hidemenu
 
 import android.view.MenuItem
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.callbacks.XCallback
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.callbacks.XCallback
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.message.SingleMessageMenuLocator
 import h.Hchat.hooks.core.BaseFeature

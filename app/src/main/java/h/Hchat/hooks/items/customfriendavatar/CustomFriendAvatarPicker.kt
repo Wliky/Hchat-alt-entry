@@ -3,8 +3,8 @@ package h.Hchat.hooks.items.customfriendavatar
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XposedBridge
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 

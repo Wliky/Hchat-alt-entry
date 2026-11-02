@@ -1,7 +1,7 @@
 package h.Hchat.hooks.core
 
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XposedBridge
 import java.lang.reflect.Member
 import java.util.concurrent.CancellationException
 

@@ -32,8 +32,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XposedBridge
 import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSkills
 import h.Hchat.utils.HLog
 import java.lang.ref.WeakReference

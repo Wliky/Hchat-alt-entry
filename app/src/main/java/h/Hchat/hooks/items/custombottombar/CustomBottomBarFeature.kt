@@ -38,7 +38,8 @@ import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import de.robv.android.xposed.XC_MethodHook
+import h.Hchat.BuildConfig
+import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.core.WeChatApis
@@ -69,7 +70,10 @@ class CustomBottomBarFeature : BaseFeature() {
     override fun name(): String = "自定义底栏"
 
     override fun onFeatureInit(context: FeatureContext) {
-        registerSettingsProvider(CustomBottomBarSettingsProvider())
+        // 正式包只保留悬浮底栏；自定义底栏的入口、原生底栏改写和早期 Hook 全部剔除。
+        if (!BuildConfig.SLIM_BUILD) {
+            registerSettingsProvider(CustomBottomBarSettingsProvider())
+        }
         registerSettingsProvider(FloatingBottomBarSettingsProvider())
     }
 
@@ -589,7 +593,7 @@ private class CustomBottomBarRuntime(
     }
 
     private fun configureBottomTab(activity: Activity, bottomTab: ViewGroup) {
-        val customEnabled = isCustomEnabled()
+        val customEnabled = !BuildConfig.SLIM_BUILD && isCustomEnabled()
         val floatingEnabled = !customEnabled && isFloatingEnabled()
         if (!customEnabled && !floatingEnabled) {
             synchronized(floatingHosts) { floatingHosts.remove(bottomTab) }?.restore()

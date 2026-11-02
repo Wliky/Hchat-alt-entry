@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -27,18 +28,37 @@ android {
 
     signingConfigs {
         create("。。") {
-            storeFile = file("keystore/。。.jks")
-            storePassword = providers.environmentVariable("HCAT_STORE_PASSWORD").orNull
-                ?: error("缺少 HCAT_STORE_PASSWORD")
-            keyAlias = providers.environmentVariable("HCAT_KEY_ALIAS").orNull
-                ?: error("缺少 HCAT_KEY_ALIAS")
-            keyPassword = providers.environmentVariable("HCAT_KEY_PASSWORD").orNull
-                ?: error("缺少 HCAT_KEY_PASSWORD")
+            // 本地签名参数放 keystore.properties（已 gitignore）；CI 走 HCAT_* 环境变量。
+            val signingPropsFile = rootProject.file("keystore.properties")
+            val signingProps = Properties().apply {
+                if (signingPropsFile.isFile) {
+                    signingPropsFile.inputStream().use { load(it) }
+                }
+            }
+            val bundledKeystore = rootProject.file("app/keystore/。。.jks")
+            fun signingValue(envName: String, key: String): String? =
+                providers.environmentVariable(envName).orNull?.takeIf { it.isNotBlank() }
+                    ?: signingProps.getProperty(key)?.takeIf { it.isNotBlank() }
+
+            storeFile = signingValue("HCAT_KEYSTORE_FILE", "storeFile")?.let { file(it) }
+                ?: bundledKeystore
+            storePassword = signingValue("HCAT_STORE_PASSWORD", "storePassword")
+                ?: error("缺少 HCAT_STORE_PASSWORD，或在 keystore.properties 配置 storePassword")
+            keyAlias = signingValue("HCAT_KEY_ALIAS", "keyAlias")
+                ?: error("缺少 HCAT_KEY_ALIAS，或在 keystore.properties 配置 keyAlias")
+            keyPassword = signingValue("HCAT_KEY_PASSWORD", "keyPassword")
+                ?: error("缺少 HCAT_KEY_PASSWORD，或在 keystore.properties 配置 keyPassword")
         }
     }
 
     buildTypes {
+        debug {
+            // 本地调试保留完整功能（娱乐 / 脚本插件 / 设置页），方便后续把功能加回来时对照。
+            buildConfigField("boolean", "SLIM_BUILD", "false")
+        }
         release {
+            // 正式包只保留首页 9 个分组，其余功能不注册、不加载。
+            buildConfigField("boolean", "SLIM_BUILD", "true")
             signingConfig = signingConfigs.getByName("。。")
             isMinifyEnabled = true
             isShrinkResources = true
@@ -96,7 +116,7 @@ kotlin {
 }
 
 dependencies {
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly("io.github.libxposed:api:102.0.0")
     testImplementation("junit:junit:4.13.2")
     implementation("io.github.billywei01:fastkv:3.0.1")
     implementation(files("libs/dexkit-2.2.0-76551eb-idle.aar"))

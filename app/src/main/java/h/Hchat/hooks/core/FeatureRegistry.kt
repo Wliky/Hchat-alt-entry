@@ -1,5 +1,6 @@
 package h.Hchat.hooks.core
 
+import h.Hchat.BuildConfig
 import h.Hchat.hooks.api.core.WechatApiFeature
 import h.Hchat.hooks.items.audiotransform.AudioTransformFeature
 import h.Hchat.hooks.items.antirecall.AntiRecallFeature
@@ -96,7 +97,7 @@ import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
 object FeatureRegistry {
     @JvmStatic
     fun createDefaultManager(): FeatureManager {
-        return FeatureManager()
+        val manager = FeatureManager()
             .register(SettingsFeature())
             .register(WechatApiFeature())
 
@@ -104,8 +105,6 @@ object FeatureRegistry {
             .register(CustomBottomBarFeature())
             .register(RoundAvatarFeature())
             .register(CustomFriendAvatarFeature())
-            .register(RealNameTailFeature())
-            .register(MemberTitleFeature())
             .register(AutoRedPacketFeature())
             .register(AutoGiftFeature())
             .register(WeChatTabletFeature())
@@ -122,9 +121,8 @@ object FeatureRegistry {
             .register(QuickMarkReadFeature())
             .register(QuickTerminateFeature())
             .register(AutoReplyFeature())
-            .register(AutoMessageForwardFeature())
+            // 聊天分组保留：自定义头像依赖 ConversationGroupStore / ConversationGroupRuntime。
             .register(ConversationGroupFeature())
-            .register(ConversationTabsFeature())
             .register(MessageAffixFeature())
             .register(TypingReportBlockFeature())
             .register(PatBlockFeature())
@@ -134,29 +132,22 @@ object FeatureRegistry {
             .register(AtAllNotificationBlockFeature())
             .register(CallMediaLimitFeature())
             .register(CallRingtoneBlockFeature())
+            // 自定义通知保留：AtAllNotificationBlockFeature 和铃声选择依赖 CustomNotificationRuntime。
             .register(CustomNotificationFeature())
-            .register(KeywordNotificationFeature())
             .register(TextSpeechFeature())
             .register(TextVoiceFeature())
             .register(ZombieCheckFeature())
-            .register(WeChatKeepAliveFeature())
             .register(QuoteDeleteClearFeature())
             .register(SwipeQuoteFeature())
             .register(AudioTransformFeature())
             .register(FakeVoiceDurationFeature())
-            .register(ChatTimeStyleFeature())
             .register(InputHintFeature())
-            .register(MessageBubbleFeature())
-            .register(MessageTextColorFeature())
-            .register(HomeTextColorFeature())
             .register(HideChatAvatarFeature())
             .register(MessageBlockFeature())
             .register(FakeLocationFeature())
             .register(GameEmojiFeature())
-            .register(FakeMiniProgramBaseLibFeature())
             .register(SkipMiniProgramVideoAdsFeature())
             .register(SkipGlobalMiniProgramSplashAdsFeature())
-            .register(QQMusicOrderFeature())
             .register(MomentsAutoLikeFeature())
             .register(MomentsAutoCommentFeature())
             .register(MomentsAutoForwardFeature())
@@ -169,11 +160,11 @@ object FeatureRegistry {
             .register(MomentsUploadTailFeature())
             .register(SnsAntiRecallFeature())
             .register(MomentsFakeInteractionFeature())
+            // 群聊标签保留：快捷设置群聊标签依赖 GroupChatLabelStore。
             .register(GroupChatLabelFeature())
             .register(GroupLeaveMonitorFeature())
             .register(GroupRenameMonitorFeature())
             .register(RemoveMomentsAdsFeature())
-            .register(EditMessageFeature())
             .register(EmojiSaveFeature())
             .register(VoicePreviewFeature())
             .register(VoiceForwardFeature())
@@ -181,10 +172,31 @@ object FeatureRegistry {
             .register(MessageForwardFeature())
             .register(ScheduledTaskFeature())
             .register(FakeScanCameraFeature())
-            .register(ProtobufPacketFeature())
-            .register(StatusTextLimitFeature())
             .register(FinderMediaDownloadFeature())
+            // 从娱乐分组搬入正式功能：群组实名尾字 / 群昵称颜色 / 群员头衔、聊天记录修改。
+            .register(RealNameTailFeature())
+            .register(MemberTitleFeature())
+            .register(EditMessageFeature())
             .register(HchatExtraFeature())
-            .register(ScriptPluginFeature())
+
+        // 正式包剔除的功能：本地 debug 保留，方便后续按需加回。
+        if (!BuildConfig.SLIM_BUILD) {
+            manager
+                .register(QQMusicOrderFeature())
+                .register(ProtobufPacketFeature())
+                .register(StatusTextLimitFeature())
+                .register(ScriptPluginFeature())
+                .register(AutoMessageForwardFeature())
+                .register(ConversationTabsFeature())
+                .register(KeywordNotificationFeature())
+                .register(WeChatKeepAliveFeature())
+                .register(FakeMiniProgramBaseLibFeature())
+                // 美化分组只保留输入框提示 / 隐藏头像 / 圆角头像 / 自定义头像 / 悬浮底栏。
+                .register(ChatTimeStyleFeature())
+                .register(MessageBubbleFeature())
+                .register(MessageTextColorFeature())
+                .register(HomeTextColorFeature())
+        }
+        return manager
     }
 }

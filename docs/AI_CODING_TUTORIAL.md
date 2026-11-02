@@ -835,21 +835,31 @@ isMinifyEnabled = true
 isShrinkResources = true
 ```
 
-签名配置通过环境变量读取：
+签名配置通过环境变量或仓库根目录的 `keystore.properties` 读取，环境变量优先：
 
 ```text
+HCAT_KEYSTORE_FILE     # 可选，密钥文件路径；相对路径基于 app/ 模块目录
 HCAT_STORE_PASSWORD
 HCAT_KEY_ALIAS
 HCAT_KEY_PASSWORD
 ```
 
-密钥文件默认是：
+本地长期开发可以在仓库根目录放一个 `keystore.properties`（已被 `.gitignore` 忽略，不要提交）：
+
+```properties
+storeFile=D:/keys/hchat.jks
+storePassword=<keystore 密码>
+keyAlias=<密钥别名>
+keyPassword=<密钥密码>
+```
+
+没有配置 `HCAT_KEYSTORE_FILE` / `storeFile` 时，密钥文件默认是：
 
 ```text
 app/keystore/。。.jks
 ```
 
-它不应该出现在 Git 中。没有维护者同一签名证书时，可以编译检查或使用自己的测试签名；换证书的 APK 不保证能覆盖安装正式版本。
+CI 的 `HCAT_KEYSTORE_BASE64` 就是解码到这个位置。密钥文件和 `keystore.properties` 都不应该出现在 Git 中。没有维护者同一签名证书时，可以编译检查或使用自己的测试签名；换证书的 APK 不保证能覆盖安装正式版本。
 
 ### 3. 本地 R8 构建
 

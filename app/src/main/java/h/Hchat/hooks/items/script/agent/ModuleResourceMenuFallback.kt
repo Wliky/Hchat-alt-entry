@@ -2,8 +2,8 @@ package h.Hchat.hooks.items.script.agent
 
 import android.content.Context
 import android.content.res.Resources
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
+import h.Hchat.compat.xposed.XC_MethodHook
+import h.Hchat.compat.xposed.XposedHelpers
 import h.Hchat.utils.HLog
 
 object ModuleResourceMenuFallback {

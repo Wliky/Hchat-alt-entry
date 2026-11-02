@@ -27,8 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedBridge;
+import h.Hchat.compat.xposed.XC_MethodHook;
+import h.Hchat.compat.xposed.XposedBridge;
 
 /**
  * 微信图片发送 API。
