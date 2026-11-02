@@ -134,6 +134,16 @@ public final class WeChatMessageStoreApi {
         return rows.isEmpty() ? null : rows.get(0);
     }
 
+    public WeChatMessage getMessageByIdInTalker(String talker, long msgId) {
+        if (TextUtils.isEmpty(talker) || msgId <= 0L) return null;
+        String table = messageTable(talker);
+        if (TextUtils.isEmpty(table)) return null;
+        List<WeChatMessage> rows = queryMessages(
+                "SELECT * FROM " + table + " WHERE msgId=? LIMIT 1",
+                new String[]{String.valueOf(msgId)});
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
     public WeChatMessage getMessageBySvrId(String talker, long msgSvrId) {
         if (TextUtils.isEmpty(talker) || msgSvrId <= 0L) return null;
         List<WeChatMessage> rows = queryMessagesBySvrIdInTalker(talker, msgSvrId);

@@ -560,7 +560,7 @@ class AntiRecallFeature : BaseFeature() {
             return
         }
         localMessages.ensureReady()
-        val targetCreateTime = resolveRecalledCreateTime(svrId, recalledInfo)
+        val targetCreateTime = resolveRecalledCreateTime(talker, svrId, recalledInfo, recallTime)
         val notice = if (selfRecall) {
             AntiRecallSettings.SELF_NOTICE_TEXT
         } else {
@@ -613,16 +613,30 @@ class AntiRecallFeature : BaseFeature() {
         return null
     }
 
-    private fun resolveRecalledCreateTime(svrId: Long, info: WeChatRecalledMessage?): Long {
+    private fun resolveRecalledCreateTime(
+        talker: String,
+        svrId: Long,
+        info: WeChatRecalledMessage?,
+        recallTime: Long
+    ): Long {
+        val store = WeChatApis.messageStore()
+        // 撤回 XML 里的 msgid 是本地 msgId，必须按会话分表查，遍历全表容易漏掉
         for (id in recallLookupIds(svrId, info)) {
-            val byLocalId = normalizeMillis(WeChatApis.messageStore()?.getMessageById(id)?.createTime ?: 0L)
+            val byTalkerMsgId = normalizeMillis(store?.getMessageByIdInTalker(talker, id)?.createTime ?: 0L)
+            if (byTalkerMsgId > 0L) return byTalkerMsgId
+        }
+        for (id in recallLookupIds(svrId, info)) {
+            val byLocalId = normalizeMillis(store?.getMessageById(id)?.createTime ?: 0L)
             if (byLocalId > 0L) return byLocalId
         }
-        val newMsgCreateTime = normalizeMillis(WeChatApis.messageStore()?.getCreateTimeBySvrId(info?.newMsgId ?: 0L) ?: 0L)
+        val newMsgCreateTime = normalizeMillis(store?.getCreateTimeBySvrId(info?.newMsgId ?: 0L) ?: 0L)
         if (newMsgCreateTime > 0L) return newMsgCreateTime
         val createTime = normalizeMillis(info?.bestCreateTime() ?: 0L)
         if (createTime > 0L) return createTime
-        return normalizeMillis(WeChatApis.messageStore()?.getCreateTimeBySvrId(svrId) ?: 0L)
+        val bySvrId = normalizeMillis(store?.getCreateTimeBySvrId(svrId) ?: 0L)
+        if (bySvrId > 0L) return bySvrId
+        // 原消息已被彻底删除时退回撤回事件时间，保证提示仍能插入
+        return recallTime.takeIf { it > 0L } ?: System.currentTimeMillis()
     }
 
     private fun normalizeMillis(createTime: Long): Long {
@@ -836,8 +850,8 @@ class AntiRecallFeature : BaseFeature() {
         }
         val to = decodeStringField(addMsg, "f")
         val originFromXml = xmlLong(commandContent, "msgid")
-        val newMsgId = (KavaReflector.readField(addMsg, "r") as? Number)?.toLong()
-            ?: xmlLong(commandContent, "newmsgid")
+        val newMsgId = xmlLong(commandContent, "newmsgid")
+            ?: (KavaReflector.readField(addMsg, "r") as? Number)?.toLong()
             ?: 0L
         val flag = payloadFlag(payload)
         val resolvedOrigin = originFromXml ?: originSvrId
