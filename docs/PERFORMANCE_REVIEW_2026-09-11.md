@@ -1,5 +1,7 @@
 # R8 安装包与插件生命周期检查（2026-09-11）
 
+> 历史记录：本文涉及的脚本插件运行时（ScriptPluginBridge、ScriptMessageHook、ScriptWaBridge、run_script_lifecycle_tests.cjs）已于 2026-11-03 随插件引擎下线一并移除，文中代码路径与复现命令不再可用。结论仅代表当时的 APK 状态，不能用于核验当前版本。
+
 ## 范围与结论
 
 目标产物：Hchat-alt-entry-r8-debug-signed.apk，包名 h.Hchat，versionCode=1，versionName=1.0.0。

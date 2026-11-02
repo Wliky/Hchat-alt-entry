@@ -145,9 +145,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation(files("libs/miuix-blur-android-0.9.4.aar"))
     implementation(files("libs/miuix-shader-android-0.9.4.aar"))
-    // Termux 终端（GPLv3，LSPilot 同款）：terminal-view 依赖 terminal-emulator
-    implementation(files("libs/terminal-emulator-0.118.0.aar"))
-    implementation(files("libs/terminal-view-0.118.0.aar"))
 }
 
 // 构建完成后自动复制 APK 到 dist/
