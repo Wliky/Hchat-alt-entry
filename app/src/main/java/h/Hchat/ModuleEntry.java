@@ -28,6 +28,7 @@ import h.Hchat.dexkit.DexBridgeHolder;
 import h.Hchat.event.EventBus;
 import h.Hchat.ui.UIRegistry;
 import h.Hchat.utils.HLog;
+import h.Hchat.utils.HLogSettings;
 
 import org.luckypray.dexkit.DexKitBridge;
 
