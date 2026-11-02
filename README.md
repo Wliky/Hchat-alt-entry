@@ -1,6 +1,6 @@
 # Hchat alt-entry
 
-Hchat 是面向已解锁 Android 设备、LSPosed 和微信的功能扩展模块。本仓库是只保留 `alt-entry` 频道的公开源码快照，适合社区继续修复功能、开发新功能和维护脚本插件运行时。
+Hchat 是面向已解锁 Android 设备、LSPosed 和微信的功能扩展模块。本仓库是只保留 `alt-entry` 频道的公开源码快照，适合社区继续修复功能、开发新功能。
 
 ## 给新贡献者
 
@@ -22,13 +22,11 @@ app/src/main/java/h/Hchat/
 ├── ui/              设置页面和 Miuix UI
 └── utils/           反射、日志和通用工具
 
-app/src/main/java/bsh/       BeanShell 脚本引擎
-app/src/main/jniLibs/        ARM 32/64 位 native 库
+app/src/main/jniLibs/        arm64-v8a native 库
 app/libs/                    项目需要的本地 AAR
-docs/                        功能、API、Agent 和开发文档
+docs/                        功能、API 和开发文档
 skills/                      Codex skill 源码
 .github/workflows/           GitHub Actions 构建流程
-server/plugin-market/        在线插件市场后端
 ```
 
 ## 快速开始
@@ -45,7 +43,7 @@ git status --short --branch
 1. `AGENTS.md`
 2. `docs/AI_CODING_TUTORIAL.md`
 3. `docs/FEATURE_FRAMEWORK.md`
-4. `docs/WECHAT_APIS.md` 或 `docs/SCRIPT_PLUGIN_API.md`
+4. `docs/WECHAT_APIS.md`
 
 ## 构建
 
@@ -55,19 +53,10 @@ git status --short --branch
 
 构建命令、无 R8 测试、签名和 GitHub Actions 说明全部写在 [AI Coding 完整教程](docs/AI_CODING_TUTORIAL.md) 中。
 
-## 脚本插件
-
-脚本插件运行在微信的 `Hchat/脚本插件/` 目录中。完整公开接口见：
-
-- `docs/SCRIPT_PLUGIN_API.md`
-- `app/src/main/assets/script_plugin_agent_guide.md`
-
-脚本插件默认不要自动启用；需要 Hook 微信混淆类时，必须先获得当前版本的逆向证据。
-
 ## 许可证和第三方代码
 
 当前公开快照没有根目录 `LICENSE` 文件。准备再分发源码、发布二次修改版或合并大规模第三方代码前，请先确认项目作者和各第三方依赖的授权要求。仓库中的部分代码和资源保留各自的版权声明，不能因为仓库公开就默认获得任意再分发权。
 
 ## 安全提醒
 
-本项目会加载 Xposed Hook、脚本和部分 native 代码。只安装可信 APK、脚本和 `.so`；不要把微信聊天数据库、账号凭据、服务器密码、签名证书或 API key 发给 AI、贴到 Issue 或提交到 Git。
+本项目会加载 Xposed Hook 和部分 native 代码。只安装可信 APK 和 `.so`；不要把微信聊天数据库、账号凭据、服务器密码、签名证书或 API key 发给 AI、贴到 Issue 或提交到 Git。
