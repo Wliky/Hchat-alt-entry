@@ -12,8 +12,9 @@ permissions:
 
 env:
   HCAT_SINGLE_VERSION_NAME_BASE: "5.5.6"
-  HCAT_SINGLE_VERSION_CODE_BASE: "490"
-  HCAT_SINGLE_RUN_NUMBER_BASE: "294"
+  # lite 频道是新仓库，run_number 从 1 开始；基数留足空间，保证版本 Code 高于旧包。
+  HCAT_SINGLE_VERSION_CODE_BASE: "5000"
+  HCAT_SINGLE_RUN_NUMBER_BASE: "0"
 
 jobs:
   build:
@@ -99,8 +100,8 @@ jobs:
 
           version_code=$((
             HCAT_SINGLE_VERSION_CODE_BASE +
-            GITHUB_RUN_NUMBER -
-            HCAT_SINGLE_RUN_NUMBER_BASE
+            (GITHUB_RUN_NUMBER - HCAT_SINGLE_RUN_NUMBER_BASE) * 10 +
+            GITHUB_RUN_ATTEMPT
           ))
           if [ "$version_code" -le "$HCAT_SINGLE_VERSION_CODE_BASE" ] \
             || [ "$version_code" -gt 2147483647 ]; then
