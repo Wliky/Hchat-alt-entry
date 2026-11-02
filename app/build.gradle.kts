@@ -52,13 +52,7 @@ android {
     }
 
     buildTypes {
-        debug {
-            // 本地调试保留完整功能（娱乐 / 脚本插件 / 设置页），方便后续把功能加回来时对照。
-            buildConfigField("boolean", "SLIM_BUILD", "false")
-        }
         release {
-            // 正式包只保留首页 9 个分组，其余功能不注册、不加载。
-            buildConfigField("boolean", "SLIM_BUILD", "true")
             signingConfig = signingConfigs.getByName("。。")
             isMinifyEnabled = true
             isShrinkResources = true
@@ -81,9 +75,7 @@ android {
 
     packaging {
         jniLibs {
-            // 保持 true：proot 需要 libproot.so 被解压到 nativeLibraryDir 才能 exec 运行。
-            // libtermux.so 的加载不走 classloader.findLibrary，改由 Hchat 用绝对路径
-            // System.load() 加载（见 NativeLibraryLoader.loadTermux + com.termux.terminal.JNI 补丁）。
+            // 保持 true：模块用 System.load() 从解压目录加载 Native 库，不依赖压缩包内加载路径。
             useLegacyPackaging = true
         }
         resources {
