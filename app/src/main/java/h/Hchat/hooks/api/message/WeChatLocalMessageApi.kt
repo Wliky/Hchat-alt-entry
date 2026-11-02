@@ -68,7 +68,11 @@ class WeChatLocalMessageApi(
     }
 
     fun insertSystemMessageAt(talker: String?, content: String?, createTime: Long): Long {
-        return insertSystemMessage(talker, content, createTime, false)
+        if (installCreateTimeHook()) {
+            return insertSystemMessage(talker, content, createTime, false)
+        }
+        log("createTime hook 未就绪，改用当前时间插入系统消息")
+        return insertSystemMessage(talker, content, System.currentTimeMillis(), true)
     }
 
     private fun insertSystemMessage(
@@ -95,13 +99,13 @@ class WeChatLocalMessageApi(
                 finder,
                 talker.orEmpty(),
                 content.orEmpty(),
-                if (useWechatCreateTime) null else normalizeCreateTimeMillis(createTime)
+                if (useWechatCreateTime) null else computeWechatCreateTime(talker.orEmpty(), createTime)
             )?.let {
                 return@runCatching it
             }
             val msg = newMessage(finder, talker.orEmpty())
                 ?: throw IllegalStateException("消息对象创建失败")
-            fillSystemMessage(msg, talker.orEmpty(), content.orEmpty(), createTime, useWechatCreateTime)
+            fillSystemMessage(msg, talker.orEmpty(), content.orEmpty(), createTime)
             val result = KavaReflector.invoke(finder.localMessageInsertMethod, null, msg)
             (result as? Number)?.toLong() ?: 0L
         }.onFailure {
@@ -196,14 +200,9 @@ class WeChatLocalMessageApi(
         msg: Any,
         talker: String,
         content: String,
-        createTime: Long,
-        useWechatCreateTime: Boolean
+        createTime: Long
     ) {
-        val wechatCreateTime = if (useWechatCreateTime) {
-            computeWechatCreateTime(talker, createTime)
-        } else {
-            normalizeCreateTimeMillis(createTime)
-        }
+        val wechatCreateTime = computeWechatCreateTime(talker, createTime)
         callIntSetter(msg, 0, "U0", "k1", "j1")
             || setIntField(msg, 0, "field_isSend", "isSend")
         callStringSetter(msg, talker, "i1", "A1", "H1", "C1", "u1")
@@ -223,15 +222,21 @@ class WeChatLocalMessageApi(
         setStringField(msg, "", "field_msgSource", "msgSource")
     }
 
-    private fun normalizeCreateTimeMillis(createTime: Long): Long {
-        return if (createTime > 0L && createTime < 10_000_000_000L) createTime * 1000L else createTime
+    /**
+     * 微信 createTime 取值方法接收秒并返回微信自己的时间值；毫秒时间戳必须先降级到秒，
+     * 否则 13 位毫秒会写进 message 表，按秒查询分页时这条提示会被跳过。
+     */
+    private fun computeWechatCreateTime(talker: String, createTime: Long): Long {
+        val seconds = toWechatSeconds(createTime)
+        if (seconds <= 0L) return 0L
+        val method = dexFinder?.localMessageCreateTimeMethod ?: return seconds
+        val value = runCatching { KavaReflector.invoke(method, null, talker, seconds) }.getOrNull()
+        return (value as? Number)?.toLong()?.takeIf { it > 0L } ?: seconds
     }
 
-    private fun computeWechatCreateTime(talker: String, createTime: Long): Long {
-        val method = dexFinder?.localMessageCreateTimeMethod ?: return createTime
-        val seconds = if (createTime > 10_000_000_000L) createTime / 1000L else createTime
-        val value = KavaReflector.invoke(method, null, talker, seconds)
-        return (value as? Number)?.toLong() ?: createTime
+    private fun toWechatSeconds(createTime: Long): Long {
+        if (createTime <= 0L) return 0L
+        return if (createTime > 10_000_000_000L) createTime / 1000L else createTime
     }
 
     private fun callStringSetter(target: Any, value: String, vararg preferredNames: String): Boolean {

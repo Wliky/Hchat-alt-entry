@@ -573,9 +573,11 @@ class AntiRecallFeature : BaseFeature() {
             )
             return
         }
-        val result = localMessages.insertSystemMessageAt(talker, notice, targetCreateTime + 1L)
+        val result = localMessages.insertSystemMessageAt(talker, notice, targetCreateTime + 1000L)
         if (result <= 0L) {
-            h.Hchat.utils.HLog.e("$TAG 插入提示失败: talker=$talker newmsgid=$svrId")
+            h.Hchat.utils.HLog.e(
+                "$TAG 插入提示失败: talker=$talker newmsgid=$svrId available=${localMessages.isAvailable()}"
+            )
         }
     }
 
