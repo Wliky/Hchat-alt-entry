@@ -4,7 +4,6 @@ import h.Hchat.event.Events
 import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.FeatureContext
-import h.Hchat.hooks.items.script.ScriptNewFriendHook
 import h.Hchat.utils.HLog
 
 class AutoReplyFeature : BaseFeature() {
@@ -26,10 +25,6 @@ class AutoReplyFeature : BaseFeature() {
                     AutoReplyRuntime.handleMessage(context.hostContext(), message)
                 })
             }
-            ScriptNewFriendHook.install(context)
-            trackSubscription(ScriptNewFriendHook.subscribe { event ->
-                AutoReplyRuntime.handleNewFriend(context.hostContext(), event.wxid, event.ticket, event.scene)
-            })
         }
     }
 

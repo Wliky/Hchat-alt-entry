@@ -1,7 +1,5 @@
 package h.Hchat.hooks.items.settings
 
-import h.Hchat.BuildConfig
-import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.dexkit.SettingsDexFinder
 import h.Hchat.hooks.api.ui.SettingsInjector
 import h.Hchat.hooks.core.DexInstallScheduler
@@ -23,10 +21,6 @@ class SettingsFeature : Feature {
     @Throws(Throwable::class)
     override fun onInit(context: FeatureContext) {
         context.uiRegistry().registerProvider(SettingsEntryProvider())
-        if (!BuildConfig.SLIM_BUILD) {
-            context.uiRegistry().registerProvider(PluginAgentEntryProvider())
-            context.uiRegistry().registerProvider(CrashReportSettingsProvider())
-        }
     }
 
     @Throws(Throwable::class)
@@ -46,7 +40,6 @@ class SettingsFeature : Feature {
             val entrySettings = SettingsEntrySettings(context.hostContext())
             settingsDexFinder.resolveAll(
                 entrySettings.plusMenuEnabled() ||
-                    entrySettings.pluginAgentPlusMenuEnabled() ||
                     QuickMarkReadRuntime.isPlusMenuEnabled(context.hostContext()) ||
                     QuickTerminateRuntime.isEnabled(context.hostContext())
             )
@@ -76,18 +69,4 @@ class SettingsEntryProvider : FeatureSettingsProvider {
     override fun subtitle(): String = "控制加号菜单和长按加号入口"
 
     override fun category(): String = FeatureSettingsProvider.CATEGORY_PRACTICAL
-}
-
-class PluginAgentEntryProvider : FeatureSettingsProvider {
-    override fun featureId(): String = ID
-
-    override fun title(): String = "插件 Agent 入口"
-
-    override fun subtitle(): String = "控制右上角加号菜单中的 Agent 入口"
-
-    override fun category(): String = FeatureSettingsProvider.CATEGORY_PRACTICAL
-
-    companion object {
-        const val ID = "plugin_agent_entry"
-    }
 }

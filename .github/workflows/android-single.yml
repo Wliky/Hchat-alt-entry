@@ -2,6 +2,10 @@ name: 安卓单频道构建
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - lite
+      - alt-entry
 
 permissions:
   contents: write
@@ -48,6 +52,8 @@ jobs:
           current_branch="${GITHUB_REF_NAME}"
           if [ "$current_branch" = "alt-entry" ]; then
             apk_name="Hchat-alt-entry-release-signed.apk"
+          elif [ "$current_branch" = "lite" ]; then
+            apk_name="Hchat-lite-release-signed.apk"
           else
             apk_name="Hchat-release-signed.apk"
           fi

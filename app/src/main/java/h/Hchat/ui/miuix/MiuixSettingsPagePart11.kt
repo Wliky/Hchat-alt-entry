@@ -2330,9 +2330,9 @@ internal fun ThanksCard(context: Context) {
 @Composable
 internal fun InfoRow(label: String, value: String, onClick: (() -> Unit)? = null) {
     val modifier = if (onClick != null) {
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 15.dp)
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp)
     } else {
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp)
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)
     }
     Row(
         modifier = modifier,
@@ -2373,7 +2373,7 @@ internal fun InfoRow(label: String, value: String, onClick: (() -> Unit)? = null
 internal fun XiaozhiMcpStatusRow(status: XiaozhiMcpStatus) {
     val dotColor = if (status.connected) Color(0xFF20C05C) else Color(0xFF8C8C8C)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

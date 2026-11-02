@@ -1445,12 +1445,11 @@ private class HchatExtraHooker(
         }
         if (!alreadyAttached || target.hidden) label.visibility = View.INVISIBLE
         measureAvatarDetailsLabel(label)
-        val initialReservedSpace = if (position == HchatExtraSettings.POSITION_AVATAR_ABOVE) {
-            label.measuredHeight + gap
-        } else {
-            0
-        }
-        applyAvatarDetailsSpacing(root, parent, position, initialReservedSpace)
+        // 上下两种位置都按同一公式一次性预留：一行标签高度 + 间距。
+        // 旧逻辑只给"头像上方"预留，下方靠逐帧 expand 补空间：补一次不够就把标签裁掉，
+        // 而且每帧改一次 padding 会让整行反复 requestLayout，表现为聊天窗口闪烁。
+        val reservedSpace = label.measuredHeight + gap
+        applyAvatarDetailsSpacing(root, parent, position, reservedSpace)
         if (!alreadyAttached) {
             parent.addView(label, params)
         } else if (params !== previousParams) {
@@ -1569,8 +1568,10 @@ private class HchatExtraHooker(
     private fun expandAvatarBelowSpacing(parent: RelativeLayout, extra: Int): Boolean {
         if (extra <= 0) return false
         val spacing = synchronized(avatarDetailsSpacings) { avatarDetailsSpacings[parent] } ?: return false
-        if (spacing.appliedBottom != spacing.originalBottom) return false
+        // 允许累计：容器高度要等下一次布局才会变大，缺口可能一次补不满，
+        // 若在这里只放行一次，标签就会停在容器外被裁掉。
         val updated = spacing.copy(appliedBottom = spacing.appliedBottom + extra)
+        if (updated.appliedBottom == spacing.appliedBottom) return false
         parent.setPadding(parent.paddingLeft, updated.appliedTop, parent.paddingRight, updated.appliedBottom)
         synchronized(avatarDetailsSpacings) {
             avatarDetailsSpacings[parent] = updated
@@ -1666,6 +1667,8 @@ private class HchatExtraHooker(
             avatarBounds.bottom + gap
         }
         if (position == HchatExtraSettings.POSITION_AVATAR_BELOW) {
+            // 预留已经给足，这里只处理"行被复用到更矮的容器"之类的兜底；
+            // 缺口必须按当前值累计补齐，否则一次补不够标签就会超出容器底部被裁。
             val overflow = top + label.measuredHeight - parent.height
             if (overflow > 0 && expandAvatarBelowSpacing(parent, overflow)) {
                 return AvatarPositionResult.NEEDS_LAYOUT
@@ -1736,12 +1739,12 @@ private class HchatExtraHooker(
         details: MessageDetails,
         avatarHidden: Boolean
     ): Boolean {
-        if (label.maxLines != Int.MAX_VALUE) {
-            label.setSingleLine(false)
-            label.maxLines = Int.MAX_VALUE
+        if (label.maxLines != 1) {
+            label.setSingleLine(true)
+            label.maxLines = 1
             label.setHorizontallyScrolling(false)
         }
-        if (label.ellipsize != null) label.ellipsize = null
+        if (label.ellipsize != TextUtils.TruncateAt.END) label.ellipsize = TextUtils.TruncateAt.END
         if (label.maxWidth != Int.MAX_VALUE) label.maxWidth = Int.MAX_VALUE
         val oldParent = label.parent as? ViewGroup
         val alreadyAttached = oldParent === parent
@@ -1758,7 +1761,8 @@ private class HchatExtraHooker(
                 RelativeLayout.LayoutParams.WRAP_CONTENT
             )
             expectedParams.addRule(RelativeLayout.BELOW, content.id)
-            expectedParams.topMargin = dp(label.context, 2f)
+            // 与头像位置共用同一个间距值，避免"头像旁"和"消息底部"两种入口间距不一致。
+            expectedParams.topMargin = dp(label.context, config.avatarGapDp.toFloat())
             if (details.isSelf) {
                 if (avatarHidden) {
                     expectedParams.addRule(RelativeLayout.ALIGN_PARENT_END)
@@ -1812,7 +1816,7 @@ private class HchatExtraHooker(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        params.topMargin = dp(label.context, 2f)
+        params.topMargin = dp(label.context, config.avatarGapDp.toFloat())
         if (details.isSelf) {
             if (!avatarHidden) params.marginEnd = right
             if (label.gravity != Gravity.END) label.gravity = Gravity.END

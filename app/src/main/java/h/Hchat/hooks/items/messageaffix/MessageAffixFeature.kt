@@ -1,5 +1,6 @@
 package h.Hchat.hooks.items.messageaffix
 
+import h.Hchat.hooks.api.ui.SendButtonHook
 import h.Hchat.event.Events
 import h.Hchat.hooks.api.message.OutgoingTextDecoratorRegistry
 import h.Hchat.hooks.core.BaseFeature
@@ -7,7 +8,6 @@ import h.Hchat.hooks.core.DexInstallScheduler
 import h.Hchat.hooks.core.FeatureContext
 import h.Hchat.hooks.items.inputhint.InputHintStats
 import h.Hchat.hooks.items.inputhint.OutgoingMessageStatsRepository
-import h.Hchat.hooks.items.script.ScriptSendButtonHook
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -119,7 +119,7 @@ class MessageAffixFeature : BaseFeature() {
             "聊天发送按钮",
             stage = DexInstallScheduler.Stage.WARMUP
         ) {
-            ScriptSendButtonHook.install(context)
+            SendButtonHook.install(context)
         }
     }
 

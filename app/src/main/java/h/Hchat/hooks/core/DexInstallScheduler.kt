@@ -22,6 +22,17 @@ object DexInstallScheduler {
     private const val MAX_RETRY_DELAY_MS = 60_000L
     private val mainHandler = Handler(Looper.getMainLooper())
     private val states = ConcurrentHashMap<String, State>()
+    private val registeredLabels = ConcurrentHashMap<String, String>()
+    private val summaryScheduled = AtomicBoolean(false)
+
+    @Volatile
+    private var locateStateDumper: Runnable? = null
+
+    /** 由启动入口注入：汇总时顺带输出 DexFinder 各定位字段的就位情况。 */
+    @JvmStatic
+    fun setLocateStateDumper(dumper: Runnable) {
+        locateStateDumper = dumper
+    }
     private val readyLevel = AtomicInteger(0)
     private val stateLock = Any()
     private val dexKitExecutionLock = Any()
@@ -38,6 +49,7 @@ object DexInstallScheduler {
         installer: () -> Boolean
     ) = synchronized(stateLock) {
         if (key.isBlank()) return@synchronized
+        registeredLabels[key] = label
         val registry = HookRegistry.get()
         val generation = registry.installationGeneration()
         if (!registry.isInstallationGenerationActive(generation)) return@synchronized
@@ -65,7 +77,25 @@ object DexInstallScheduler {
 
     @JvmStatic fun markDexBridgeReady() { advanceReady(Stage.BRIDGE) }
     @JvmStatic fun markDexReady() { markDexWarmupReady() }
-    @JvmStatic fun markDexWarmupReady() { advanceReady(Stage.WARMUP) }
+    @JvmStatic fun markDexWarmupReady() {
+        advanceReady(Stage.WARMUP)
+        scheduleSummaryDump()
+    }
+
+    /** WARMUP 队列串行执行 DexKit 查询，全部跑完要几分钟，分两次落汇总。 */
+    private fun scheduleSummaryDump() {
+        if (!summaryScheduled.compareAndSet(false, true)) return
+        mainHandler.postDelayed({ dumpSummaryAsync(full = true) }, 120_000L)
+        mainHandler.postDelayed({ dumpSummaryAsync(full = false) }, 300_000L)
+    }
+
+    /**
+     * 汇总要跑一遍字段反射并写几十行 LSPosed 日志（跨进程），不能在主线程做，
+     * 否则冷启动两分钟、五分钟各卡一次 UI。
+     */
+    private fun dumpSummaryAsync(full: Boolean) {
+        Thread({ runCatching { dumpSummary(full) } }, "Hchat-DexSummary").apply { isDaemon = true }.start()
+    }
 
     @JvmStatic
     fun runDexKitTask(task: Runnable) {
@@ -208,6 +238,30 @@ object DexInstallScheduler {
     }
 
     private fun isReady(stage: Stage): Boolean = readyLevel.get() >= stage.level
+
+    /**
+     * 本轮所有已注册功能点的结果落日志：抓一份日志就能看出哪几项失败，
+     * 再对照各功能自己打的诊断行定位原因，不用逐项复现。
+     * full=false 时只输出失败和未入队项，避免第二次汇总把几十行 OK 重复写一遍。
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun dumpSummary(full: Boolean = true) {
+        if (full) runCatching { locateStateDumper?.run() }
+        val snap = snapshot()
+        val installed = snap.filter { it.installed }
+        val failed = snap.filter { !it.installed }
+        val queued = snap.map { it.key }.toSet()
+        val pending = registeredLabels.filterKeys { it !in queued }
+        HLog.e("$TAG ===== 安装汇总 成功=${installed.size} 失败=${failed.size} 未入队=${pending.size} =====")
+        failed.sortedBy { it.label }.forEach {
+            HLog.e("$TAG FAIL ${it.label} retry=${it.retryIndex} err=${it.error.ifEmpty { "-" }}")
+        }
+        if (pending.isNotEmpty()) {
+            HLog.e("$TAG 未入队: " + pending.values.sorted().joinToString("、"))
+        }
+        if (full) installed.sortedBy { it.label }.forEach { HLog.e("$TAG OK ${it.label}") }
+    }
 
     /** 供「模块排查」页面读取的安装队列快照。 */
     fun snapshot(): List<ModuleStatusStore.InstallStatus> = synchronized(stateLock) {

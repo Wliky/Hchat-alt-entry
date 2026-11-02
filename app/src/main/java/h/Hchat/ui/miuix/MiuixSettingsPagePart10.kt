@@ -40,13 +40,8 @@ import android.widget.Toast
 import android.widget.VideoView
 import h.Hchat.BuildConfig
 import h.Hchat.R
-import h.Hchat.crash.CrashReportRuntime
-import h.Hchat.crash.CrashReportSettings
-import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.hooks.api.ui.HchatAgentIconDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutFeature
-import h.Hchat.hooks.items.script.market.PluginMarketClient
-import h.Hchat.hooks.items.script.market.PluginMarketSettings
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyph
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphs
@@ -232,21 +227,14 @@ import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalSettings
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardFeature
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardRule
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
 import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleSettings
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupRuntime
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupStore
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsStore
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.custombottombar.FloatingBottomBarSettings
 import h.Hchat.hooks.items.customnotify.CustomNotificationFeature
@@ -292,19 +280,10 @@ import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuSettings
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateSettings
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorFeature
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorSettings
 import h.Hchat.hooks.items.inputhint.InputHintFeature
 import h.Hchat.hooks.items.inputhint.InputHintSettings
 import h.Hchat.hooks.items.inputhint.InputHintStats
 import h.Hchat.hooks.items.inputhint.OutgoingMessageStatsRepository
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveFeature
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveRuntime
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationFeature
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationRuntime
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordRule
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckController
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckActionResult
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
@@ -315,30 +294,15 @@ import h.Hchat.hooks.items.membertitle.MemberTitleSettings
 import h.Hchat.hooks.items.membertitle.MemberTitleStore
 import h.Hchat.hooks.items.messageaffix.MessageAffixFeature
 import h.Hchat.hooks.items.messageaffix.MessageAffixSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleFeature
-import h.Hchat.hooks.items.messagebubble.MessageBubblePickResult
-import h.Hchat.hooks.items.messagebubble.MessageBubblePicker
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSlot
-import h.Hchat.hooks.items.messagebubble.MessageBubbleStore
-import h.Hchat.hooks.items.messagebubble.MessageBubbleKind
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorFeature
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockBinding
 import h.Hchat.hooks.items.messageblock.MessageBlockDefaultRule
 import h.Hchat.hooks.items.messageblock.MessageBlockFeature
 import h.Hchat.hooks.items.messageblock.MessageBlockSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockTemplate
-import h.Hchat.hooks.items.messageforward.MessageForwardFeature
-import h.Hchat.hooks.items.messageforward.MessageForwardSettings
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibSettings
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsSettings
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
-import h.Hchat.hooks.items.musicorder.QQMusicOrderFeature
-import h.Hchat.hooks.items.musicorder.QQMusicOrderSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
 import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
@@ -394,9 +358,6 @@ import h.Hchat.hooks.items.patblock.PatBlockFeature
 import h.Hchat.hooks.items.patblock.PatBlockSettings
 import h.Hchat.hooks.items.profileid.ProfileIdFeature
 import h.Hchat.hooks.items.profileid.ProfileIdSettings
-import h.Hchat.hooks.items.protobuf.ProtobufPacketFeature
-import h.Hchat.hooks.items.protobuf.ProtobufPacketRuntime
-import h.Hchat.hooks.items.protobuf.ProtobufPacketSettings
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearFeature
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearSettings
 import h.Hchat.hooks.items.quickcontactedit.QuickContactEditFeature
@@ -412,50 +373,6 @@ import h.Hchat.hooks.items.realtail.RealNameTailSettings
 import h.Hchat.hooks.items.realtail.RealNameTailStore
 import h.Hchat.hooks.items.roundavatar.RoundAvatarFeature
 import h.Hchat.hooks.items.roundavatar.RoundAvatarSettings
-import h.Hchat.hooks.items.script.ScriptPluginFeature
-import h.Hchat.hooks.items.script.ScriptPluginManager
-import h.Hchat.hooks.items.script.ScriptPluginRuntime
-import h.Hchat.hooks.items.script.ScriptPluginSettings
-import h.Hchat.hooks.items.script.market.PluginMarketHistoryVersion
-import h.Hchat.hooks.items.script.market.PluginMarketInstaller
-import h.Hchat.hooks.items.script.market.PluginMarketException
-import h.Hchat.hooks.items.script.market.PluginMarketFile
-import h.Hchat.hooks.items.script.market.PluginMarketComment
-import h.Hchat.hooks.items.script.market.PluginMarketNotification
-import h.Hchat.hooks.items.script.market.PluginMarketPlugin
-import h.Hchat.hooks.items.script.market.PluginMarketRepository
-import h.Hchat.hooks.items.script.market.PluginMarketReviewStatus
-import h.Hchat.hooks.items.script.market.PluginMarketUserIdentity
-import h.Hchat.hooks.items.script.agent.CodexSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentClient
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentAttachment
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentChatMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentConfig
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentCancellation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentContext
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDiff
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDraft
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentEventIds
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentLocalFiles
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentMcpServer
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentReasoning
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentRequest
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentResumeState
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSession
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSessionStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentProfile
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentQuotedMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSpeech
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentTextMerge
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolEvent
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolResultStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentValidator
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceChange
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceToolConfirmation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceWriteDecision
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceTools
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWriter
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskContentItem
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskFeature
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskItem
@@ -465,13 +382,10 @@ import h.Hchat.hooks.items.selectedmessages.SelectedMessageSnapshot
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesFeature
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesRuntimeCoordinator
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesSettings
-import h.Hchat.hooks.items.settings.PluginAgentEntryProvider
 import h.Hchat.hooks.items.settings.SettingsEntrySettings
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadSettings
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitFeature
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitSettings
 import h.Hchat.hooks.items.swipequote.SwipeQuoteFeature
 import h.Hchat.hooks.items.swipequote.SwipeQuoteSettings
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature
@@ -495,7 +409,6 @@ import h.Hchat.hooks.items.voicepreview.VoicePreviewFeature
 import h.Hchat.hooks.items.voicepreview.VoicePreviewSettings
 import h.Hchat.media.AudioTransformBridge
 import h.Hchat.preferences.HchatStorage
-import h.Hchat.preferences.TermsGate
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
@@ -520,6 +433,7 @@ import top.yukonga.miuix.kmp.menu.WindowDropdownMenu
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Switch
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
@@ -3674,27 +3588,17 @@ internal fun SwitchRow(
     defaultValue: Boolean
 ) {
     var checked by remember { mutableStateOf(sp.getBoolean(key, defaultValue)) }
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable {
-            checked = !checked
-            sp.edit().putBoolean(key, checked).apply()
-        }.padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
-            if (summary.isNotBlank()) {
-                Text(text = summary, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 12.sp)
-            }
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = {
-                checked = it
-                sp.edit().putBoolean(key, it).apply()
-            }
-        )
-    }
+    // 用组件库的 SwitchPreference：行内边距、标题/摘要字号、点击波纹都由库统一，
+    // 避免各页面手写过一遍导致细节不一致。
+    SwitchPreference(
+        checked = checked,
+        onCheckedChange = {
+            checked = it
+            sp.edit().putBoolean(key, it).apply()
+        },
+        title = title,
+        summary = summary.takeIf { it.isNotBlank() }
+    )
 }
 
 @Composable
@@ -3705,25 +3609,13 @@ internal fun SwitchRow(
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().then(
-            if (enabled) {
-                Modifier.clickable { onCheckedChange(!checked) }
-            } else {
-                Modifier
-            }
-        ).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
-            Text(text = summary, color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 12.sp)
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = { if (enabled) onCheckedChange(it) }
-        )
-    }
+    SwitchPreference(
+        checked = checked,
+        onCheckedChange = { if (enabled) onCheckedChange(it) },
+        title = title,
+        summary = summary.takeIf { it.isNotBlank() },
+        enabled = enabled
+    )
 }
 
 @Composable

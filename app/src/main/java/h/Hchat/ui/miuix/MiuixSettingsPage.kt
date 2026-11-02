@@ -2101,11 +2101,35 @@ internal object HchatConfigBackup {
         GroupNicknameColorSettings.PREFS_NAME
     ).distinct()
 
+    /**
+     * 备份范围以存储目录里的实际文件为准，硬编码清单只作兜底。
+     *
+     * 功能一直在加，靠人工维护清单必然漏项；[HchatStorage.storageNames] 能兜住
+     * 本次启动没被访问过的功能，[HchatStorage.knownNames] 兜住运行期动态创建的配置。
+     */
+    private fun resolvePrefsNames(context: Context, incoming: JSONObject? = null): List<String> {
+        val names = LinkedHashSet<String>()
+        names += prefsNames
+        names += HchatStorage.knownNames()
+        names += HchatStorage.storageNames(context)
+        incoming?.let { json ->
+            val keys = json.keys()
+            while (keys.hasNext()) names += keys.next()
+        }
+        return names.filterNot(::isTransientPrefs)
+    }
+
+    /** 缓存与临时数据体积大且可重建，不写进备份包。 */
+    private fun isTransientPrefs(name: String): Boolean {
+        val lower = name.lowercase(Locale.US)
+        return lower.contains("cache") || lower.contains("thumbnail") || lower.contains("temp")
+    }
+
     fun exportToUri(context: Context, uri: Uri): Int {
         return runCatching {
             val prefsJson = JSONObject()
             var itemCount = 0
-            prefsNames.forEach { name ->
+            resolvePrefsNames(context).forEach { name ->
                 val sp = HchatStorage.preferences(context, name)
                 val entries = JSONObject()
                 sp.all.forEach { (key, value) ->
@@ -2142,7 +2166,7 @@ internal object HchatConfigBackup {
             if (root.optString("format") != "HchatConfigBackup") return 0
             val prefsJson = root.optJSONObject("prefs") ?: return 0
             var itemCount = 0
-            prefsNames.forEach { name ->
+            resolvePrefsNames(context, prefsJson).forEach { name ->
                 val entries = prefsJson.optJSONObject(name) ?: return@forEach
                 val editor = HchatStorage.preferences(context, name).edit().clear()
                 val keys = entries.keys()

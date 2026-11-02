@@ -1,10 +1,10 @@
 package h.Hchat.hooks.items.textvoice
 
+import h.Hchat.hooks.api.ui.SendButtonHook
 import h.Hchat.event.Events
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.DexInstallScheduler
 import h.Hchat.hooks.core.FeatureContext
-import h.Hchat.hooks.items.script.ScriptSendButtonHook
 
 class TextVoiceFeature : BaseFeature() {
     private var runtime: TextVoiceRuntime? = null
@@ -21,7 +21,7 @@ class TextVoiceFeature : BaseFeature() {
         val current = TextVoiceRuntime(context, ::logFeatureError)
         runtime = current
         trackSubscription(
-            ScriptSendButtonHook.registerHandler(ID) { text -> current.handleSendButton(text) }
+            SendButtonHook.registerHandler(ID) { text -> current.handleSendButton(text) }
         )
         scheduleSendButtonHook(context)
         scheduleMessageMenuInstall()
@@ -42,7 +42,7 @@ class TextVoiceFeature : BaseFeature() {
             "聊天发送按钮",
             stage = DexInstallScheduler.Stage.WARMUP
         ) {
-            ScriptSendButtonHook.install(context)
+            SendButtonHook.install(context)
         }
     }
 

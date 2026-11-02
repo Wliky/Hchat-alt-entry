@@ -27,7 +27,6 @@ import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.DexInstallScheduler
 import h.Hchat.hooks.core.FeatureContext
 import h.Hchat.hooks.core.HookRegistry
-import h.Hchat.hooks.items.messageforward.MessageForwardSettings
 import h.Hchat.hooks.items.selectedmessages.ForwardSendPolicy
 import h.Hchat.preferences.HchatStorage
 import h.Hchat.ui.miuix.VoiceForwardMiuixDialog
@@ -98,10 +97,6 @@ private class VoiceForwardHooker(
     private val logger: (String, Throwable?) -> Unit
 ) {
     private val prefs = HchatStorage.preferences(context.hostContext(), VoiceForwardSettings.PREFS_NAME)
-    private val messageForwardPrefs = HchatStorage.preferences(
-        context.hostContext(),
-        MessageForwardSettings.PREFS_NAME
-    )
     private val methodPrefs = DexMethodCache.prefs(context.hostContext(), "Hchat_voice_forward_method_cache")
     private val hookedMethods = Collections.newSetFromMap(ConcurrentHashMap<Method, Boolean>())
     private val menuMethodsByClickMethod = ConcurrentHashMap<Method, Method>()
@@ -557,7 +552,7 @@ private class VoiceForwardHooker(
 
     private fun addForwardMenu(param: XC_MethodHook.MethodHookParam) {
         if (!isEnabled()) return
-        val allowForward = chatForwardEnabled() && !messageForwardMenuEnabled()
+        val allowForward = chatForwardEnabled()
         val allowSave = chatSaveEnabled()
         if (!allowForward && !allowSave) return
         val args = param.args ?: return
@@ -1069,18 +1064,11 @@ private class VoiceForwardHooker(
     }
 
     private fun favoriteClickForwardEnabled(): Boolean {
-        return favoriteForwardEnabled() || messageFavoriteForwardEnabled()
+        return favoriteForwardEnabled()
     }
 
     private fun favoriteMenuForwardEnabled(): Boolean {
-        return favoriteForwardEnabled() && !messageFavoriteForwardEnabled()
-    }
-
-    private fun messageFavoriteForwardEnabled(): Boolean {
-        return messageForwardPrefs.getBoolean(
-            MessageForwardSettings.KEY_FAVORITE_FORWARD_ENABLE,
-            MessageForwardSettings.DEFAULT_ENABLE
-        )
+        return favoriteForwardEnabled()
     }
 
     private fun favoriteSaveEnabled(): Boolean {
@@ -1093,13 +1081,6 @@ private class VoiceForwardHooker(
 
     private fun chatMultiMergeEnabled(): Boolean {
         return prefs.getBoolean(VoiceForwardSettings.KEY_CHAT_MULTI_MERGE_ENABLE, false)
-    }
-
-    private fun messageForwardMenuEnabled(): Boolean {
-        return messageForwardPrefs.getBoolean(
-            MessageForwardSettings.KEY_ENABLE,
-            MessageForwardSettings.DEFAULT_ENABLE
-        )
     }
 
     private fun voiceSwitchEnabled(key: String): Boolean {

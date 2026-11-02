@@ -7,12 +7,12 @@ import android.os.Looper
 import android.text.TextUtils
 import android.view.View
 import android.widget.TextView
+import h.Hchat.hooks.api.ui.SendButtonHook
 import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.event.Events
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.FeatureContext
 import h.Hchat.hooks.core.HookRegistry
-import h.Hchat.hooks.items.script.ScriptSendButtonHook
 import h.Hchat.utils.KavaReflector
 import java.util.Collections
 import java.util.WeakHashMap
@@ -141,19 +141,19 @@ private class InputHintRuntime(
 
     private fun bindFooter(footer: Any?) {
         if (!active || footer == null) return
-        val input = ScriptSendButtonHook.findInputView(footer)
+        val input = SendButtonHook.findInputView(footer)
         if (input != null) {
             bindInput(input)
             postToInput(input) { bindInput(input) }
             return
         }
         (footer as? View)?.post {
-            ScriptSendButtonHook.findInputView(footer)?.let(::bindInput)
+            SendButtonHook.findInputView(footer)?.let(::bindInput)
         }
     }
 
     private fun bindInput(input: Any) {
-        ScriptSendButtonHook.trackInputView(input)
+        SendButtonHook.trackInputView(input)
         if (!supportsHint(input)) return
         synchronized(inputBindings) {
             if (!inputBindings.containsKey(input)) {

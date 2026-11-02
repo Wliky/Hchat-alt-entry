@@ -40,13 +40,8 @@ import android.widget.Toast
 import android.widget.VideoView
 import h.Hchat.BuildConfig
 import h.Hchat.R
-import h.Hchat.crash.CrashReportRuntime
-import h.Hchat.crash.CrashReportSettings
-import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.hooks.api.ui.HchatAgentIconDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutFeature
-import h.Hchat.hooks.items.script.market.PluginMarketClient
-import h.Hchat.hooks.items.script.market.PluginMarketSettings
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyph
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphs
@@ -232,21 +227,14 @@ import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalSettings
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardFeature
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardRule
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
 import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleSettings
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupRuntime
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupStore
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsStore
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.custombottombar.FloatingBottomBarSettings
 import h.Hchat.hooks.items.customnotify.CustomNotificationFeature
@@ -292,19 +280,10 @@ import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuSettings
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateSettings
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorFeature
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorSettings
 import h.Hchat.hooks.items.inputhint.InputHintFeature
 import h.Hchat.hooks.items.inputhint.InputHintSettings
 import h.Hchat.hooks.items.inputhint.InputHintStats
 import h.Hchat.hooks.items.inputhint.OutgoingMessageStatsRepository
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveFeature
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveRuntime
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationFeature
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationRuntime
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordRule
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckController
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckActionResult
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
@@ -315,30 +294,15 @@ import h.Hchat.hooks.items.membertitle.MemberTitleSettings
 import h.Hchat.hooks.items.membertitle.MemberTitleStore
 import h.Hchat.hooks.items.messageaffix.MessageAffixFeature
 import h.Hchat.hooks.items.messageaffix.MessageAffixSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleFeature
-import h.Hchat.hooks.items.messagebubble.MessageBubblePickResult
-import h.Hchat.hooks.items.messagebubble.MessageBubblePicker
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSlot
-import h.Hchat.hooks.items.messagebubble.MessageBubbleStore
-import h.Hchat.hooks.items.messagebubble.MessageBubbleKind
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorFeature
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockBinding
 import h.Hchat.hooks.items.messageblock.MessageBlockDefaultRule
 import h.Hchat.hooks.items.messageblock.MessageBlockFeature
 import h.Hchat.hooks.items.messageblock.MessageBlockSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockTemplate
-import h.Hchat.hooks.items.messageforward.MessageForwardFeature
-import h.Hchat.hooks.items.messageforward.MessageForwardSettings
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibSettings
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsSettings
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
-import h.Hchat.hooks.items.musicorder.QQMusicOrderFeature
-import h.Hchat.hooks.items.musicorder.QQMusicOrderSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
 import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
@@ -394,9 +358,6 @@ import h.Hchat.hooks.items.patblock.PatBlockFeature
 import h.Hchat.hooks.items.patblock.PatBlockSettings
 import h.Hchat.hooks.items.profileid.ProfileIdFeature
 import h.Hchat.hooks.items.profileid.ProfileIdSettings
-import h.Hchat.hooks.items.protobuf.ProtobufPacketFeature
-import h.Hchat.hooks.items.protobuf.ProtobufPacketRuntime
-import h.Hchat.hooks.items.protobuf.ProtobufPacketSettings
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearFeature
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearSettings
 import h.Hchat.hooks.items.quickcontactedit.QuickContactEditFeature
@@ -412,50 +373,6 @@ import h.Hchat.hooks.items.realtail.RealNameTailSettings
 import h.Hchat.hooks.items.realtail.RealNameTailStore
 import h.Hchat.hooks.items.roundavatar.RoundAvatarFeature
 import h.Hchat.hooks.items.roundavatar.RoundAvatarSettings
-import h.Hchat.hooks.items.script.ScriptPluginFeature
-import h.Hchat.hooks.items.script.ScriptPluginManager
-import h.Hchat.hooks.items.script.ScriptPluginRuntime
-import h.Hchat.hooks.items.script.ScriptPluginSettings
-import h.Hchat.hooks.items.script.market.PluginMarketHistoryVersion
-import h.Hchat.hooks.items.script.market.PluginMarketInstaller
-import h.Hchat.hooks.items.script.market.PluginMarketException
-import h.Hchat.hooks.items.script.market.PluginMarketFile
-import h.Hchat.hooks.items.script.market.PluginMarketComment
-import h.Hchat.hooks.items.script.market.PluginMarketNotification
-import h.Hchat.hooks.items.script.market.PluginMarketPlugin
-import h.Hchat.hooks.items.script.market.PluginMarketRepository
-import h.Hchat.hooks.items.script.market.PluginMarketReviewStatus
-import h.Hchat.hooks.items.script.market.PluginMarketUserIdentity
-import h.Hchat.hooks.items.script.agent.CodexSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentClient
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentAttachment
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentChatMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentConfig
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentCancellation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentContext
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDiff
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDraft
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentEventIds
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentLocalFiles
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentMcpServer
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentReasoning
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentRequest
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentResumeState
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSession
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSessionStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentProfile
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentQuotedMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSpeech
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentTextMerge
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolEvent
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolResultStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentValidator
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceChange
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceToolConfirmation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceWriteDecision
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceTools
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWriter
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskContentItem
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskFeature
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskItem
@@ -465,13 +382,10 @@ import h.Hchat.hooks.items.selectedmessages.SelectedMessageSnapshot
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesFeature
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesRuntimeCoordinator
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesSettings
-import h.Hchat.hooks.items.settings.PluginAgentEntryProvider
 import h.Hchat.hooks.items.settings.SettingsEntrySettings
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadSettings
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitFeature
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitSettings
 import h.Hchat.hooks.items.swipequote.SwipeQuoteFeature
 import h.Hchat.hooks.items.swipequote.SwipeQuoteSettings
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature
@@ -495,7 +409,6 @@ import h.Hchat.hooks.items.voicepreview.VoicePreviewFeature
 import h.Hchat.hooks.items.voicepreview.VoicePreviewSettings
 import h.Hchat.media.AudioTransformBridge
 import h.Hchat.preferences.HchatStorage
-import h.Hchat.preferences.TermsGate
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
@@ -1169,9 +1082,6 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
     var xiaozhiMusicMcp by remember { mutableStateOf(settings.xiaozhiConfig().musicMcpEnabled) }
     var xiaozhiMcpBridge by remember { mutableStateOf(settings.xiaozhiConfig().mcpBridgeEnabled) }
     var xiaozhiMcpEndpoint by remember { mutableStateOf(settings.xiaozhiConfig().mcpEndpointUrl) }
-    var xiaozhiMcpKugouEnabled by remember { mutableStateOf(settings.xiaozhiConfig().mcpKugouEnabled) }
-    var xiaozhiMcpKugouPluginId by remember { mutableStateOf(settings.xiaozhiConfig().mcpKugouPluginId) }
-    var xiaozhiMcpKugouFunction by remember { mutableStateOf(settings.xiaozhiConfig().mcpKugouFunctionName) }
     var xiaozhiMcpReadySeconds by remember { mutableStateOf(settings.xiaozhiConfig().mcpReadySeconds.toString()) }
     var xiaozhiMcpIdleSeconds by remember { mutableStateOf(settings.xiaozhiConfig().mcpIdleSeconds.toString()) }
     var xiaozhiMcpStatus by remember { mutableStateOf(XiaozhiMcpStatus(false, "未查询", "点击刷新查询小智控制台")) }
@@ -1232,9 +1142,6 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
             musicMcpEnabled = xiaozhiMusicMcp,
             mcpBridgeEnabled = xiaozhiMcpBridge,
             mcpEndpointUrl = xiaozhiMcpEndpoint,
-            mcpKugouEnabled = xiaozhiMcpKugouEnabled,
-            mcpKugouPluginId = xiaozhiMcpKugouPluginId,
-            mcpKugouFunctionName = xiaozhiMcpKugouFunction,
             mcpReadySeconds = xiaozhiMcpReadySeconds.toIntOrNull()?.coerceIn(1, 30)
                 ?: AutoReplySettings.DEFAULT_XIAOZHI_MCP_READY_SECONDS,
             mcpIdleSeconds = xiaozhiMcpIdleSeconds.toIntOrNull()?.coerceIn(10, 600)
@@ -1734,27 +1641,6 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
                                     "空闲多少秒后断开 MCP，默认 90，可填 10-600",
                                     xiaozhiMcpIdleSeconds
                                 ) { xiaozhiMcpIdleSeconds = it.filter { ch -> ch.isDigit() }.take(3) }
-                                InsetDivider()
-                                SwitchRow(
-                                    checked = xiaozhiMcpKugouEnabled,
-                                    title = "调用点歌工具",
-                                    summary = "让小智理解自然语言后调用本地点歌插件发送音乐卡片",
-                                    onCheckedChange = { xiaozhiMcpKugouEnabled = it }
-                                )
-                                if (xiaozhiMcpKugouEnabled) {
-                                    InsetDivider()
-                                    InputRow(
-                                        "点歌插件ID",
-                                        "例如 QQ点歌",
-                                        xiaozhiMcpKugouPluginId
-                                    ) { xiaozhiMcpKugouPluginId = it }
-                                    InsetDivider()
-                                    InputRow(
-                                        "点歌函数名",
-                                        "例如 queryKugouMusic",
-                                        xiaozhiMcpKugouFunction
-                                    ) { xiaozhiMcpKugouFunction = it }
-                                }
                             }
                         }
                         item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "运行状态") }
@@ -3343,141 +3229,6 @@ internal data class CustomNotificationBatchUpdate(
             next = next.copy(blockAtAll = blockAtAll, blockAtMe = blockAtMe)
         }
         return next
-    }
-}
-
-@Composable
-internal fun KeywordNotificationMiuixPage(
-    context: Context,
-    provider: FeatureSettingsProvider,
-    onBack: () -> Unit
-) {
-    val settings = remember { KeywordNotificationSettings(context) }
-    val sp = remember { HchatStorage.preferences(context, KeywordNotificationSettings.PREFS_NAME) }
-    var route by remember { mutableStateOf<KeywordNotificationRoute>(KeywordNotificationRoute.Main) }
-    var keywords by remember { mutableStateOf(settings.keywords()) }
-    var excludeContacts by remember { mutableStateOf(settings.excludeContacts()) }
-    var includeContacts by remember { mutableStateOf(settings.includeContacts()) }
-    val keywordMainListState = rememberLazyListState()
-    val keywordListState = rememberLazyListState()
-    var keywordQuery by remember { mutableStateOf("") }
-
-    fun saveKeywords(next: List<KeywordRule>) {
-        val clean = next.map { it.copy(keyword = it.keyword.trim()) }
-            .filter { it.keyword.isNotBlank() }
-            .distinctBy { it.keyword }
-        keywords = clean
-        settings.saveKeywords(clean)
-    }
-
-    fun saveContacts(includeMode: Boolean, ids: Set<String>) {
-        if (includeMode) {
-            includeContacts = ids
-            settings.saveIncludeContacts(ids)
-        } else {
-            excludeContacts = ids
-            settings.saveExcludeContacts(ids)
-        }
-    }
-
-    SettingsRouteTransition(
-        targetState = route,
-        label = "KeywordNotificationRoute",
-        depthOf = { it.depth() }
-    ) { currentRoute ->
-        when (currentRoute) {
-            KeywordNotificationRoute.Main -> KeywordNotificationMainPage(
-                context = context,
-                provider = provider,
-                sp = sp,
-                keywords = keywords,
-                excludeContacts = excludeContacts,
-                includeContacts = includeContacts,
-                listState = keywordMainListState,
-                onBack = onBack,
-                onOpenKeywords = { route = KeywordNotificationRoute.KeywordList },
-                onOpenTemplates = { route = KeywordNotificationRoute.TemplateEditor },
-                onPickContacts = { includeMode ->
-                    val current = if (includeMode) includeContacts else excludeContacts
-                    route = KeywordNotificationRoute.ContactPicker(
-                        request = ContactPickerRequest(
-                            title = if (includeMode) "选择仅生效聊天" else "选择排除聊天",
-                            mode = ContactPickerMode.BOTH,
-                            multiSelect = true,
-                            existingValue = current.joinToString(","),
-                            onValue = {},
-                            enableLabels = true
-                        ),
-                        includeMode = includeMode
-                    )
-                },
-                onClearContacts = { includeMode ->
-                    saveContacts(includeMode, emptySet())
-                    Toast.makeText(context, if (includeMode) "已清空仅生效名单" else "已清空排除名单", Toast.LENGTH_SHORT).show()
-                }
-            )
-            KeywordNotificationRoute.KeywordList -> KeywordNotificationKeywordListPage(
-                keywords = keywords,
-                query = keywordQuery,
-                onQueryChange = { keywordQuery = it },
-                listState = keywordListState,
-                onBack = { route = KeywordNotificationRoute.Main },
-                onAdd = { route = KeywordNotificationRoute.KeywordEditor(null) },
-                onEdit = { route = KeywordNotificationRoute.KeywordEditor(it.keyword) },
-                onClear = {
-                    saveKeywords(emptyList())
-                    Toast.makeText(context, "已清空关键词", Toast.LENGTH_SHORT).show()
-                }
-            )
-            is KeywordNotificationRoute.KeywordEditor -> {
-                val old = currentRoute.oldKeyword?.let { oldKeyword -> keywords.firstOrNull { it.keyword == oldKeyword } }
-                KeywordNotificationKeywordEditorPage(
-                    initial = old,
-                    onBack = { route = KeywordNotificationRoute.KeywordList },
-                    onSave = { saved ->
-                        if (saved.keyword.isBlank()) {
-                            Toast.makeText(context, "关键词不能为空", Toast.LENGTH_SHORT).show()
-                        } else if (currentRoute.oldKeyword != saved.keyword && keywords.any { it.keyword == saved.keyword }) {
-                            Toast.makeText(context, "该关键词已存在", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val next = if (currentRoute.oldKeyword == null) {
-                                keywords + saved
-                            } else {
-                                keywords.map { if (it.keyword == currentRoute.oldKeyword) saved else it }
-                            }
-                            saveKeywords(next)
-                            Toast.makeText(context, "关键词已保存", Toast.LENGTH_SHORT).show()
-                            route = KeywordNotificationRoute.KeywordList
-                        }
-                    },
-                    onDelete = if (old == null) {
-                        null
-                    } else {
-                        {
-                            saveKeywords(keywords.filterNot { it.keyword == old.keyword })
-                            Toast.makeText(context, "关键词已删除", Toast.LENGTH_SHORT).show()
-                            route = KeywordNotificationRoute.KeywordList
-                        }
-                    }
-                )
-            }
-            KeywordNotificationRoute.TemplateEditor -> KeywordNotificationTemplatePage(
-                context = context,
-                sp = sp,
-                onBack = { route = KeywordNotificationRoute.Main }
-            )
-            is KeywordNotificationRoute.ContactPicker -> ContactPickerPage(
-                context = context,
-                request = currentRoute.request,
-                onBack = { route = KeywordNotificationRoute.Main },
-                onConfirm = { picked ->
-                    val ids = picked.map { it.id }.filter { it.isNotBlank() }.toSet()
-                    saveContacts(currentRoute.includeMode, ids)
-                    Toast.makeText(context, "名单已保存", Toast.LENGTH_SHORT).show()
-                    route = KeywordNotificationRoute.Main
-                }
-            )
-        }
     }
 }
 

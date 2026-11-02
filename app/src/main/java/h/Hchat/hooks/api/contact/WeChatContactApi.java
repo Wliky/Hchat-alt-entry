@@ -5,7 +5,6 @@ import android.content.ContentValues;
 
 import h.Hchat.dexkit.DexFinder;
 import h.Hchat.hooks.api.media.WeChatInternalServices;
-import h.Hchat.hooks.items.protobuf.ProtobufPacketRuntime;
 import h.Hchat.hooks.api.net.WeChatNetworkDispatcher;
 import h.Hchat.utils.KavaReflector;
 import h.Hchat.hooks.api.model.ContactLabelBean;
@@ -703,10 +702,7 @@ public final class WeChatContactApi {
     public boolean modifyContactRemark(String username, String remarkName) {
         if (TextUtils.isEmpty(username)) return false;
         String cleanRemark = remarkName == null ? "" : remarkName.trim();
-        boolean synced = sendSetContactPropertyRemark(username, cleanRemark, "");
-        if (!synced) {
-            synced = modifyContactRemarkByNativeStorage(username, cleanRemark);
-        }
+        boolean synced = modifyContactRemarkByNativeStorage(username, cleanRemark);
         if (!synced) {
             log("修改好友备注失败: 同步接口不可用 username=" + username);
             return false;
@@ -1076,9 +1072,6 @@ public final class WeChatContactApi {
     }
 
     private boolean sendModifyContactLabelList(String username, String labelIdsValue) {
-        if (sendModifyContactLabelListByPb(username, labelIdsValue)) {
-            return true;
-        }
         Constructor<?> ctor = dexFinder != null ? dexFinder.modifyContactLabelListCtor : null;
         if (ctor == null || networkDispatcher == null || dexFinder == null) {
             log("修改好友标签失败: 网络API未就绪");
@@ -1099,46 +1092,6 @@ public final class WeChatContactApi {
             return result;
         } catch (Throwable e) {
             log("修改好友标签发包异常: " + e.getMessage());
-            return false;
-        }
-    }
-
-    private boolean sendModifyContactLabelListByPb(String username, String labelIdsValue) {
-        if (TextUtils.isEmpty(username)) return false;
-        try {
-            JSONObject item = new JSONObject();
-            item.put("1", username);
-            item.put("2", labelIdsValue == null ? "" : labelIdsValue);
-            JSONObject payload = new JSONObject();
-            payload.put("2", 1);
-            payload.put("3", item);
-            return ProtobufPacketRuntime.send(
-                    "/cgi-bin/micromsg-bin/modifycontactlabellist",
-                    638,
-                    payload.toString(),
-                    null
-            );
-        } catch (Throwable e) {
-            log("修改好友标签PB发包异常: " + e.getMessage());
-            return false;
-        }
-    }
-
-    private boolean sendSetContactPropertyRemark(String username, String remarkName, String roomName) {
-        if (TextUtils.isEmpty(username)) return false;
-        try {
-            JSONObject payload = new JSONObject();
-            payload.put("2", username);
-            payload.put("3", new JSONObject().put("1", remarkName == null ? "" : remarkName));
-            if (!TextUtils.isEmpty(roomName)) payload.put("4", roomName);
-            return ProtobufPacketRuntime.send(
-                    "/cgi-bin/micromsg-bin/setcontactproperty",
-                    10022,
-                    payload.toString(),
-                    null
-            );
-        } catch (Throwable e) {
-            log("修改好友备注PB发包异常: " + e.getMessage());
             return false;
         }
     }

@@ -66,9 +66,25 @@ private class GameEmojiRuntime(
     @Synchronized
     fun install(): Boolean {
         if (installed) return true
-        val method = context.dexFinder().emojiSendMethod ?: return false
-        if (!isEmojiSendMethod(method)) return false
-        val fields = resolveEmojiFields(method.parameterTypes[1]) ?: return false
+        val method = context.dexFinder().emojiSendMethod
+        if (method == null) {
+            logger("表情发送API未定位", null)
+            return false
+        }
+        if (!isEmojiSendMethod(method)) {
+            logger("表情发送API结构不匹配: ${method.toGenericString()}", null)
+            return false
+        }
+        val emojiClass = method.parameterTypes.getOrNull(1)
+        if (emojiClass == null) {
+            logger("表情发送API参数异常: ${method.toGenericString()}", null)
+            return false
+        }
+        val fields = resolveEmojiFields(emojiClass)
+        if (fields == null) {
+            logger("表情字段未定位: ${emojiClass.name}", null)
+            return false
+        }
         emojiFields = fields
         return runCatching {
             HookRegistry.get().hook(method, object : XC_MethodHook() {

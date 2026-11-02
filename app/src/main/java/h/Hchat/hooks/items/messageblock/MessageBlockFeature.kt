@@ -11,7 +11,6 @@ import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.DexInstallScheduler
 import h.Hchat.hooks.core.FeatureContext
 import h.Hchat.hooks.core.HookRegistry
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationRuntime
 import h.Hchat.utils.KavaReflector
 import java.lang.reflect.Method
 import java.util.Locale
@@ -56,9 +55,6 @@ class MessageBlockFeature : BaseFeature() {
                             val parsed = runCatching { parser.parseAddMsg(addMsg, selfWxId) }.getOrNull()
                                 ?: continue
                             if (shouldBlock(settings, parsed)) {
-                                if (KeywordNotificationRuntime.shouldAllowBlockedMessageIntoDatabase(context.hostContext(), parsed)) {
-                                    return
-                                }
                                 postBlockedMessage(context, parsed)
                                 param.result = null
                                 return

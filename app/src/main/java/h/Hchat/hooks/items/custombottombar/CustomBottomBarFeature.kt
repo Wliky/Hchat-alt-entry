@@ -71,9 +71,6 @@ class CustomBottomBarFeature : BaseFeature() {
 
     override fun onFeatureInit(context: FeatureContext) {
         // 正式包只保留悬浮底栏；自定义底栏的入口、原生底栏改写和早期 Hook 全部剔除。
-        if (!BuildConfig.SLIM_BUILD) {
-            registerSettingsProvider(CustomBottomBarSettingsProvider())
-        }
         registerSettingsProvider(FloatingBottomBarSettingsProvider())
     }
 
@@ -593,9 +590,8 @@ private class CustomBottomBarRuntime(
     }
 
     private fun configureBottomTab(activity: Activity, bottomTab: ViewGroup) {
-        val customEnabled = !BuildConfig.SLIM_BUILD && isCustomEnabled()
-        val floatingEnabled = !customEnabled && isFloatingEnabled()
-        if (!customEnabled && !floatingEnabled) {
+        val floatingEnabled = isFloatingEnabled()
+        if (!floatingEnabled) {
             synchronized(floatingHosts) { floatingHosts.remove(bottomTab) }?.restore()
             synchronized(nativeHosts) { nativeHosts.remove(bottomTab) }?.restore()
             synchronized(failedViews) { failedViews.remove(bottomTab) }
@@ -603,13 +599,6 @@ private class CustomBottomBarRuntime(
             return
         }
 
-        if (customEnabled) {
-            synchronized(floatingHosts) { floatingHosts.remove(bottomTab) }?.restore()
-            configureNativeBottomTab(activity, bottomTab, readNativeConfig())
-            return
-        }
-
-        synchronized(nativeHosts) { nativeHosts.remove(bottomTab) }?.restore()
         val config = readFloatingConfig()
         val active = synchronized(floatingHosts) { floatingHosts[bottomTab] }
         if (active?.updateConfig(config) == true) return
@@ -669,7 +658,7 @@ private class CustomBottomBarRuntime(
                     synchronized(floatingHosts) {
                         if (floatingHosts[bottomTab] === createdHost) floatingHosts.remove(bottomTab)
                     }
-                    if (bottomTab.isAttachedToWindow && (isCustomEnabled() || isFloatingEnabled())) {
+                    if (bottomTab.isAttachedToWindow && isFloatingEnabled()) {
                         runAfterCurrentFrame(bottomTab) { configureBottomTab(activity, bottomTab) }
                     }
                 }

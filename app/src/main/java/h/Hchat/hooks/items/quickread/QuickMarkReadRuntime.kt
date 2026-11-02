@@ -348,8 +348,16 @@ object QuickMarkReadRuntime {
 
     private fun prepareNativeMarkRead(context: FeatureContext, allowDexSearch: Boolean): Boolean {
         val method = locateNativeMarkReadMethod(context, allowDexSearch) ?: return false
-        val database = WeChatApis.database() ?: return false
-        return nativeMarkReadStorage(database, method) != null
+        val database = WeChatApis.database()
+        if (database == null) {
+            HLog.e("$TAG 原生已读入口已定位，但数据库API未就绪")
+            return false
+        }
+        if (nativeMarkReadStorage(database, method) == null) {
+            HLog.e("$TAG 原生已读入口存储对象未找到: ${method.declaringClass.name}")
+            return false
+        }
+        return true
     }
 
     private fun nativeMarkReadStorage(database: WeChatDatabaseApi, method: Method): Any? {

@@ -9,7 +9,6 @@ import h.Hchat.compat.xposed.XC_MethodHook;
 import h.Hchat.compat.xposed.XposedCompat;
 import h.Hchat.compat.xposed.XposedHelpers;
 import h.Hchat.compat.xposed.XC_LoadPackage;
-import h.Hchat.crash.CrashReportRuntime;
 import h.Hchat.dexkit.DexFinder;
 import h.Hchat.hooks.api.media.WeChatImageApi;
 import h.Hchat.hooks.core.FeatureRegistry;
@@ -18,21 +17,13 @@ import h.Hchat.hooks.core.DexInstallScheduler;
 import h.Hchat.hooks.core.FeatureManager;
 import h.Hchat.hooks.core.HookRegistry;
 import h.Hchat.hooks.items.fakelocation.FakeLocationFeature;
-import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature;
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature;
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature;
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature;
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature;
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature;
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutRuntime;
-import h.Hchat.hooks.items.script.ScriptPluginRuntime;
-import h.Hchat.hooks.items.script.agent.CodexWebGuard;
-import h.Hchat.hooks.items.script.agent.ModuleResourceMenuFallback;
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentLocalReverseTools;
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature;
 import h.Hchat.loader.utils.NativeLibraryLoader;
 import h.Hchat.preferences.ConfigStore;
-import h.Hchat.preferences.TermsGate;
 import h.Hchat.dexkit.DexBridgeHolder;
 import h.Hchat.event.EventBus;
 import h.Hchat.ui.UIRegistry;
@@ -53,7 +44,7 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam;
  *
  * 启动流程：
  * 1. onPackageLoaded → 过滤目标包 + 目标进程
- * 2. 小程序子进程安装必要的缓存 Hook 和显式声明的小程序脚本插件
+ * 2. 小程序子进程安装必要的缓存 Hook
  * 3. 主进程在 Tinker attach 后优先安装自定义底栏 Hook
  * 4. Application.onCreate 后异步初始化完整模块
  *
@@ -136,43 +127,20 @@ public class ModuleEntry extends XposedModule {
                 lpparam.classLoader,
                 message -> HLog.e("[Hchat:WechatApi] " + message));
 
-        // 底栏在 LauncherUI 首帧前创建，必须早于完整 DexKit 初始化安装 Hook。
-        installCustomBottomBarEarlyHook(lpparam);
-
         // 4. Hook Application.onCreate，等 Application 完全初始化后再启动模块
         HookRegistry.get().add(XposedHelpers.findAndHookMethod(
                 Application.class,
                 "onCreate",
                 new XC_MethodHook() {
                     @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        Application app = (Application) param.thisObject;
-                        if (TermsGate.INSTANCE.isAccepted(app)) {
-                            CrashReportRuntime.prepare(app);
-                        }
-                    }
-
-                    @Override
                     protected void afterHookedMethod(MethodHookParam param) {
                         Application app = (Application) param.thisObject;
-                        if (TermsGate.INSTANCE.isAccepted(app)) {
-                            CrashReportRuntime.install(app, ModuleEntry.this.getClass().getClassLoader());
-                            // 标签栏先捕获首页根视图，不能等待后台 DexKit 初始化后再挂载。
-                            if (!BuildConfig.SLIM_BUILD) {
-                                try {
-                                    ConversationTabsFeature.installEarly(resolveHostClassLoader(app, lpparam));
-                                } catch (Throwable e) {
-                                    HLog.e(TAG + " 标签分组早期安装失败", e);
-                                }
-                            }
-                            // 悬浮入口不依赖 DexKit，先注册生命周期，避免错过首个 Activity。
-                            try {
-                                FloatingShortcutRuntime.INSTANCE.install(app);
-                            } catch (Throwable e) {
-                                HLog.e(TAG + " 悬浮快捷菜单早期安装失败", e);
-                            }
+                        // 悬浮入口不依赖 DexKit，先注册生命周期，避免错过首个 Activity。
+                        try {
+                            FloatingShortcutRuntime.INSTANCE.install(app);
+                        } catch (Throwable e) {
+                            HLog.e(TAG + " 悬浮快捷菜单早期安装失败", e);
                         }
-                        installCustomBottomBarEarly(app, resolveHostClassLoader(app, lpparam));
                         new Thread(() -> initModule(app, lpparam), "Hchat-Init").start();
                     }
                 }
@@ -268,14 +236,7 @@ public class ModuleEntry extends XposedModule {
                                             ClassLoader classLoader,
                                             XC_LoadPackage.LoadPackageParam lpparam,
                                             boolean applicationReady) {
-        if (!TermsGate.INSTANCE.isAccepted(context)) return;
         boolean failed = false;
-        // 正式包不再安装“兼容低版本小程序”的小程序进程 Hook。
-        if (!BuildConfig.SLIM_BUILD
-                && FakeMiniProgramBaseLibFeature.isEnabled(context)
-                && !FakeMiniProgramBaseLibFeature.installAppBrandProcessHook(context, classLoader)) {
-            failed = true;
-        }
         if (SkipMiniProgramVideoAdsFeature.isEnabled(context)
                 && !SkipMiniProgramVideoAdsFeature.install(context, classLoader)) {
             failed = true;
@@ -286,13 +247,6 @@ public class ModuleEntry extends XposedModule {
         if (FakeLocationFeature.isEnabled(context)
                 && !FakeLocationFeature.installAppBrandProcessHook(context, classLoader)) {
             failed = true;
-        }
-        if (applicationReady) {
-            ScriptPluginRuntime.installAppBrandProcess(
-                    context,
-                    classLoader,
-                    lpparam.processName
-            );
         }
         if (failed && applicationReady) {
             HLog.e(TAG + " 小程序进程Hook安装失败: " + lpparam.processName);
@@ -332,7 +286,6 @@ public class ModuleEntry extends XposedModule {
                                            String stage) {
         try {
             Context context = (Context) param.args[0];
-            if (!TermsGate.INSTANCE.isAccepted(context)) return;
             if (!DisableHotUpdateFeature.isEnabled(context)) return;
             if ("before".equals(stage)) {
                 DisableHotUpdateFeature.installEarly(context, lpparam.classLoader);
@@ -387,50 +340,11 @@ public class ModuleEntry extends XposedModule {
         }
     }
 
-    private void installCustomBottomBarEarlyHook(XC_LoadPackage.LoadPackageParam lpparam) {
-        // 正式包只保留悬浮底栏，自定义底栏的原生底栏改写不再安装。
-        if (BuildConfig.SLIM_BUILD) return;
-        try {
-            HookRegistry.get().add(XposedHelpers.findAndHookMethod(
-                    "com.tencent.tinker.loader.app.TinkerApplication",
-                    lpparam.classLoader,
-                    "onBaseContextAttached",
-                    Context.class,
-                    long.class,
-                    long.class,
-                    new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            Context context = (Context) param.args[0];
-                            ClassLoader classLoader = resolveTinkerClassLoader(param.thisObject);
-                            if (classLoader == null) {
-                                classLoader = resolveHostClassLoader(context, lpparam);
-                            }
-                            installCustomBottomBarEarly(context, classLoader);
-                        }
-                    }
-            ));
-        } catch (Throwable e) {
-            HLog.e(TAG + " 自定义底栏早期入口安装失败: " + e.getMessage(), e);
-        }
-    }
-
-    private void installCustomBottomBarEarly(Context context, ClassLoader classLoader) {
-        if (BuildConfig.SLIM_BUILD) return;
-        try {
-            if (!TermsGate.INSTANCE.isAccepted(context)) return;
-            CustomBottomBarFeature.installEarly(context, classLoader);
-        } catch (Throwable e) {
-            HLog.e(TAG + " 自定义底栏早期Hook失败: " + e.getMessage(), e);
-        }
-    }
-
     private void installTabletHookForAttach(XC_LoadPackage.LoadPackageParam lpparam,
                                             XC_MethodHook.MethodHookParam param,
                                             String stage) {
         try {
             Context context = (Context) param.args[0];
-            if (!TermsGate.INSTANCE.isAccepted(context)) return;
             if (!WeChatTabletFeature.isEnabled(context)) return;
             ClassLoader resolvedClassLoader = resolveTinkerClassLoader(param.thisObject);
             if (resolvedClassLoader == null) {
@@ -472,6 +386,9 @@ public class ModuleEntry extends XposedModule {
 
     private void initModule(Context hostContext, XC_LoadPackage.LoadPackageParam lpparam) {
         try {
+            // 0. 先恢复日志级别，后续所有 hook 的日志量都由它控制。
+            HLogSettings.apply(hostContext);
+
             // 1. 加载 Native 库（DexKit）
             NativeLibraryLoader nativeLibraryLoader = new NativeLibraryLoader();
             nativeLibraryLoader.loadDexKit(hostContext, getClass().getClassLoader());
@@ -480,8 +397,6 @@ public class ModuleEntry extends XposedModule {
             // 2. 创建模块自身 Context
             Context moduleContext = createModuleContext(hostContext);
             ConfigStore configStore = new ConfigStore(hostContext);
-
-            ModuleResourceMenuFallback.INSTANCE.install(resolveHostClassLoader(hostContext, lpparam));
 
             DexInstallScheduler.runDexKitTask(() -> {
                 // 3. 初始化 DexKit。优先使用 Tinker 之后的运行时 ClassLoader。
@@ -496,8 +411,6 @@ public class ModuleEntry extends XposedModule {
                 // 4. 创建共享 DexKit 服务
                 DexBridgeHolder dexBridgeHolder = new DexBridgeHolder(
                         dexKit, finder, hostClassLoader, apkPath);
-                ScriptPluginAgentLocalReverseTools.install(dexBridgeHolder, hostContext);
-
                 // 5. 创建统一上下文
                 featureContext = new FeatureContext(
                         hostContext,
@@ -515,9 +428,6 @@ public class ModuleEntry extends XposedModule {
                 // 6. 注册并安装所有功能模块
                 featureManager = FeatureRegistry.createDefaultManager();
                 featureManager.installAll(featureContext);
-
-                // codex 网页版保活：微信进程重启后把上次开着的服务自动拉回来
-                CodexWebGuard.INSTANCE.restore(hostContext);
 
                 // 7. 防崩兜底：微信 8.0.76 消息描述文本方法对 null 调 isEmpty() 崩溃（收到特殊小程序电商卡片消息触发）
                 installMsgDescTextFallback(finder);

@@ -126,6 +126,7 @@ public class WechatApiFeature implements Feature {
                 conversationChangeApi, contactChangeApi, chatroomChangeApi,
                 lifecycleApi, diagnosticsApi, taskApi, messageObserveApi, chatPageApi, versionApi,
                 transferApi, verifyUserApi, snsApi);
+        DexInstallScheduler.setLocateStateDumper(() -> context.dexFinder().dumpLocateState());
         DexInstallScheduler.scheduleTask("wechat_api:warmup", "微信公共API预热",
                 DexInstallScheduler.Stage.BRIDGE, 1000, () -> {
             try {
@@ -166,7 +167,13 @@ public class WechatApiFeature implements Feature {
                     conversationChangeApi.install();
                     contactChangeApi.install();
                     chatroomChangeApi.install();
-                    return databaseListenerApi.isOperational() && messageChangeApi.isInstalled();
+                    boolean listenerReady = databaseListenerApi.isOperational();
+                    boolean messageReady = messageChangeApi.isInstalled();
+                    if (!listenerReady || !messageReady) {
+                        HLog.e(TAG + " 数据库变更监听补装未完成: listener=" + listenerReady
+                                + " messageChange=" + messageReady);
+                    }
+                    return listenerReady && messageReady;
                 });
         DexInstallScheduler.scheduleTask(
                 "wechat_api:private_conversation_mute",
@@ -175,7 +182,10 @@ public class WechatApiFeature implements Feature {
                 0,
                 () -> {
                     context.dexFinder().resolveConversationMuteApi();
-                    return context.dexFinder().isPrivateConversationMuteApiReady();
+                    if (context.dexFinder().isPrivateConversationMuteApiReady()) return true;
+                    HLog.e(TAG + " 私聊免打扰API未就绪: "
+                            + context.dexFinder().describePrivateConversationMuteApi());
+                    return false;
                 });
     }
 

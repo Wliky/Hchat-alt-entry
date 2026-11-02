@@ -185,6 +185,13 @@ public class RedPacketHooker {
     public boolean isDexReadyEnough() {
         boolean receiveReady = dexFinder.receiveLuckyMoneyClass != null || dexFinder.receiveLuckyMoneyUnionClass != null;
         boolean openReady = dexFinder.openLuckyMoneyClass != null || dexFinder.openLuckyMoneyUnionClass != null;
+        if (!receiveReady || !openReady) {
+            logx("红包类未找到: receive=" + receiveReady + " open=" + openReady
+                    + " receiveClass=" + (dexFinder.receiveLuckyMoneyClass == null
+                    ? "null" : dexFinder.receiveLuckyMoneyClass.getName())
+                    + " openClass=" + (dexFinder.openLuckyMoneyClass == null
+                    ? "null" : dexFinder.openLuckyMoneyClass.getName()));
+        }
         return receiveReady && openReady;
     }
 
