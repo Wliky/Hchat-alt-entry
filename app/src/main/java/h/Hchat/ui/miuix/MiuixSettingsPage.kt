@@ -40,13 +40,8 @@ import android.widget.Toast
 import android.widget.VideoView
 import h.Hchat.BuildConfig
 import h.Hchat.R
-import h.Hchat.crash.CrashReportRuntime
-import h.Hchat.crash.CrashReportSettings
-import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.hooks.api.ui.HchatAgentIconDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutFeature
-import h.Hchat.hooks.items.script.market.PluginMarketClient
-import h.Hchat.hooks.items.script.market.PluginMarketSettings
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyph
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphs
@@ -242,21 +237,14 @@ import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalSettings
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardFeature
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardRule
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
 import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleSettings
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupRuntime
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupStore
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsStore
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.custombottombar.FloatingBottomBarSettings
 import h.Hchat.hooks.items.customnotify.CustomNotificationFeature
@@ -267,6 +255,7 @@ import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarPicker
 import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarSettings
 import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarStore
 import h.Hchat.hooks.items.customnotify.CustomNotificationSettings
+import h.Hchat.hooks.items.diagnostics.DiagnosticsFeature
 import h.Hchat.hooks.items.editmsg.EditMessageFeature
 import h.Hchat.hooks.items.editmsg.EditMessageSettings
 import h.Hchat.hooks.items.emojisave.EmojiSaveFeature
@@ -302,19 +291,10 @@ import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuSettings
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateSettings
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorFeature
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorSettings
 import h.Hchat.hooks.items.inputhint.InputHintFeature
 import h.Hchat.hooks.items.inputhint.InputHintSettings
 import h.Hchat.hooks.items.inputhint.InputHintStats
 import h.Hchat.hooks.items.inputhint.OutgoingMessageStatsRepository
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveFeature
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveRuntime
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationFeature
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationRuntime
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordRule
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckController
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckActionResult
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
@@ -325,30 +305,15 @@ import h.Hchat.hooks.items.membertitle.MemberTitleSettings
 import h.Hchat.hooks.items.membertitle.MemberTitleStore
 import h.Hchat.hooks.items.messageaffix.MessageAffixFeature
 import h.Hchat.hooks.items.messageaffix.MessageAffixSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleFeature
-import h.Hchat.hooks.items.messagebubble.MessageBubblePickResult
-import h.Hchat.hooks.items.messagebubble.MessageBubblePicker
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSlot
-import h.Hchat.hooks.items.messagebubble.MessageBubbleStore
-import h.Hchat.hooks.items.messagebubble.MessageBubbleKind
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorFeature
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockBinding
 import h.Hchat.hooks.items.messageblock.MessageBlockDefaultRule
 import h.Hchat.hooks.items.messageblock.MessageBlockFeature
 import h.Hchat.hooks.items.messageblock.MessageBlockSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockTemplate
-import h.Hchat.hooks.items.messageforward.MessageForwardFeature
-import h.Hchat.hooks.items.messageforward.MessageForwardSettings
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibSettings
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsSettings
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
-import h.Hchat.hooks.items.musicorder.QQMusicOrderFeature
-import h.Hchat.hooks.items.musicorder.QQMusicOrderSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
 import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
@@ -404,9 +369,6 @@ import h.Hchat.hooks.items.patblock.PatBlockFeature
 import h.Hchat.hooks.items.patblock.PatBlockSettings
 import h.Hchat.hooks.items.profileid.ProfileIdFeature
 import h.Hchat.hooks.items.profileid.ProfileIdSettings
-import h.Hchat.hooks.items.protobuf.ProtobufPacketFeature
-import h.Hchat.hooks.items.protobuf.ProtobufPacketRuntime
-import h.Hchat.hooks.items.protobuf.ProtobufPacketSettings
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearFeature
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearSettings
 import h.Hchat.hooks.items.quickcontactedit.QuickContactEditFeature
@@ -422,50 +384,6 @@ import h.Hchat.hooks.items.realtail.RealNameTailSettings
 import h.Hchat.hooks.items.realtail.RealNameTailStore
 import h.Hchat.hooks.items.roundavatar.RoundAvatarFeature
 import h.Hchat.hooks.items.roundavatar.RoundAvatarSettings
-import h.Hchat.hooks.items.script.ScriptPluginFeature
-import h.Hchat.hooks.items.script.ScriptPluginManager
-import h.Hchat.hooks.items.script.ScriptPluginRuntime
-import h.Hchat.hooks.items.script.ScriptPluginSettings
-import h.Hchat.hooks.items.script.market.PluginMarketHistoryVersion
-import h.Hchat.hooks.items.script.market.PluginMarketInstaller
-import h.Hchat.hooks.items.script.market.PluginMarketException
-import h.Hchat.hooks.items.script.market.PluginMarketFile
-import h.Hchat.hooks.items.script.market.PluginMarketComment
-import h.Hchat.hooks.items.script.market.PluginMarketNotification
-import h.Hchat.hooks.items.script.market.PluginMarketPlugin
-import h.Hchat.hooks.items.script.market.PluginMarketRepository
-import h.Hchat.hooks.items.script.market.PluginMarketReviewStatus
-import h.Hchat.hooks.items.script.market.PluginMarketUserIdentity
-import h.Hchat.hooks.items.script.agent.CodexSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentClient
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentAttachment
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentChatMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentConfig
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentCancellation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentContext
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDiff
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDraft
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentEventIds
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentLocalFiles
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentMcpServer
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentReasoning
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentRequest
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentResumeState
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSession
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSessionStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentProfile
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentQuotedMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSpeech
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentTextMerge
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolEvent
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolResultStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentValidator
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceChange
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceToolConfirmation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceWriteDecision
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceTools
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWriter
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskContentItem
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskFeature
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskItem
@@ -475,13 +393,10 @@ import h.Hchat.hooks.items.selectedmessages.SelectedMessageSnapshot
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesFeature
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesRuntimeCoordinator
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesSettings
-import h.Hchat.hooks.items.settings.PluginAgentEntryProvider
 import h.Hchat.hooks.items.settings.SettingsEntrySettings
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadSettings
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitFeature
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitSettings
 import h.Hchat.hooks.items.swipequote.SwipeQuoteFeature
 import h.Hchat.hooks.items.swipequote.SwipeQuoteSettings
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature
@@ -506,7 +421,6 @@ import h.Hchat.hooks.items.voicepreview.VoicePreviewFeature
 import h.Hchat.hooks.items.voicepreview.VoicePreviewSettings
 import h.Hchat.media.AudioTransformBridge
 import h.Hchat.preferences.HchatStorage
-import h.Hchat.preferences.TermsGate
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
@@ -583,7 +497,6 @@ internal const val UI_PREFS_NAME = "Hchat_miuix_ui"
 internal const val KEY_FLOATING_NAV = "floating_nav"
 internal const val KEY_GLASS_NAV = "glass_nav"
 internal const val KEY_SEARCH_HISTORY = "search_history"
-internal const val KEY_AGENT_HISTORY_GESTURE_HINT = "agent_history_gesture_hint"
 internal const val SEARCH_HISTORY_LIMIT = 16
 internal const val PRESS_RELEASE_DELAY_MS = 110L
 internal const val RINGTONE_SYSTEM_REQUEST_CODE = 0x48435254
@@ -596,10 +509,6 @@ internal const val SCHEDULED_TASK_FILE_REQUEST_CODE = 0x4843525A
 internal const val AUDIO_TRANSFORM_INPUT_REQUEST_CODE = 0x4843525B
 internal const val AUDIO_TRANSFORM_OUTPUT_REQUEST_CODE = 0x4843525C
 internal const val FAKE_LOCATION_WECHAT_PICKER_REQUEST_CODE = 0x4843525D
-internal const val SCRIPT_AGENT_ATTACHMENT_REQUEST_CODE = 0x4843525E
-internal const val PLUGIN_MARKET_EXTRA_FILE_REQUEST_CODE = 0x4843525F
-internal const val SCRIPT_PLUGIN_EXPORT_REQUEST_CODE = 0x48435260
-internal const val SCRIPT_PLUGIN_IMPORT_REQUEST_CODE = 0x48435261
 internal const val MARKDOWN_LINK_TAG = "md_link"
 internal val MARKDOWN_LINK_REGEX = Regex("""\[([^\]]+)]\(([^)\s]+)\)""")
 internal val NAVIGATION_BUTTON_MIN_INSET = 24.dp
@@ -1012,21 +921,14 @@ internal fun RegisterSettingsBackHandler(onBack: (() -> Unit)?) {
 object MiuixSettingsPage {
     private const val PAGE_TAG = "Hchat:MiuixSettingsPage"
 
-    private class SettingsPageHostTag(val floatingAgent: Boolean) {
+    private class SettingsPageHostTag {
         var close: (() -> Unit)? = null
-        var collapseAgent: (() -> Unit)? = null
     }
 
     @OptIn(ExperimentalAnimationApi::class)
     @JvmStatic
     fun show(context: Context) {
-        show(context, null, floatingAgent = false)
-    }
-
-    @OptIn(ExperimentalAnimationApi::class)
-    @JvmStatic
-    fun showScriptPluginAgent(context: Context) {
-        show(context, DetailPage.ScriptPluginAgent(), floatingAgent = false)
+        show(context, null)
     }
 
     @JvmStatic
@@ -1034,42 +936,17 @@ object MiuixSettingsPage {
         val provider = UIRegistry.get().getAllProviders()
             .firstOrNull { it.featureId() == featureId }
             ?: return false
-        show(context, DetailPage.Feature(provider), floatingAgent = false)
-        return true
-    }
-
-    @JvmStatic
-    fun toggleFloatingScriptPluginAgent(context: Context): Boolean {
-        val activity = context as? Activity ?: return false
-        val decor = activity.window?.decorView as? ViewGroup ?: return false
-        val existing = findExistingPage(decor)
-        val tag = existing?.getTag(R.id.hchat_settings_page_host) as? SettingsPageHostTag
-        if (tag?.floatingAgent == true) {
-            (tag.collapseAgent ?: tag.close)?.invoke()
-            return true
-        }
-        show(activity, DetailPage.ScriptPluginAgent(), floatingAgent = true)
-        return true
-    }
-
-    @JvmStatic
-    fun collapseFloatingScriptPluginAgent(context: Context): Boolean {
-        val activity = context as? Activity ?: return false
-        val decor = activity.window?.decorView as? ViewGroup ?: return false
-        val page = findExistingPage(decor) ?: return false
-        val tag = page.getTag(R.id.hchat_settings_page_host) as? SettingsPageHostTag ?: return false
-        if (!tag.floatingAgent) return false
-        (tag.collapseAgent ?: tag.close)?.invoke()
+        show(context, DetailPage.Feature(provider))
         return true
     }
 
     @OptIn(ExperimentalAnimationApi::class)
-    private fun show(context: Context, initialPage: DetailPage?, floatingAgent: Boolean) {
+    private fun show(context: Context, initialPage: DetailPage?) {
         val activity = context as? Activity ?: return
         val decor = activity.window?.decorView as? ViewGroup ?: return
         removeExistingPage(decor)
 
-        val hostTag = SettingsPageHostTag(floatingAgent)
+        val hostTag = SettingsPageHostTag()
         val owner = EmbeddedComposeOwner()
         val detailBackStack = navBackStackOf(SettingsNavKey(initialPage))
         fun currentDetail(): DetailPage? = (detailBackStack.lastOrNull() as? SettingsNavKey)?.page
@@ -1079,14 +956,12 @@ object MiuixSettingsPage {
         fun popDetail() {
             if (detailBackStack.size > 1) detailBackStack.removeLastOrNull()
         }
-        val readmeDialogPlugin = mutableStateOf<ScriptPluginRuntime.ScriptPlugin?>(null)
         val configVersion = mutableStateOf(0)
         val settingsBackHandlers = SettingsBackHandlerRegistry()
         lateinit var page: FrameLayout
         val activityBackHooks = ArrayList<XC_MethodHook.Unhook>()
         var consumingBack = false
         var closed = false
-        var agentExitHandler: (() -> Unit)? = null
         fun unhookActivityBack() {
             activityBackHooks.forEach {
                 try {
@@ -1100,8 +975,6 @@ object MiuixSettingsPage {
             if (closed) return
             closed = true
             hostTag.close = null
-            hostTag.collapseAgent = null
-            agentExitHandler = null
             settingsBackHandlers.clear()
             unhookActivityBack()
             runCatching {
@@ -1122,9 +995,7 @@ object MiuixSettingsPage {
             if (consumingBack) return
             consumingBack = true
             val selected = currentDetail()
-            if (selected is DetailPage.ScriptPluginAgent && agentExitHandler != null) {
-                agentExitHandler?.invoke()
-            } else if (settingsBackHandlers.handle()) {
+            if (settingsBackHandlers.handle()) {
                 // The current nested settings route owns this back event.
             } else if (selected == null) {
                 closePage()
@@ -1134,7 +1005,6 @@ object MiuixSettingsPage {
             page.post { consumingBack = false }
         }
         hostTag.close = { closePage() }
-        if (floatingAgent) hostTag.collapseAgent = { closePage() }
         fun installActivityBackHooks() {
             if (activityBackHooks.isNotEmpty()) return
             val keyHook = object : XC_MethodHook() {
@@ -1205,8 +1075,6 @@ object MiuixSettingsPage {
 
         owner.install(page)
         owner.attach()
-        val selectedTab = mutableStateOf(MainTab.PRACTICAL)
-        val termsAccepted = mutableStateOf(TermsGate.isAccepted(activity))
         val composeView = try {
             ComposeView(activity).apply {
                 id = android.R.id.content
@@ -1221,23 +1089,6 @@ object MiuixSettingsPage {
                     LocalSettingsBackHandlerRegistry provides settingsBackHandlers
                 ) {
                     HchatMiuixTheme(activity) {
-                        readmeDialogPlugin.value?.let { plugin ->
-                            ScriptPluginSettingsMiuixContent.ScriptPluginReadmeDialog(
-                                context = activity,
-                                plugin = plugin,
-                                onClose = { readmeDialogPlugin.value = null }
-                            )
-                        }
-                        if (!termsAccepted.value) {
-                            ScriptPluginSettingsMiuixContent.FirstUseAgreementDialog(
-                                context = activity,
-                                onCancel = { closePage() },
-                                onAccepted = {
-                                    termsAccepted.value = true
-                                    Toast.makeText(activity, "已同意协议，重启微信后完整启用模块功能", Toast.LENGTH_LONG).show()
-                                }
-                            )
-                        }
                         NavDisplay(
                             backStack = detailBackStack,
                             modifier = Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background),
@@ -1253,17 +1104,8 @@ object MiuixSettingsPage {
                                     context = activity,
                                     providers = UIRegistry.get().getAllProviders(),
                                     listState = mainListState,
-                                    selectedTab = selectedTab.value,
-                                    configVersion = configVersion.value,
-                                    onSelectedTab = { selectedTab.value = it },
                                     onOpenSearch = { openDetail(DetailPage.Search) },
-                                    onOpenProvider = { openDetail(DetailPage.Feature(it)) },
-                                    onOpenGroup = { openDetail(DetailPage.FeatureGroup(it)) },
-                                    onOpenScriptPluginReadme = { readmeDialogPlugin.value = it },
-                                    onOpenScriptPluginAgent = { openDetail(DetailPage.ScriptPluginAgent()) },
-                                    onOpenScriptPluginMarket = { openDetail(DetailPage.ScriptPluginMarket()) },
-                                    onOpenScriptPluginManager = { openDetail(DetailPage.ScriptPluginManager()) },
-                                    onConfigImported = { configVersion.value += 1 }
+                                    onOpenGroup = { openDetail(DetailPage.FeatureGroup(it)) }
                                 )
                             } else if (targetPage is DetailPage.Search) {
                                 SettingsSearchPage(
@@ -1277,7 +1119,6 @@ object MiuixSettingsPage {
                                             returnToSearch = true
                                         ))
                                     },
-                                    onOpenScriptPluginReadme = { readmeDialogPlugin.value = it }
                                 )
                             } else if (targetPage is DetailPage.FeatureGroup) {
                                 FeatureGroupSettingsPage(
@@ -1295,39 +1136,6 @@ object MiuixSettingsPage {
                                     onBack = {
                                         popDetail()
                                     },
-                                    onOpenScriptPluginAgent = {
-                                        openDetail(DetailPage.ScriptPluginAgent(targetPage))
-                                    },
-                                    onOpenScriptPluginMarket = {
-                                        openDetail(DetailPage.ScriptPluginMarket(targetPage))
-                                    },
-                                    onOpenScriptPluginManager = {
-                                        openDetail(DetailPage.ScriptPluginManager(targetPage))
-                                    }
-                                )
-                            } else if (targetPage is DetailPage.ScriptPluginAgent) {
-                                ScriptPluginAgentUi.ScriptPluginAgentWorkspacePage(
-                                    context = activity,
-                                    onBack = {
-                                        if (floatingAgent) closePage()
-                                        else popDetail()
-                                    },
-                                    onExitHandlerChanged = { handler ->
-                                        agentExitHandler = handler
-                                        if (floatingAgent) {
-                                            hostTag.collapseAgent = handler ?: { closePage() }
-                                        }
-                                    }
-                                )
-                            } else if (targetPage is DetailPage.ScriptPluginMarket) {
-                                PluginMarketUi.ScriptPluginMarketPage(
-                                    context = activity,
-                                    onBack = { popDetail() }
-                                )
-                            } else if (targetPage is DetailPage.ScriptPluginManager) {
-                                ScriptPluginSettingsMiuixContent.ScriptPluginManagerPage(
-                                    context = activity,
-                                    onBack = { popDetail() }
                                 )
                             }
                             }
@@ -1650,292 +1458,6 @@ internal object RingtonePickerBridge {
         } catch (_: Throwable) {
         }
     }
-}
-
-internal object ScriptPluginAgentAttachmentPickerBridge {
-    private val hookedClasses = HashSet<Class<*>>()
-    private var pending: PendingResult? = null
-
-    @Synchronized
-    fun launch(
-        activity: Activity,
-        directory: File,
-        onResult: (List<ScriptPluginAgentAttachment>) -> Unit
-    ) {
-        pending = PendingResult(activity, directory.apply { mkdirs() }, onResult)
-        hookActivityResult(activity.javaClass)
-        hookActivityResult(Activity::class.java)
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        }.preferSystemDocumentsUi(activity)
-        try {
-            activity.startActivityForResult(intent, SCRIPT_AGENT_ATTACHMENT_REQUEST_CODE)
-        } catch (_: Throwable) {
-            val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = "*/*"
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            activity.startActivityForResult(
-                Intent.createChooser(fallback, "选择文件或图片"),
-                SCRIPT_AGENT_ATTACHMENT_REQUEST_CODE
-            )
-        }
-    }
-
-    @Synchronized
-    private fun hookActivityResult(clazz: Class<*>) {
-        if (hookedClasses.contains(clazz)) return
-        try {
-            XposedBridge.hookAllMethods(clazz, "onActivityResult", object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    val requestCode = param.args.getOrNull(0) as? Int ?: return
-                    if (requestCode != SCRIPT_AGENT_ATTACHMENT_REQUEST_CODE) return
-                    val pending = takePending() ?: return
-                    val resultCode = param.args.getOrNull(1) as? Int ?: return
-                    if (resultCode != Activity.RESULT_OK) return
-                    val data = param.args.getOrNull(2) as? Intent ?: return
-                    val activity = pending.activity
-                    val directory = pending.directory
-                    val uris = pickedUris(data)
-                    val persistentUris = uris.filter { uri ->
-                        takeReadPermission(activity, data, uri)
-                    }.mapTo(HashSet()) { it.toString() }
-                    Thread({
-                        val attachments = uris.mapNotNull { uri ->
-                            copyAttachment(
-                                activity,
-                                directory,
-                                uri,
-                                uri.toString() in persistentUris
-                            )
-                        }.distinctBy { it.sourceUri.ifBlank { it.path } }
-                        if (attachments.isNotEmpty()) {
-                            Handler(Looper.getMainLooper()).post { pending.callback(attachments) }
-                        }
-                    }, "Hchat-Agent-Attachment-Copy").start()
-                }
-            })
-            hookedClasses.add(clazz)
-        } catch (_: Throwable) {
-        }
-    }
-
-    private fun pickedUris(data: Intent): List<Uri> {
-        val result = ArrayList<Uri>()
-        data.data?.let(result::add)
-        val clip = data.clipData
-        if (clip != null) {
-            for (index in 0 until clip.itemCount) {
-                runCatching { clip.getItemAt(index)?.uri }.getOrNull()?.let(result::add)
-            }
-        }
-        return result.distinct()
-    }
-
-    private fun takeReadPermission(activity: Activity, data: Intent, uri: Uri): Boolean {
-        if (uri.scheme != "content") return false
-        val resolver = activity.contentResolver
-        if (runCatching {
-                resolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
-            }.getOrDefault(false)
-        ) {
-            return true
-        }
-        val flags = data.flags and
-            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        if ((flags and Intent.FLAG_GRANT_READ_URI_PERMISSION) == 0 ||
-            (flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) == 0
-        ) {
-            return false
-        }
-        return runCatching {
-            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            resolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
-        }.getOrDefault(false)
-    }
-
-    private fun copyAttachment(
-        context: Context,
-        directory: File,
-        uri: Uri,
-        persistentAccess: Boolean
-    ): ScriptPluginAgentAttachment? {
-        var target: File? = null
-        return runCatching {
-            val displayName = queryDisplayName(context, uri)
-                ?: uri.lastPathSegment
-                ?: "attachment"
-            val safeName = displayName.replace(Regex("""[\\/:*?"<>|]"""), "_").ifBlank { "attachment" }
-            val copyId = java.util.UUID.randomUUID().toString().substring(0, 8)
-            val outputFile = File(directory, "${System.currentTimeMillis()}_${copyId}_$safeName")
-            target = outputFile
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                outputFile.outputStream().use { output ->
-                    val buffer = ByteArray(32 * 1024)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        output.write(buffer, 0, count)
-                    }
-                }
-            } ?: return null
-            val attachment = ScriptPluginAgentAttachment(
-                name = displayName,
-                path = outputFile.absolutePath,
-                mimeType = context.contentResolver.getType(uri).orEmpty().ifBlank { "application/octet-stream" },
-                size = outputFile.length(),
-                sourceUri = uri.toString().takeIf { persistentAccess }.orEmpty()
-            )
-            attachment.takeIf { outputFile.isFile && outputFile.length() > 0L }
-                ?: run {
-                    outputFile.delete()
-                    null
-                }
-        }.getOrElse {
-            target?.delete()
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context, it.message ?: "读取附件失败", Toast.LENGTH_SHORT).show()
-            }
-            null
-        }
-    }
-
-    @Synchronized
-    private fun takePending(): PendingResult? {
-        val result = pending
-        pending = null
-        return result
-    }
-
-    private data class PendingResult(
-        val activity: Activity,
-        val directory: File,
-        val callback: (List<ScriptPluginAgentAttachment>) -> Unit
-    )
-
-}
-
-internal object PluginMarketExtraFilePickerBridge {
-    private val hookedClasses = HashSet<Class<*>>()
-    private var pending: PendingResult? = null
-
-    @Synchronized
-    fun launch(activity: Activity, onResult: (List<PluginMarketFile>) -> Unit) {
-        pending = PendingResult(activity, onResult)
-        hookActivityResult(activity.javaClass)
-        hookActivityResult(Activity::class.java)
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        }.preferSystemDocumentsUi(activity)
-        try {
-            activity.startActivityForResult(intent, PLUGIN_MARKET_EXTRA_FILE_REQUEST_CODE)
-        } catch (_: Throwable) {
-            val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = "*/*"
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            activity.startActivityForResult(
-                Intent.createChooser(fallback, "选择插件附加文件"),
-                PLUGIN_MARKET_EXTRA_FILE_REQUEST_CODE
-            )
-        }
-    }
-
-    @Synchronized
-    private fun hookActivityResult(clazz: Class<*>) {
-        if (!hookedClasses.add(clazz)) return
-        runCatching {
-            XposedBridge.hookAllMethods(clazz, "onActivityResult", object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    val requestCode = param.args.getOrNull(0) as? Int ?: return
-                    if (requestCode != PLUGIN_MARKET_EXTRA_FILE_REQUEST_CODE) return
-                    val result = takePending() ?: return
-                    val resultCode = param.args.getOrNull(1) as? Int ?: return
-                    if (resultCode != Activity.RESULT_OK) return
-                    val data = param.args.getOrNull(2) as? Intent ?: return
-                    val uris = pickedUris(data)
-                    if (uris.isEmpty()) return
-                    Thread({
-                        val files = uris.mapNotNull { uri -> readFile(result.activity, uri) }
-                            .distinctBy { it.name.lowercase(Locale.ROOT) }
-                        if (files.isNotEmpty()) {
-                            Handler(Looper.getMainLooper()).post { result.callback(files) }
-                        }
-                    }, "Hchat-Plugin-Market-Files").start()
-                }
-            })
-        }.onFailure {
-            hookedClasses.remove(clazz)
-        }
-    }
-
-    private fun pickedUris(data: Intent): List<Uri> {
-        val result = ArrayList<Uri>()
-        data.data?.let(result::add)
-        data.clipData?.let { clip ->
-            for (index in 0 until clip.itemCount) {
-                runCatching { clip.getItemAt(index)?.uri }.getOrNull()?.let(result::add)
-            }
-        }
-        return result.distinct()
-    }
-
-    private fun readFile(activity: Activity, uri: Uri): PluginMarketFile? {
-        return runCatching {
-            val displayName = queryDisplayName(activity, uri)
-                ?.substringAfterLast('/')
-                ?.substringAfterLast('\\')
-                ?.ifBlank { null }
-                ?: uri.lastPathSegment?.substringAfterLast('/').orEmpty()
-            require(displayName.isNotBlank()) { "无法读取所选文件名" }
-            val bytes = java.io.ByteArrayOutputStream().use { output ->
-                activity.contentResolver.openInputStream(uri)?.use { input ->
-                    val buffer = ByteArray(32 * 1024)
-                    var total = 0L
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        total += count
-                        require(total <= PluginMarketInstaller.MAX_EXTRA_FILE_BYTES) {
-                            "$displayName 超过 ${PluginMarketInstaller.MAX_EXTRA_FILE_BYTES / 1024} KiB"
-                        }
-                        output.write(buffer, 0, count)
-                    }
-                } ?: error("无法打开所选文件")
-                output.toByteArray()
-            }
-            PluginMarketInstaller.createExternalFile(displayName, bytes)
-        }.getOrElse {
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(activity, it.message ?: "读取附加文件失败", Toast.LENGTH_SHORT).show()
-            }
-            null
-        }
-    }
-
-    @Synchronized
-    private fun takePending(): PendingResult? {
-        val result = pending
-        pending = null
-        return result
-    }
-
-    private data class PendingResult(
-        val activity: Activity,
-        val callback: (List<PluginMarketFile>) -> Unit
-    )
 }
 
 internal fun Intent.preferSystemDocumentsUi(context: Context): Intent {
@@ -2426,131 +1948,6 @@ internal object AudioTransformDocumentBridge {
     }
 }
 
-internal object ScriptPluginDocumentBridge {
-    private val hookedClasses = HashSet<Class<*>>()
-    private var exportCallback: ((Uri) -> Unit)? = null
-    private var importCallback: ((Uri) -> Unit)? = null
-    private var exportOwner: WeakReference<Activity>? = null
-    private var importOwner: WeakReference<Activity>? = null
-
-    @Synchronized
-    fun launchExport(activity: Activity, fileName: String, onPicked: (Uri) -> Unit) {
-        if (exportCallback != null) {
-            Toast.makeText(activity, "已有导出文件选择正在进行", Toast.LENGTH_SHORT).show()
-            return
-        }
-        exportCallback = onPicked
-        exportOwner = WeakReference(activity)
-        hookActivityResult(activity.javaClass)
-        hookActivityResult(Activity::class.java)
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/zip"
-            putExtra(Intent.EXTRA_TITLE, fileName)
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        }.preferSystemDocumentsUi(activity)
-        try {
-            activity.startActivityForResult(intent, SCRIPT_PLUGIN_EXPORT_REQUEST_CODE)
-        } catch (_: Throwable) {
-            exportCallback = null
-            exportOwner = null
-            Toast.makeText(activity, "当前系统不支持创建 ZIP 文件", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    @Synchronized
-    fun launchImport(activity: Activity, onPicked: (Uri) -> Unit) {
-        if (importCallback != null) {
-            Toast.makeText(activity, "已有导入文件选择正在进行", Toast.LENGTH_SHORT).show()
-            return
-        }
-        importCallback = onPicked
-        importOwner = WeakReference(activity)
-        hookActivityResult(activity.javaClass)
-        hookActivityResult(Activity::class.java)
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(
-                Intent.EXTRA_MIME_TYPES,
-                arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")
-            )
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        }.preferSystemDocumentsUi(activity)
-        try {
-            activity.startActivityForResult(intent, SCRIPT_PLUGIN_IMPORT_REQUEST_CODE)
-        } catch (_: Throwable) {
-            val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = "*/*"
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            try {
-                activity.startActivityForResult(
-                    Intent.createChooser(fallback, "选择插件 ZIP 文件"),
-                    SCRIPT_PLUGIN_IMPORT_REQUEST_CODE
-                )
-            } catch (_: Throwable) {
-                importCallback = null
-                importOwner = null
-                Toast.makeText(activity, "当前系统不支持选择 ZIP 文件", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    @Synchronized
-    private fun hookActivityResult(clazz: Class<*>) {
-        if (hookedClasses.contains(clazz)) return
-        try {
-            XposedBridge.hookAllMethods(clazz, "onActivityResult", object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    val requestCode = param.args.getOrNull(0) as? Int ?: return
-                    if (requestCode != SCRIPT_PLUGIN_EXPORT_REQUEST_CODE &&
-                        requestCode != SCRIPT_PLUGIN_IMPORT_REQUEST_CODE
-                    ) {
-                        return
-                    }
-                    val owner = param.thisObject as? Activity ?: return
-                    val callback = synchronized(this@ScriptPluginDocumentBridge) {
-                        if (requestCode == SCRIPT_PLUGIN_EXPORT_REQUEST_CODE) {
-                            val matches = exportOwner?.get() === owner
-                            exportCallback.takeIf { matches }.also {
-                                exportCallback = null
-                                exportOwner = null
-                            }
-                        } else {
-                            val matches = importOwner?.get() === owner
-                            importCallback.takeIf { matches }.also {
-                                importCallback = null
-                                importOwner = null
-                            }
-                        }
-                    } ?: return
-                    val resultCode = param.args.getOrNull(1) as? Int ?: return
-                    if (resultCode != Activity.RESULT_OK) return
-                    val data = param.args.getOrNull(2) as? Intent ?: return
-                    val uri = data.data ?: return
-                    if (requestCode == SCRIPT_PLUGIN_IMPORT_REQUEST_CODE && uri.scheme == "content") {
-                        runCatching {
-                            val flags = data.flags and
-                                (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-                            if ((flags and Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0) {
-                                owner.contentResolver.takePersistableUriPermission(
-                                    uri,
-                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                )
-                            }
-                        }
-                    }
-                    callback(uri)
-                }
-            })
-            hookedClasses.add(clazz)
-        } catch (_: Throwable) {
-        }
-    }
-}
-
 internal object ConfigImportExportBridge {
     private val hookedClasses = HashSet<Class<*>>()
     private var onImported: (() -> Unit)? = null
@@ -2652,7 +2049,6 @@ internal object HchatConfigBackup {
         FakeLocationSettings.PREFS_NAME,
         FinderMediaDownloadSettings.PREFS_NAME,
         HchatExtraSettings.PREFS_NAME,
-        StatusTextLimitSettings.PREFS_NAME,
         EditMessageSettings.PREFS_NAME,
         DisableHotUpdateSettings.PREFS_NAME,
         RemoveMomentsAdsSettings.PREFS_NAME,
@@ -2670,26 +2066,20 @@ internal object HchatConfigBackup {
         QuickMarkReadSettings.PREFS_NAME,
         CustomNotificationSettings.PREFS_NAME,
         ConversationGroupStore.PREFS_NAME,
-        ConversationTabsStore.PREFS_NAME,
         AutoReplySettings.PREFS_NAME,
         MessageAffixSettings.PREFS_NAME,
         InputHintSettings.PREFS_NAME,
         AutoOriginalImageSettings.PREFS_NAME,
         AutoViewOriginalSettings.PREFS_NAME,
         AtAllNotificationBlockSettings.PREFS_NAME,
-        KeywordNotificationSettings.PREFS_NAME,
         TextSpeechSettings.PREFS_NAME,
         TextVoiceSettings.PREFS_NAME,
         ZombieCheckSettings.PREFS_NAME,
-        WeChatKeepAliveSettings.PREFS_NAME,
         QuoteDeleteClearSettings.PREFS_NAME,
-        ChatTimeStyleSettings.PREFS_NAME,
         EmojiSaveSettings.PREFS_NAME,
         SwipeQuoteSettings.PREFS_NAME,
         AudioTransformSettings.PREFS_NAME,
         FakeVoiceDurationSettings.PREFS_NAME,
-        MessageBubbleSettings.PREFS_NAME,
-        MessageTextColorSettings.PREFS_NAME,
         HideChatAvatarSettings.PREFS_NAME,
         HideChatMenuSettings.PREFS_NAME,
         QuickContactEditSettings.PREFS_NAME,
@@ -2703,8 +2093,6 @@ internal object HchatConfigBackup {
         FakeScanCameraSettings.PREFS_NAME,
         RedPacketSettings.PREFS_NAME,
         AntiRecallSettings.PREFS_NAME,
-        ProtobufPacketSettings.PREFS_NAME,
-        ScriptPluginSettings.PREFS_NAME,
         WeChatTabletSettings.PREFS_NAME,
         AutoTransferSettings.PREFS_NAME,
         FakeWalletBalanceSettings.PREFS_NAME,
@@ -2895,220 +2283,21 @@ internal fun MainSettingsPage(
     context: Context,
     providers: List<FeatureSettingsProvider>,
     listState: LazyListState,
-    selectedTab: MainTab,
-    configVersion: Int,
-    onSelectedTab: (MainTab) -> Unit,
     onOpenSearch: () -> Unit,
-    onOpenProvider: (FeatureSettingsProvider) -> Unit,
-    onOpenGroup: (FeatureGroupEntry) -> Unit,
-    onOpenScriptPluginReadme: (ScriptPluginRuntime.ScriptPlugin) -> Unit,
-    onOpenScriptPluginAgent: () -> Unit,
-    onOpenScriptPluginMarket: () -> Unit,
-    onOpenScriptPluginManager: () -> Unit,
-    onConfigImported: () -> Unit
+    onOpenGroup: (FeatureGroupEntry) -> Unit
 ) {
-    val uiPrefs = remember(configVersion) { HchatStorage.preferences(context, UI_PREFS_NAME) }
-    val glassSupported = remember { isLiquidGlassSupported() }
-    var floatingNav by remember(configVersion) { mutableStateOf(uiPrefs.getBoolean(KEY_FLOATING_NAV, true)) }
-    var glassNav by remember(configVersion) { mutableStateOf(glassSupported && uiPrefs.getBoolean(KEY_GLASS_NAV, true)) }
-    val entertainmentListState = rememberLazyListState()
-    val pluginListState = rememberLazyListState()
-    val settingsListState = rememberLazyListState()
     val practicalProviders = providers.filter { it.category() == FeatureSettingsProvider.CATEGORY_PRACTICAL }
-    val entertainmentProviders = providers.filter { it.category() == FeatureSettingsProvider.CATEGORY_ENTERTAINMENT }
-    val enhanceProviders = providers.filter {
-        it.category() == FeatureSettingsProvider.CATEGORY_ENHANCE &&
-            it.featureId() != ScriptPluginFeature.ID
-    }
+    val enhanceProviders = providers.filter { it.category() == FeatureSettingsProvider.CATEGORY_ENHANCE }
     val practicalGroups = remember(practicalProviders, enhanceProviders) {
         practicalFeatureGroups(practicalProviders, enhanceProviders)
     }
-    val entertainmentGroups = remember(entertainmentProviders) {
-        entertainmentFeatureGroups(entertainmentProviders)
-    }
-    val scrollBehavior = MiuixScrollBehavior()
-    val scope = rememberCoroutineScope()
-    var gateUpdate by remember { mutableStateOf<ModuleUpdateInfo?>(null) }
-    var showGateUpdate by remember { mutableStateOf(false) }
-    val gatePrefs = remember { HchatStorage.preferences(context, MODULE_UPDATE_PREFS) }
-    LaunchedEffect(Unit) {
-        val result = withContext(Dispatchers.IO) {
-            runCatching {
-                val root = PluginMarketClient.moduleUpdate(context).getOrThrow()
-                ModuleUpdateInfo.fromJson(root, PluginMarketSettings.serviceUrl(context))
-            }
-        }
-        result.onSuccess { info ->
-            gateUpdate = info
-            val hasNewerVersion = info.versionCode > BuildConfig.VERSION_CODE
-            gatePrefs.edit().putBoolean("has_update", hasNewerVersion).apply()
-            if (hasNewerVersion && gatePrefs.getInt(MODULE_UPDATE_IGNORED_CODE, -1) != info.versionCode) {
-                showGateUpdate = true
-            }
-        }
-    }
-    gateUpdate?.takeIf { showGateUpdate && it.versionCode > BuildConfig.VERSION_CODE }?.let { update ->
-        ModuleUpdateDialog(
-            context = context,
-            activity = context as? Activity,
-            update = update,
-            prefs = gatePrefs,
-            onDismiss = { showGateUpdate = false }
-        )
-    }
-    val tabs = MainTab.entries
-    val pagerState = rememberPagerState(
-        initialPage = selectedTab.ordinal,
-        pageCount = { tabs.size }
+    SlimHomePage(
+        groups = practicalGroups,
+        listState = listState,
+        onOpenSearch = onOpenSearch,
+        onOpenGroup = onOpenGroup
     )
-    LaunchedEffect(pagerState.currentPage) {
-        tabs.getOrNull(pagerState.currentPage)?.let(onSelectedTab)
-    }
-    val activeTab = tabs.getOrElse(pagerState.currentPage) { MainTab.PRACTICAL }
-    if (BuildConfig.SLIM_BUILD) {
-        SlimHomePage(
-            groups = practicalGroups,
-            listState = listState,
-            onOpenSearch = onOpenSearch,
-            onOpenGroup = onOpenGroup
-        )
-        return
-    }
-    PageScaffold(
-        title = "Hchat",
-        largeTitle = "Hchat",
-        scrollBehavior = scrollBehavior,
-        bottomBar = {
-            MainNavigationBar(
-                context = context,
-                selectedTab = activeTab,
-                floating = floatingNav,
-                glass = glassSupported && glassNav,
-                backdrop = it,
-                onSelected = { tab ->
-                    scope.launch { pagerState.springAnimateToPage(tab.ordinal) }
-                }
-            )
-        }
-    ) { padding ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize(),
-            key = { tabs[it] }
-        ) { page ->
-            val tab = tabs[page]
-            val activeListState = when (tab) {
-                MainTab.PRACTICAL -> listState
-                MainTab.ENTERTAINMENT -> entertainmentListState
-                MainTab.PLUGIN -> pluginListState
-                MainTab.SETTINGS -> settingsListState
-            }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-                state = activeListState,
-                contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + 8.dp,
-                    bottom = padding.calculateBottomPadding() + 78.dp
-                )
-            ) {
-                item {
-                    SettingsSearchEntry(onClick = onOpenSearch)
-                }
-                when (tab) {
-                    MainTab.PRACTICAL -> {
-                        featureGroupMenu(
-                            title = "实用功能",
-                            groups = practicalGroups,
-                            onOpenGroup = onOpenGroup
-                        )
-                        if (practicalProviders.isEmpty() && enhanceProviders.isEmpty()) {
-                            item { SmallTitle(text = "实用功能") }
-                            item { FeatureListCard(emptyList(), "暂无实用功能", onOpenProvider) }
-                        }
-                    }
-                    MainTab.ENTERTAINMENT -> {
-                        featureGroupMenu(
-                            title = "娱乐功能",
-                            groups = entertainmentGroups,
-                            onOpenGroup = onOpenGroup
-                        )
-                        if (entertainmentProviders.isEmpty()) {
-                            item { SmallTitle(text = "娱乐功能") }
-                            item { FeatureListCard(emptyList(), "暂无娱乐功能", onOpenProvider) }
-                        }
-                    }
-                    MainTab.PLUGIN -> {
-                        item { SmallTitle(text = "脚本插件") }
-                        item {
-                            ScriptPluginSettingsMiuixContent.ScriptPluginSettingsContent(
-                                context,
-                                onOpenScriptPluginReadme,
-                                onOpenScriptPluginMarket,
-                                onOpenScriptPluginAgent,
-                                onOpenScriptPluginManager
-                            )
-                        }
-                    }
-                    MainTab.SETTINGS -> {
-                        item { SmallTitle(text = "设置") }
-                        item {
-                            SettingsCard {
-                                SwitchRow(
-                                    checked = floatingNav,
-                                    title = "悬浮底栏",
-                                    summary = "使用悬浮样式的底部导航栏",
-                                    onCheckedChange = {
-                                        floatingNav = it
-                                        uiPrefs.edit().putBoolean(KEY_FLOATING_NAV, it).apply()
-                                    }
-                                )
-                                InsetDivider()
-                                SwitchRow(
-                                    checked = glassSupported && glassNav,
-                                    title = "液态玻璃",
-                                    summary = if (glassSupported) {
-                                        "启用悬浮底栏的液态玻璃效果"
-                                    } else {
-                                        "Android 13 以下不支持液态玻璃效果"
-                                    },
-                                    enabled = glassSupported,
-                                    onCheckedChange = {
-                                        if (!glassSupported) return@SwitchRow
-                                        glassNav = it
-                                        uiPrefs.edit().putBoolean(KEY_GLASS_NAV, it).apply()
-                                    }
-                                )
-                            }
-                        }
-                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "关于") }
-                        item { AboutCard(context) }
-                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "配置") }
-                        item {
-                            ConfigBackupCard(
-                                context = context,
-                                onImported = onConfigImported
-                            )
-                        }
-                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "群组") }
-                        item { GroupLinksCard(context) }
-                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "致谢") }
-                        item { ThanksCard(context) }
-                        item {
-                            Text(
-                                modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
-                                text = "Hchat",
-                                color = MiuixTheme.colorScheme.onBackgroundVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
-
 /**
  * 精简版首页：只保留功能分组和搜索，配置导入导出放在“杂项 → 备份”。
  */
@@ -3195,11 +2384,7 @@ internal fun practicalFeatureGroups(
         ),
         FeatureGroupEntry(
             title = "增强",
-            providers = enhanceProviders.filterNot {
-                it.featureId() == AutoMessageForwardFeature.ID ||
-                    it.featureId() == ConversationTabsFeature.ID ||
-                    it.featureId() == KeywordNotificationFeature.ID
-            }
+            providers = enhanceProviders
         ),
         FeatureGroupEntry(
             title = "群组",
@@ -3235,13 +2420,7 @@ internal fun practicalFeatureGroups(
         ),
         FeatureGroupEntry(
             title = "美化",
-            // 正式包只保留输入框提示 / 隐藏头像 / 圆角头像 / 自定义头像 / 悬浮底栏，
-            // 其余 id 由 FeatureRegistry 的 SLIM_BUILD 门禁跳过注册，filterByIds 会自动过滤。
             providers = practicalProviders.filterByIds(
-                MessageBubbleFeature.ID,
-                MessageTextColorFeature.ID,
-                HomeTextColorFeature.ID,
-                ChatTimeStyleFeature.ID,
                 InputHintFeature.ID,
                 HideChatAvatarFeature.ID,
                 RoundAvatarFeature.ID,
@@ -3254,7 +2433,6 @@ internal fun practicalFeatureGroups(
             title = "界面",
             providers = practicalProviders.filterByIds(
                 SettingsFeature.ID,
-                PluginAgentEntryProvider.ID,
                 FloatingShortcutFeature.ID,
                 ProfileIdFeature.ID,
                 GroupMemberHistorySettingsProvider.FEATURE_ID,
@@ -3277,31 +2455,9 @@ internal fun practicalFeatureGroups(
                 FakeScanCameraFeature.ID,
                 FinderMediaDownloadFeature.ID,
                 SkipWebRiskSettingsProvider.FEATURE_ID,
-                BackupSettingsProvider.FEATURE_ID
+                BackupSettingsProvider.FEATURE_ID,
+                DiagnosticsFeature.ID
             )
-        )
-    ).filter { it.providers.isNotEmpty() }
-}
-
-internal fun entertainmentFeatureGroups(
-    entertainmentProviders: List<FeatureSettingsProvider>
-): List<FeatureGroupEntry> {
-    return listOf(
-        FeatureGroupEntry(
-            title = "点歌",
-            providers = entertainmentProviders.filterByIds(QQMusicOrderFeature.ID)
-        ),
-        FeatureGroupEntry(
-            title = "状态",
-            providers = entertainmentProviders.filterByIds(StatusTextLimitFeature.ID)
-        ),
-        FeatureGroupEntry(
-            title = "抓包",
-            providers = entertainmentProviders.filterByIds(ProtobufPacketFeature.ID)
-        ),
-        FeatureGroupEntry(
-            title = "调试",
-            providers = entertainmentProviders.filterByIds(CrashReportSettingsProvider.ID)
         )
     ).filter { it.providers.isNotEmpty() }
 }
@@ -3310,7 +2466,7 @@ internal fun entertainmentFeatureGroups(
 internal fun SettingsSearchEntry(onClick: () -> Unit) {
     SearchBarSurface(
         query = "",
-        placeholder = "搜索功能和插件",
+        placeholder = "搜索功能",
         readOnly = true,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
         onClick = onClick,
@@ -3324,40 +2480,23 @@ internal fun SettingsSearchPage(
     providers: List<FeatureSettingsProvider>,
     onBack: () -> Unit,
     onOpenProvider: (FeatureSettingsProvider, FeatureGroupEntry?) -> Unit,
-    onOpenScriptPluginReadme: (ScriptPluginRuntime.ScriptPlugin) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var pluginListVersion by remember { mutableStateOf(0) }
     val uiPrefs = remember { HchatStorage.preferences(context, UI_PREFS_NAME) }
     var searchHistory by remember { mutableStateOf(readSearchHistory(uiPrefs)) }
     val practicalProviders = providers.filter { it.category() == FeatureSettingsProvider.CATEGORY_PRACTICAL }
-    val entertainmentProviders = providers.filter { it.category() == FeatureSettingsProvider.CATEGORY_ENTERTAINMENT }
-    val enhanceProviders = providers.filter {
-        it.category() == FeatureSettingsProvider.CATEGORY_ENHANCE &&
-            it.featureId() != ScriptPluginFeature.ID
-    }
-    val groups = remember(practicalProviders, enhanceProviders, entertainmentProviders) {
-        practicalFeatureGroups(practicalProviders, enhanceProviders) +
-            entertainmentFeatureGroups(entertainmentProviders)
+    val enhanceProviders = providers.filter { it.category() == FeatureSettingsProvider.CATEGORY_ENHANCE }
+    val groups = remember(practicalProviders, enhanceProviders) {
+        practicalFeatureGroups(practicalProviders, enhanceProviders)
     }
     val featureResults = remember(query, groups, providers) {
         filterFeatureSearchResults(query, groups, providers)
     }
-    val plugins = remember(pluginListVersion) {
-        if (BuildConfig.SLIM_BUILD) emptyList() else ScriptPluginManager.listForDisplay(context).map { it.plugin }
-    }
-    val pluginResults = remember(query, plugins) { filterPluginSearchResults(query, plugins) }
     val listState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
     fun recordSearch() {
         val next = rememberSearchKeyword(uiPrefs, query)
         searchHistory = next
-    }
-    DisposableEffect(context) {
-        val subscription = ScriptPluginRuntime.subscribePluginCatalog(context) {
-            Handler(Looper.getMainLooper()).post { pluginListVersion++ }
-        }
-        onDispose { subscription.unsubscribe() }
     }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -3388,16 +2527,6 @@ internal fun SettingsSearchPage(
                         onOpenProvider = { provider, group ->
                             recordSearch()
                             onOpenProvider(provider, group)
-                        }
-                    )
-                }
-                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "插件(${pluginResults.size})") }
-                item {
-                    PluginSearchResultCard(
-                        plugins = pluginResults,
-                        onOpenReadme = { plugin ->
-                            recordSearch()
-                            onOpenScriptPluginReadme(plugin)
                         }
                     )
                 }
@@ -3433,7 +2562,7 @@ internal fun SearchPageTopBar(
     ) {
         SearchBarSurface(
             query = query,
-            placeholder = "搜索功能和插件",
+            placeholder = "搜索功能",
             modifier = Modifier.weight(1f),
             focusRequester = focusRequester,
             onQueryChange = onQueryChange
@@ -3608,81 +2737,6 @@ internal fun FeatureSearchResultRow(result: FeatureSearchResult, onClick: () -> 
     }
 }
 
-@Composable
-internal fun PluginSearchResultCard(
-    plugins: List<ScriptPluginRuntime.ScriptPlugin>,
-    onOpenReadme: (ScriptPluginRuntime.ScriptPlugin) -> Unit
-) {
-    SettingsCard {
-        if (plugins.isEmpty()) {
-            EmptyText("没有匹配插件")
-        } else {
-            plugins.forEachIndexed { index, plugin ->
-                PluginSearchResultRow(
-                    plugin = plugin,
-                    onClick = { onOpenReadme(plugin) }
-                )
-                if (index < plugins.lastIndex) {
-                    InsetDivider()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun PluginSearchResultRow(plugin: ScriptPluginRuntime.ScriptPlugin, onClick: () -> Unit) {
-    var pressed by remember { mutableStateOf(false) }
-    val pressFeedbackColor = rememberPressFeedbackColor(pressed)
-    val title = buildString {
-        append(plugin.displayName ?: plugin.name.ifBlank { plugin.dir.name })
-        if (plugin.version.isNotBlank()) {
-            append("(")
-            append(plugin.version)
-            append(")")
-        }
-    }
-    val summary = buildString {
-        append(plugin.dir.name)
-        if (plugin.author.isNotBlank()) {
-            append("\n作者: ")
-            append(plugin.author)
-        }
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(pressFeedbackColor)
-            .responsiveTap(
-                onClick = onClick,
-                onPressedChange = { pressed = it }
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = title,
-                    color = MiuixTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                ClickHintTag()
-            }
-            Text(
-                text = summary,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                fontSize = 12.sp
-            )
-        }
-        Text(text = "›", color = MiuixTheme.colorScheme.onSurfaceVariantSummary, fontSize = 22.sp)
-    }
-}
-
 internal fun LazyListScope.featureGroupMenu(
     title: String,
     groups: List<FeatureGroupEntry>,
@@ -3735,19 +2789,6 @@ internal fun FeatureGroupSettingsPage(
     }
 }
 
-internal enum class MainTab {
-    PRACTICAL,
-    ENTERTAINMENT,
-    PLUGIN,
-    SETTINGS
-}
-
-internal data class MainNavItem(
-    val tab: MainTab,
-    val label: String,
-    val icon: ImageVector
-)
-
 internal data class FeatureGroupEntry(
     val title: String,
     val providers: List<FeatureSettingsProvider>
@@ -3772,9 +2813,6 @@ internal sealed class DetailPage {
         val sourceGroup: FeatureGroupEntry? = null,
         val returnToSearch: Boolean = false
     ) : DetailPage()
-    data class ScriptPluginAgent(val parentFeature: Feature? = null) : DetailPage()
-    data class ScriptPluginMarket(val parentFeature: Feature? = null) : DetailPage()
-    data class ScriptPluginManager(val parentFeature: Feature? = null) : DetailPage()
 }
 
 internal data class SettingsNavKey(val page: DetailPage?) : NavKey
@@ -3857,7 +2895,6 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
             "私聊防撤回", "群聊防撤回", "公众号防撤回", "撤回提示", "自定义撤回提示", "发送时间", "撤回时间", "时间格式", "语音防撤回", "图片防撤回", "视频防撤回"
         )
         MultiRecallFeature.ID -> listOf("多选撤回", "批量撤回", "多选消息", "分享菜单", "撤回自己消息")
-        MessageForwardFeature.ID -> listOf("转发", "转发[H]", "朋友圈", "好友", "分享", "群发助手", "好友标签", "朋友圈转发", "个人主页朋友圈")
         SelectedMessagesFeature.ID -> listOf("群发助手", "群发助手[H]", "定时转发[H]", "多选消息", "定时转发", "模块群发", "微信原生群发助手", "群发助手间隔延迟", "群发间隔延迟")
         AutoReplyFeature.ID -> listOf(
             "自动回复规则", "任意消息", "关键词", "正则", "艾特我", "@我", "艾特全体", "@所有人", "回复步骤", "延迟回复",
@@ -3865,15 +2902,8 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
             "小智", "小智AI", "小智回复", "小智语音", "小智语音回复", "小智文字回复", "唤醒词", "语音输入", "TTS",
             "上下文", "固定ID", "清空上下文", "智谱", "模型", "Agent", "角色", "语音角色", "好友自动化", "新好友打招呼"
         )
-        AutoMessageForwardFeature.ID -> listOf(
-            "消息自动转发", "自动转发消息", "转发规则", "监听会话", "转发到", "好友", "群聊", "公众号",
-            "文字", "图片", "语音", "视频", "表情", "文件", "链接", "音乐", "小程序", "关键词", "包含关键词", "排除关键词", "替换关键词", "替换规则"
-        )
         ConversationGroupFeature.ID -> listOf(
             "会话分组", "聊天分组", "嵌套分组", "归拢会话", "隐藏会话", "移动会话", "分组管理"
-        )
-        ConversationTabsFeature.ID -> listOf(
-            "标签分组", "顶栏分组", "全部会话", "未读会话", "群聊", "私聊", "公众号", "自定义标签", "标签图标"
         )
         MessageAffixFeature.ID -> listOf(
             "发送文本格式", "消息格式", "消息前后缀", "消息前缀", "消息后缀", "固定文字", "发送时间", "换行"
@@ -3923,7 +2953,6 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         TextVoiceFeature.ID -> listOf("文本转语音", "文字转语音", "在线语音", "发送文字转语音", "转语音播放", "#tts", "英文语音", "TTS引擎", "TTS角色", "语速", "播放速度")
         FakeVoiceDurationFeature.ID -> listOf("伪造语音时长", "语音显示时长", "假语音时长", "语音秒数")
         VoicePreviewFeature.ID -> listOf("语音消息预览", "预览语音", "播放语音", "语音时长", "长按语音")
-        FakeMiniProgramBaseLibFeature.ID -> listOf("兼容低版本小程序", "伪装小程序宿主版本", "阻止小程序升级跳转", "微信版本较低", "官方升级页")
         SkipMiniProgramVideoAdsFeature.ID -> listOf("跳过小程序视频广告", "小程序广告", "视频广告")
         SkipGlobalMiniProgramSplashAdsFeature.ID -> listOf("跳过全局小程序开屏广告", "小程序开屏广告", "启动广告", "全局广告")
         FakeLocationFeature.ID -> listOf("虚拟定位", "模拟定位", "小程序定位", "微信地图", "地图选点", "搜索地点", "经纬度", "GPS")
@@ -3942,14 +2971,10 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         CustomNotificationFeature.ID -> listOf(
             "自定义通知", "通知规则", "通知模板", "私聊通知", "群聊通知", "公众号通知", "艾特我", "@我", "艾特全体", "@所有人", "免打扰通知", "微信消息免打扰"
         )
-        KeywordNotificationFeature.ID -> listOf(
-            "关键词通知", "关键词列表", "关键词模板", "通知模板", "艾特我", "@我", "艾特全体", "@所有人", "允许入库", "消息入库"
-        )
         TextSpeechFeature.ID -> listOf(
             "文字转语音播报", "文字转语音", "语音播报", "TTS引擎", "语音引擎", "播报角色", "TTS角色", "声音角色", "音色", "Voice", "自动播放语音", "播放语音消息", "原语音", "音键控制", "音量键控制", "播报发送人", "免打扰", "开始时间", "结束时间", "设置允许名单", "允许名单"
         )
         ZombieCheckFeature.ID -> listOf("僵尸粉检测", "好友关系检测", "单向好友", "删除好友", "异常好友", "好友标签")
-        QQMusicOrderFeature.ID -> listOf("QQ点歌", "点歌", "音乐卡片", "点歌发送卡片", "点歌发送语音", "触发词", "歌手", "封面", "AppID", "允许点歌聊天")
         GroupChatLabelFeature.ID -> listOf("群聊标签", "群组分类", "群聊分类", "标签群聊", "批量选择群聊")
         QuickGroupChatLabelFeature.ID -> listOf("快捷设置群聊标签", "群聊标签", "会话长按菜单", "聊天分组", "群聊分类")
         GroupLeaveMonitorFeature.ID -> listOf("进退群监控", "进群邀请", "退群提醒", "监听群", "批量保护", "新群保护", "群成员变化")
@@ -3971,10 +2996,6 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         MomentsFakeCommentSettingsProvider.ID -> listOf("朋友圈伪评论", "伪评论[H]", "使用非好友", "群成员", "多选好友", "全选好友", "随机评论", "添加新评论", "评论池", "评论时间", "评论顺序", "隐藏长按菜单", "自定义文本", "清除伪评论")
         MomentsFakeForwardSettingsProvider.ID -> listOf("朋友圈伪转发", "伪转发[H]", "本地朋友圈", "日期", "时间", "重复转发", "隐藏长按菜单", "自定义文本", "清空伪转发", "调试日志")
         RemoveMomentsAdsFeature.ID -> listOf("去除朋友圈广告", "朋友圈广告", "广告屏蔽")
-        MessageBubbleFeature.ID -> listOf("消息气泡", "聊天气泡", "自定义气泡", "左侧气泡", "右侧气泡", "红包气泡", "转账气泡", "系统消息气泡", "浅色模式", "深色模式", "NinePatch", "九宫格")
-        MessageTextColorFeature.ID -> listOf("消息文本颜色", "文字颜色", "聊天气泡文字", "取色器", "浅色模式", "深色模式")
-        HomeTextColorFeature.ID -> listOf("首页文字颜色", "标题颜色", "副标题颜色", "渐变文字", "微信首页", "通讯录", "发现", "我")
-        ChatTimeStyleFeature.ID -> listOf("会话时间样式", "聊天时间", "微信时间", "自定义时间", "隐藏时间", "时间格式")
         HideChatAvatarFeature.ID -> listOf("隐藏头像", "隐藏自己头像", "隐藏对方头像", "聊天头像", "群聊头像", "私聊头像")
         CustomBottomBarFeature.ID -> listOf(
             "自定义底栏", "底部导航", "微信首页", "修改图标", "修改标题", "隐藏标题", "隐藏底栏"
@@ -3991,9 +3012,8 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
             "启动器入口",
             "入口开关"
         )
-        PluginAgentEntryProvider.ID -> listOf("插件 Agent 入口", "插件Agent入口", "右上角加号", "AI 插件入口")
         FloatingShortcutFeature.ID -> listOf(
-            "悬浮快捷菜单", "悬浮按钮", "快捷入口", "插件 Agent", "展开 Agent", "收起 Agent",
+            "悬浮快捷菜单", "悬浮按钮", "快捷入口",
             "按钮外观", "主按钮大小", "主按钮颜色", "副按钮大小", "副按钮颜色", "按钮渐变",
             "菜单名称颜色", "菜单名称大小", "菜单文字",
             "微信页面", "扫一扫", "朋友圈", "视频号", "收藏", "钱包"
@@ -4003,36 +3023,15 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         QuickMomentsFeature.ID -> listOf("快捷查看朋友圈", "朋友圈", "会话长按菜单", "个人朋友圈", "聊天分组", "自己", "企业微信联系人")
         QuickTerminateFeature.ID -> listOf("快捷终止", "结束微信", "终止微信", "加号菜单", "关闭微信")
         HideChatMenuFeature.ID -> listOf("隐藏聊天菜单", "长按菜单", "隐藏菜单项", "提醒", "搜一搜", "收藏")
-        WeChatKeepAliveFeature.ID -> listOf("微信保活", "常驻通知", "WakeLock", "Root保活", "保活服务")
         WeChatTabletFeature.ID -> listOf("平板模式", "Pad模式", "设备登录", "多设备登录", "登录为平板")
         DisableHotUpdateFeature.ID -> listOf("屏蔽热更新", "禁用热更新", "Tinker", "补丁", "热补丁")
         FakeScanCameraFeature.ID -> listOf("伪造扫码相机", "扫码相机", "扫一扫", "相册扫码", "扫码入口")
         SkipWebRiskSettingsProvider.FEATURE_ID -> listOf("跳过网页风险", "网页风险", "WebView", "风险拦截")
         EditMessageFeature.ID -> listOf("修改聊天记录", "编辑消息", "改消息", "消息XML", "发送XML")
-        ProtobufPacketFeature.ID -> listOf("Protobuf抓包", "Protobuf发包", "抓包", "发包", "pb", "网络包", "重放")
-        CrashReportSettingsProvider.ID -> listOf("捕获异常日志", "异常日志", "闪退日志", "Java异常", "Native异常", "ANR", "调试")
-        StatusTextLimitFeature.ID -> listOf("解除状态词长度限制", "状态词", "微信状态", "状态长度", "字数限制")
         RealNameTailFeature.ID -> listOf("实名尾巴", "群聊尾巴", "实名后缀", "尾巴格式", "群成员实名")
         GroupNicknameColorSettings.FEATURE_ID -> listOf("群昵称自定义颜色", "群昵称颜色", "群内昵称颜色", "昵称渐变", "昵称粗细", "颜色取色器")
         MemberTitleFeature.ID -> listOf("群成员头衔", "头衔颜色", "自定义头衔", "头衔模板", "群昵称头衔", "颜色取色器")
-        ScriptPluginFeature.ID -> listOf("脚本插件", "插件列表", "插件 Agent", "AI 生成插件", "插件 README", "插件配置", "启用插件", "禁用插件")
         else -> emptyList()
-    }
-}
-
-internal fun filterPluginSearchResults(
-    query: String,
-    plugins: List<ScriptPluginRuntime.ScriptPlugin>
-): List<ScriptPluginRuntime.ScriptPlugin> {
-    val keyword = query.trim()
-    if (keyword.isEmpty()) return emptyList()
-    return plugins.filter { plugin ->
-        containsSearchText(plugin.displayName.orEmpty(), keyword) ||
-            containsSearchText(plugin.name, keyword) ||
-            containsSearchText(plugin.id, keyword) ||
-            containsSearchText(plugin.dir.name, keyword) ||
-            containsSearchText(plugin.author, keyword) ||
-            containsSearchText(plugin.version, keyword)
     }
 }
 

@@ -826,6 +826,12 @@ sFastMyWxid
 
 新增可复用微信 API 时，在目标 APK 验证完成后，也要把它加入 `WeChatDiagnosticsApi.buildCompatibilityIssues()`。
 
+### 模块排查
+
+`杂项 → 模块排查` 页面读取 `ModuleStatusStore` 的内存快照，逐条列出全部功能点的启用、安装与失败原因，同时展示 `DexInstallScheduler.snapshot()` 中尚未完成的 DexKit 定位项、最后错误和重试次数，可一键复制文本报告。
+
+快照由 `FeatureManager.installAll()` 在安装结束时写入，`DexInstallScheduler` 在每次安装异常和重试耗尽时更新 `lastError`；页面不重新跑定位，打开即可用，点「刷新」重新读取。
+
 ## 功能开发模板
 
 新增功能时复制这个结构，不要把业务逻辑写到 `hooks/api` 或 `loader`。

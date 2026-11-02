@@ -40,13 +40,8 @@ import android.widget.Toast
 import android.widget.VideoView
 import h.Hchat.BuildConfig
 import h.Hchat.R
-import h.Hchat.crash.CrashReportRuntime
-import h.Hchat.crash.CrashReportSettings
-import h.Hchat.crash.CrashReportSettingsProvider
 import h.Hchat.hooks.api.ui.HchatAgentIconDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutFeature
-import h.Hchat.hooks.items.script.market.PluginMarketClient
-import h.Hchat.hooks.items.script.market.PluginMarketSettings
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyph
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphDrawable
 import h.Hchat.hooks.items.floatingshortcut.FloatingShortcutGlyphs
@@ -232,21 +227,14 @@ import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalSettings
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardFeature
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardRule
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
 import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleSettings
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupRuntime
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupStore
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsStore
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.custombottombar.FloatingBottomBarSettings
 import h.Hchat.hooks.items.customnotify.CustomNotificationFeature
@@ -257,6 +245,7 @@ import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarPicker
 import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarSettings
 import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarStore
 import h.Hchat.hooks.items.customnotify.CustomNotificationSettings
+import h.Hchat.hooks.items.diagnostics.DiagnosticsFeature
 import h.Hchat.hooks.items.editmsg.EditMessageFeature
 import h.Hchat.hooks.items.editmsg.EditMessageSettings
 import h.Hchat.hooks.items.emojisave.EmojiSaveFeature
@@ -292,19 +281,10 @@ import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuSettings
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateSettings
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorFeature
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorSettings
 import h.Hchat.hooks.items.inputhint.InputHintFeature
 import h.Hchat.hooks.items.inputhint.InputHintSettings
 import h.Hchat.hooks.items.inputhint.InputHintStats
 import h.Hchat.hooks.items.inputhint.OutgoingMessageStatsRepository
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveFeature
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveRuntime
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationFeature
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationRuntime
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationSettings
-import h.Hchat.hooks.items.keywordnotify.KeywordRule
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckController
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckActionResult
 import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
@@ -315,30 +295,15 @@ import h.Hchat.hooks.items.membertitle.MemberTitleSettings
 import h.Hchat.hooks.items.membertitle.MemberTitleStore
 import h.Hchat.hooks.items.messageaffix.MessageAffixFeature
 import h.Hchat.hooks.items.messageaffix.MessageAffixSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleFeature
-import h.Hchat.hooks.items.messagebubble.MessageBubblePickResult
-import h.Hchat.hooks.items.messagebubble.MessageBubblePicker
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSettings
-import h.Hchat.hooks.items.messagebubble.MessageBubbleSlot
-import h.Hchat.hooks.items.messagebubble.MessageBubbleStore
-import h.Hchat.hooks.items.messagebubble.MessageBubbleKind
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorFeature
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockBinding
 import h.Hchat.hooks.items.messageblock.MessageBlockDefaultRule
 import h.Hchat.hooks.items.messageblock.MessageBlockFeature
 import h.Hchat.hooks.items.messageblock.MessageBlockSettings
 import h.Hchat.hooks.items.messageblock.MessageBlockTemplate
-import h.Hchat.hooks.items.messageforward.MessageForwardFeature
-import h.Hchat.hooks.items.messageforward.MessageForwardSettings
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibSettings
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsSettings
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
-import h.Hchat.hooks.items.musicorder.QQMusicOrderFeature
-import h.Hchat.hooks.items.musicorder.QQMusicOrderSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
 import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
@@ -394,9 +359,6 @@ import h.Hchat.hooks.items.patblock.PatBlockFeature
 import h.Hchat.hooks.items.patblock.PatBlockSettings
 import h.Hchat.hooks.items.profileid.ProfileIdFeature
 import h.Hchat.hooks.items.profileid.ProfileIdSettings
-import h.Hchat.hooks.items.protobuf.ProtobufPacketFeature
-import h.Hchat.hooks.items.protobuf.ProtobufPacketRuntime
-import h.Hchat.hooks.items.protobuf.ProtobufPacketSettings
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearFeature
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearSettings
 import h.Hchat.hooks.items.quickcontactedit.QuickContactEditFeature
@@ -412,50 +374,6 @@ import h.Hchat.hooks.items.realtail.RealNameTailSettings
 import h.Hchat.hooks.items.realtail.RealNameTailStore
 import h.Hchat.hooks.items.roundavatar.RoundAvatarFeature
 import h.Hchat.hooks.items.roundavatar.RoundAvatarSettings
-import h.Hchat.hooks.items.script.ScriptPluginFeature
-import h.Hchat.hooks.items.script.ScriptPluginManager
-import h.Hchat.hooks.items.script.ScriptPluginRuntime
-import h.Hchat.hooks.items.script.ScriptPluginSettings
-import h.Hchat.hooks.items.script.market.PluginMarketHistoryVersion
-import h.Hchat.hooks.items.script.market.PluginMarketInstaller
-import h.Hchat.hooks.items.script.market.PluginMarketException
-import h.Hchat.hooks.items.script.market.PluginMarketFile
-import h.Hchat.hooks.items.script.market.PluginMarketComment
-import h.Hchat.hooks.items.script.market.PluginMarketNotification
-import h.Hchat.hooks.items.script.market.PluginMarketPlugin
-import h.Hchat.hooks.items.script.market.PluginMarketRepository
-import h.Hchat.hooks.items.script.market.PluginMarketReviewStatus
-import h.Hchat.hooks.items.script.market.PluginMarketUserIdentity
-import h.Hchat.hooks.items.script.agent.CodexSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentClient
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentAttachment
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentChatMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentConfig
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentCancellation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentContext
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDiff
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentDraft
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentEventIds
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentLocalFiles
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentMcpServer
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentReasoning
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentRequest
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentResumeState
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSession
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSessionStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSettings
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentProfile
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentQuotedMessage
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentSpeech
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentTextMerge
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolEvent
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentToolResultStore
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentValidator
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceChange
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceToolConfirmation
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceWriteDecision
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWorkspaceTools
-import h.Hchat.hooks.items.script.agent.ScriptPluginAgentWriter
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskContentItem
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskFeature
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskItem
@@ -465,13 +383,10 @@ import h.Hchat.hooks.items.selectedmessages.SelectedMessageSnapshot
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesFeature
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesRuntimeCoordinator
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesSettings
-import h.Hchat.hooks.items.settings.PluginAgentEntryProvider
 import h.Hchat.hooks.items.settings.SettingsEntrySettings
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadSettings
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitFeature
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitSettings
 import h.Hchat.hooks.items.swipequote.SwipeQuoteFeature
 import h.Hchat.hooks.items.swipequote.SwipeQuoteSettings
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature
@@ -496,7 +411,6 @@ import h.Hchat.hooks.items.voicepreview.VoicePreviewFeature
 import h.Hchat.hooks.items.voicepreview.VoicePreviewSettings
 import h.Hchat.media.AudioTransformBridge
 import h.Hchat.preferences.HchatStorage
-import h.Hchat.preferences.TermsGate
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
@@ -616,76 +530,6 @@ internal fun <T> SettingsRouteTransition(
 }
 
 @Composable
-internal fun MainNavigationBar(
-    context: Context,
-    selectedTab: MainTab,
-    floating: Boolean,
-    glass: Boolean,
-    backdrop: Backdrop,
-    onSelected: (MainTab) -> Unit
-) {
-    val items = remember {
-        listOf(
-            MainNavItem(MainTab.PRACTICAL, "实用", NavIcons.Practical),
-            MainNavItem(MainTab.ENTERTAINMENT, "娱乐", NavIcons.Entertainment),
-            MainNavItem(MainTab.PLUGIN, "插件", NavIcons.Modules),
-            MainNavItem(MainTab.SETTINGS, "设置", NavIcons.Settings)
-        )
-    }
-    val selectedIndex = items.indexOfFirst { it.tab == selectedTab }.coerceAtLeast(0)
-    val updateDot = HchatStorage.preferences(context, MODULE_UPDATE_PREFS).getBoolean("has_update", false) &&
-        HchatStorage.preferences(context, MODULE_UPDATE_PREFS).getInt(MODULE_UPDATE_IGNORED_CODE, -1) != BuildConfig.VERSION_CODE
-    val contentColor = MiuixTheme.colorScheme.onSurface
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = if (floating) 12.dp else 4.dp),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        FloatingBottomBar(
-            selectedIndex = selectedIndex,
-            onSelected = { index -> onSelected(items[index].tab) },
-            backdrop = backdrop,
-            tabsCount = items.size,
-            isBlurEnabled = glass,
-            floating = floating
-        ) { selectTab ->
-            items.forEachIndexed { index, item ->
-                val selected = index == selectedIndex
-                FloatingBottomBarItem(
-                    onClick = { selectTab(index) },
-                    modifier = Modifier.defaultMinSize(minWidth = 76.dp)
-                ) {
-                    Box(contentAlignment = Alignment.TopEnd) {
-                        Image(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            colorFilter = ColorFilter.tint(contentColor),
-                            modifier = Modifier.size(26.dp)
-                        )
-                        if (item.tab == MainTab.SETTINGS && updateDot) {
-                            Box(
-                                Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Red)
-                            )
-                        }
-                    }
-                    Text(
-                        text = item.label,
-                        color = contentColor,
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
-                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 internal fun GiftMiuixPage(
     context: Context,
     provider: FeatureSettingsProvider,
@@ -775,10 +619,7 @@ internal fun GiftMiuixPage(
 internal fun FeatureSettingsPage(
     context: Context,
     provider: FeatureSettingsProvider,
-    onBack: () -> Unit,
-    onOpenScriptPluginAgent: () -> Unit = {},
-    onOpenScriptPluginMarket: () -> Unit = {},
-    onOpenScriptPluginManager: () -> Unit = {}
+    onBack: () -> Unit
 ) {
     when (provider.featureId()) {
         AutoRedPacketFeature.ID -> RedPacketMiuixPage(context, provider, onBack)
@@ -790,7 +631,6 @@ internal fun FeatureSettingsPage(
         MemberTitleFeature.ID -> MemberTitleMiuixPage(context, provider, onBack)
         AntiRecallFeature.ID -> AntiRecallMiuixPage(context, provider, onBack)
         MultiRecallFeature.ID -> MultiRecallMiuixPage(context, provider, onBack)
-        MessageForwardFeature.ID -> MessageForwardMiuixPage(context, provider, onBack)
         SelectedMessagesFeature.ID -> SelectedMessagesMiuixPage(context, provider, onBack)
         CallMediaLimitFeature.ID -> CallMediaLimitMiuixPage(context, provider, onBack)
         CallRingtoneBlockFeature.ID -> CallRingtoneBlockMiuixPage(context, provider, onBack)
@@ -809,7 +649,7 @@ internal fun FeatureSettingsPage(
         RemoveForwardLimitFeature.ID -> RemoveForwardLimitMiuixPage(context, provider, onBack)
         AtAllNotificationBlockFeature.ID -> AtAllNotificationBlockMiuixPage(context, provider, onBack)
         SettingsFeature.ID -> SettingsEntryMiuixPage(context, provider, onBack)
-        PluginAgentEntryProvider.ID -> PluginAgentEntryMiuixPage(context, provider, onBack)
+        DiagnosticsFeature.ID -> ModuleDiagnosticsMiuixPage(context, provider, onBack)
         FloatingShortcutFeature.ID -> FloatingShortcutMiuixPage(context, provider, onBack)
         MessageDetailsSettingsProvider.FEATURE_ID -> MessageDetailsConfigPage(
             context = context,
@@ -843,15 +683,10 @@ internal fun FeatureSettingsPage(
         BackupSettingsProvider.FEATURE_ID -> BackupMiuixPage(context, provider, onBack)
         QuickMarkReadFeature.ID -> QuickMarkReadMiuixPage(context, provider, onBack)
         AutoReplyFeature.ID -> AutoReplyMiuixPage(context, provider, onBack)
-        AutoMessageForwardFeature.ID -> AutoMessageForwardMiuixPage(context, provider, onBack)
         ConversationGroupFeature.ID -> ConversationGroupMiuixPage(context, provider, onBack)
-        ConversationTabsFeature.ID -> ConversationTabsMiuixPage(context, onBack)
         CustomNotificationFeature.ID -> CustomNotificationMiuixPage(context, provider, onBack)
-        KeywordNotificationFeature.ID -> KeywordNotificationMiuixPage(context, provider, onBack)
         TextSpeechFeature.ID -> TextSpeechMiuixPage(context, provider, onBack)
         ZombieCheckFeature.ID -> ZombieCheckMiuixPage(context, provider, onBack)
-        QQMusicOrderFeature.ID -> QQMusicOrderMiuixPage(context, provider, onBack)
-        WeChatKeepAliveFeature.ID -> WeChatKeepAliveMiuixPage(context, provider, onBack)
         QuoteDeleteClearFeature.ID -> QuoteDeleteClearMiuixPage(context, provider, onBack)
         EmojiSaveFeature.ID -> EmojiSaveMiuixPage(context, provider, onBack)
         SwipeQuoteFeature.ID -> SwipeQuoteMiuixPage(context, provider, onBack)
@@ -859,18 +694,12 @@ internal fun FeatureSettingsPage(
         TextVoiceFeature.ID -> TextVoiceMiuixPage(context, provider, onBack)
         FakeVoiceDurationFeature.ID -> FakeVoiceDurationMiuixPage(context, provider, onBack)
         VoicePreviewFeature.ID -> VoicePreviewMiuixPage(context, provider, onBack)
-        FakeMiniProgramBaseLibFeature.ID -> FakeMiniProgramBaseLibMiuixPage(context, provider, onBack)
         SkipMiniProgramVideoAdsFeature.ID -> SkipMiniProgramVideoAdsMiuixPage(context, provider, onBack)
         SkipGlobalMiniProgramSplashAdsFeature.ID -> SkipGlobalMiniProgramSplashAdsMiuixPage(context, provider, onBack)
         FakeLocationFeature.ID -> FakeLocationMiuixPage(context, provider, onBack)
         GameEmojiFeature.ID -> GameEmojiMiuixPage(context, provider, onBack)
-        MessageBubbleFeature.ID -> MessageBubbleMiuixPage(context, provider, onBack)
-        MessageTextColorFeature.ID -> MessageTextColorMiuixPage(context, provider, onBack)
-        HomeTextColorFeature.ID -> HomeTextColorMiuixPage(context, provider, onBack)
-        ChatTimeStyleFeature.ID -> ChatTimeStyleMiuixPage(context, provider, onBack)
         InputHintFeature.ID -> InputHintMiuixPage(context, provider, onBack)
         HideChatAvatarFeature.ID -> HideChatAvatarMiuixPage(context, provider, onBack)
-        CustomBottomBarFeature.ID -> CustomBottomBarMiuixPage(context, provider, onBack)
         FloatingBottomBarSettings.FEATURE_ID -> FloatingBottomBarMiuixPage(context, provider, onBack)
         RoundAvatarFeature.ID -> RoundAvatarMiuixPage(context, provider, onBack)
         CustomFriendAvatarFeature.ID -> CustomFriendAvatarMiuixPage(context, provider, onBack)
@@ -898,17 +727,6 @@ internal fun FeatureSettingsPage(
         ScheduledTaskFeature.ID -> ScheduledTaskMiuixPage(context, provider, onBack)
         FakeScanCameraFeature.ID -> FakeScanCameraMiuixPage(context, provider, onBack)
         FinderMediaDownloadFeature.ID -> FinderMediaDownloadMiuixPage(context, provider, onBack)
-        ProtobufPacketFeature.ID -> ProtobufPacketMiuixPage(context, provider, onBack)
-        CrashReportSettingsProvider.ID -> CrashReportMiuixPage(context, provider, onBack)
-        StatusTextLimitFeature.ID -> StatusTextLimitMiuixPage(context, provider, onBack)
-        ScriptPluginFeature.ID -> ScriptPluginMiuixPage(
-            context,
-            provider,
-            onBack,
-            onOpenScriptPluginMarket,
-            onOpenScriptPluginAgent,
-            onOpenScriptPluginManager
-        )
         WeChatTabletFeature.ID -> WeChatTabletMiuixPage(context, provider, onBack)
         else -> UnsupportedFeaturePage(provider, onBack)
     }
@@ -1323,77 +1141,6 @@ internal fun selectedMessagesChannelLabel(channel: Int): String {
 }
 
 @Composable
-internal fun MessageForwardMiuixPage(
-    context: Context,
-    provider: FeatureSettingsProvider,
-    onBack: () -> Unit
-) {
-    val sp = remember { HchatStorage.preferences(context, MessageForwardSettings.PREFS_NAME) }
-    val listState = rememberLazyListState()
-    val scrollBehavior = MiuixScrollBehavior()
-    PageScaffold(
-        title = provider.title(),
-        largeTitle = provider.title(),
-        scrollBehavior = scrollBehavior,
-        bottomBar = { BottomActionBar("返回", onBack) }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-            state = listState,
-            contentPadding = PaddingValues(
-                top = padding.calculateTopPadding() + 8.dp,
-                bottom = padding.calculateBottomPadding() + 84.dp
-            )
-        ) {
-            item { SmallTitle(text = "聊天消息") }
-            item {
-                SettingsCard {
-                    SwitchRow(
-                        sp,
-                        MessageForwardSettings.KEY_ENABLE,
-                        "转发菜单",
-                        "在消息长按菜单中显示转发[H]",
-                        MessageForwardSettings.DEFAULT_ENABLE
-                    )
-                    InsetDivider()
-                    SwitchRow(
-                        sp,
-                        MessageForwardSettings.KEY_MULTI_MOMENTS_ENABLE,
-                        "多选转发到朋友圈",
-                        "在多选消息菜单中显示转发到朋友圈[H]",
-                        MessageForwardSettings.DEFAULT_ENABLE
-                    )
-                }
-            }
-            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "收藏") }
-            item {
-                SettingsCard {
-                    SwitchRow(
-                        sp,
-                        MessageForwardSettings.KEY_FAVORITE_FORWARD_ENABLE,
-                        "转发收藏",
-                        "长按收藏后显示转发[H]",
-                        MessageForwardSettings.DEFAULT_ENABLE
-                    )
-                }
-            }
-            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
-            item {
-                SettingsCard {
-                    SwitchRow(
-                        sp,
-                        MessageForwardSettings.KEY_SNS_FORWARD_ENABLE,
-                        "朋友圈转发",
-                        "在发现页或好友个人主页长按朋友圈后显示转发[H]",
-                        MessageForwardSettings.DEFAULT_ENABLE
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 internal fun CallMediaLimitMiuixPage(
     context: Context,
     provider: FeatureSettingsProvider,
@@ -1476,48 +1223,6 @@ internal fun CallRingtoneBlockMiuixPage(
                         "屏蔽通话呼出铃声",
                         "拨打微信语音或视频通话时不播放等待铃声",
                         CallMediaLimitSettings.DEFAULT_BLOCK_OUTGOING_RINGTONE
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun StatusTextLimitMiuixPage(
-    context: Context,
-    provider: FeatureSettingsProvider,
-    onBack: () -> Unit
-) {
-    val sp = remember { HchatStorage.preferences(context, StatusTextLimitSettings.PREFS_NAME) }
-    val listState = rememberLazyListState()
-    val scrollBehavior = MiuixScrollBehavior()
-
-    PageScaffold(
-        title = provider.title(),
-        largeTitle = provider.title(),
-        scrollBehavior = scrollBehavior,
-        bottomBar = {
-            BottomActionBar("返回", onBack)
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-            state = listState,
-            contentPadding = PaddingValues(
-                top = padding.calculateTopPadding() + 8.dp,
-                bottom = padding.calculateBottomPadding() + 84.dp
-            )
-        ) {
-            item { SmallTitle(text = "个人状态") }
-            item {
-                SettingsCard {
-                    SwitchRow(
-                        sp,
-                        StatusTextLimitSettings.KEY_ENABLE,
-                        "解除状态词长度限制",
-                        "开启后个人状态词可超过微信默认 10 字限制",
-                        StatusTextLimitSettings.DEFAULT_ENABLE
                     )
                 }
             }

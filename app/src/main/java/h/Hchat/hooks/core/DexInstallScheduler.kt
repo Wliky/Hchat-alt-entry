@@ -149,6 +149,7 @@ object DexInstallScheduler {
         } catch (_: CancellationException) {
             // 卸载与正在执行的定位竞争时，旧租约失效属于正常取消。
         } catch (error: Throwable) {
+            state.lastError = describe(error)
             HLog.e("$TAG ${state.label} 安装异常: ${error.message}", error)
         } finally {
             synchronized(stateLock) {
@@ -184,6 +185,7 @@ object DexInstallScheduler {
         if (index >= MAX_RETRY_ATTEMPTS) {
             state.retryScheduled.set(false)
             state.installer = null
+            if (state.lastError.isEmpty()) state.lastError = "多次重试仍未安装成功"
             HLog.e("$TAG ${state.label} 多次安装失败，停止本轮重试")
             return
         }
@@ -207,10 +209,31 @@ object DexInstallScheduler {
 
     private fun isReady(stage: Stage): Boolean = readyLevel.get() >= stage.level
 
+    /** 供「模块排查」页面读取的安装队列快照。 */
+    fun snapshot(): List<ModuleStatusStore.InstallStatus> = synchronized(stateLock) {
+        states.entries
+            .sortedWith(compareBy<Map.Entry<String, State>> { it.value.stage.level }.thenBy { it.value.label })
+            .map { (key, state) ->
+                ModuleStatusStore.InstallStatus(
+                    key = key,
+                    label = state.label,
+                    installed = state.installed.get(),
+                    retryIndex = state.retryIndex.get(),
+                    error = state.lastError
+                )
+            }
+    }
+
+    private fun describe(error: Throwable): String {
+        val message = error.message.orEmpty().trim()
+        return if (message.isEmpty()) error.javaClass.simpleName else message
+    }
+
     private class State(@Volatile var label: String, val generation: Long) {
         @Volatile var stage: Stage = Stage.BRIDGE
         @Volatile var priority: Int = 0
         @Volatile var installer: (() -> Boolean)? = null
+        @Volatile var lastError: String = ""
         var future: FutureTask<Unit>? = null
         var retryTask: Runnable? = null
         val installed = AtomicBoolean(false)

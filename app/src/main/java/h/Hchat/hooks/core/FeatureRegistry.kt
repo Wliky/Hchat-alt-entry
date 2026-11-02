@@ -1,22 +1,19 @@
 package h.Hchat.hooks.core
 
-import h.Hchat.BuildConfig
 import h.Hchat.hooks.api.core.WechatApiFeature
 import h.Hchat.hooks.items.audiotransform.AudioTransformFeature
 import h.Hchat.hooks.items.antirecall.AntiRecallFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
-import h.Hchat.hooks.items.automessageforward.AutoMessageForwardFeature
 import h.Hchat.hooks.items.autoreply.AutoReplyFeature
 import h.Hchat.hooks.items.autooriginal.AutoOriginalImageFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
-import h.Hchat.hooks.items.chattime.ChatTimeStyleFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
-import h.Hchat.hooks.items.conversationtabs.ConversationTabsFeature
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarFeature
 import h.Hchat.hooks.items.customnotify.CustomNotificationFeature
+import h.Hchat.hooks.items.diagnostics.DiagnosticsFeature
 import h.Hchat.hooks.items.editmsg.EditMessageFeature
 import h.Hchat.hooks.items.emojisave.EmojiSaveFeature
 import h.Hchat.hooks.items.fakelocation.FakeLocationFeature
@@ -32,20 +29,12 @@ import h.Hchat.hooks.items.grouprename.GroupRenameMonitorFeature
 import h.Hchat.hooks.items.hideavatar.HideChatAvatarFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
 import h.Hchat.hooks.items.hotupdate.DisableHotUpdateFeature
-import h.Hchat.hooks.items.hometextcolor.HomeTextColorFeature
 import h.Hchat.hooks.items.inputhint.InputHintFeature
-import h.Hchat.hooks.items.keepalive.WeChatKeepAliveFeature
-import h.Hchat.hooks.items.keywordnotify.KeywordNotificationFeature
 import h.Hchat.hooks.items.membertitle.MemberTitleFeature
 import h.Hchat.hooks.items.messageaffix.MessageAffixFeature
-import h.Hchat.hooks.items.messagebubble.MessageBubbleFeature
-import h.Hchat.hooks.items.messagetextcolor.MessageTextColorFeature
 import h.Hchat.hooks.items.messageblock.MessageBlockFeature
-import h.Hchat.hooks.items.messageforward.MessageForwardFeature
-import h.Hchat.hooks.items.miniprogrambaselib.FakeMiniProgramBaseLibFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
-import h.Hchat.hooks.items.musicorder.QQMusicOrderFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.MomentsAutoLikeFeature
 import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
@@ -66,7 +55,6 @@ import h.Hchat.hooks.items.payment.gift.AutoGiftFeature
 import h.Hchat.hooks.items.payment.transfer.AutoTransferFeature
 import h.Hchat.hooks.items.patblock.PatBlockFeature
 import h.Hchat.hooks.items.profileid.ProfileIdFeature
-import h.Hchat.hooks.items.protobuf.ProtobufPacketFeature
 import h.Hchat.hooks.items.quoteclear.QuoteDeleteClearFeature
 import h.Hchat.hooks.items.quickcontactedit.QuickContactEditFeature
 import h.Hchat.hooks.items.quickmoments.QuickMomentsFeature
@@ -74,13 +62,10 @@ import h.Hchat.hooks.items.quickread.QuickMarkReadFeature
 import h.Hchat.hooks.items.quickterminate.QuickTerminateFeature
 import h.Hchat.hooks.items.realtail.RealNameTailFeature
 import h.Hchat.hooks.items.roundavatar.RoundAvatarFeature
-
-import h.Hchat.hooks.items.script.ScriptPluginFeature
 import h.Hchat.hooks.items.scheduledtask.ScheduledTaskFeature
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesFeature
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.shortvideo.FinderMediaDownloadFeature
-import h.Hchat.hooks.items.statuslimit.StatusTextLimitFeature
 import h.Hchat.hooks.items.swipequote.SwipeQuoteFeature
 import h.Hchat.hooks.items.tablet.WeChatTabletFeature
 import h.Hchat.hooks.items.textspeech.TextSpeechFeature
@@ -97,7 +82,7 @@ import h.Hchat.hooks.items.zombiecheck.ZombieCheckFeature
 object FeatureRegistry {
     @JvmStatic
     fun createDefaultManager(): FeatureManager {
-        val manager = FeatureManager()
+        return FeatureManager()
             .register(SettingsFeature())
             .register(WechatApiFeature())
 
@@ -169,7 +154,6 @@ object FeatureRegistry {
             .register(VoicePreviewFeature())
             .register(VoiceForwardFeature())
             .register(SelectedMessagesFeature())
-            .register(MessageForwardFeature())
             .register(ScheduledTaskFeature())
             .register(FakeScanCameraFeature())
             .register(FinderMediaDownloadFeature())
@@ -178,25 +162,6 @@ object FeatureRegistry {
             .register(MemberTitleFeature())
             .register(EditMessageFeature())
             .register(HchatExtraFeature())
-
-        // 正式包剔除的功能：本地 debug 保留，方便后续按需加回。
-        if (!BuildConfig.SLIM_BUILD) {
-            manager
-                .register(QQMusicOrderFeature())
-                .register(ProtobufPacketFeature())
-                .register(StatusTextLimitFeature())
-                .register(ScriptPluginFeature())
-                .register(AutoMessageForwardFeature())
-                .register(ConversationTabsFeature())
-                .register(KeywordNotificationFeature())
-                .register(WeChatKeepAliveFeature())
-                .register(FakeMiniProgramBaseLibFeature())
-                // 美化分组只保留输入框提示 / 隐藏头像 / 圆角头像 / 自定义头像 / 悬浮底栏。
-                .register(ChatTimeStyleFeature())
-                .register(MessageBubbleFeature())
-                .register(MessageTextColorFeature())
-                .register(HomeTextColorFeature())
-        }
-        return manager
+            .register(DiagnosticsFeature())
     }
 }
