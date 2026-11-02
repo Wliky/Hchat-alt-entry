@@ -260,7 +260,9 @@ object DexInstallScheduler {
         if (pending.isNotEmpty()) {
             HLog.e("$TAG 未入队: " + pending.values.sorted().joinToString("、"))
         }
-        if (full) installed.sortedBy { it.label }.forEach { HLog.e("$TAG OK ${it.label}") }
+        // 安装成功属于信息级：默认错误级下不再输出 60+ 行 OK，
+        // 需要逐项确认时把日志级别调到"信息"即可看到。
+        if (full) installed.sortedBy { it.label }.forEach { HLog.i("$TAG OK ${it.label}") }
     }
 
     /** 供「模块排查」页面读取的安装队列快照。 */
