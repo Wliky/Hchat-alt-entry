@@ -19,7 +19,7 @@
 - 默认不在本地运行 Gradle；只有用户明确要求构建或验证时才构建。低内存机器优先使用 GitHub Actions。
 - 本分支只支持 `arm64-v8a` 和 64 位微信进程；不再支持 ARM32 / 32 位微信。新增或替换 native 库只提供 `arm64-v8a`。
 - 不要提交 keystore、APK、`local.properties`、构建缓存、服务器密码、API key、Token、聊天数据库或个人媒体。
-- 模块配置统一走 `HchatStorage`，落盘位置是宿主 `<dataDir>/files/Hchat`。不要再放回 `<dataDir>/Hchat`：微信「清理缓存-其他缓存」会扫根目录，配置会被清掉。
+- 模块配置统一走 `HchatStorage`，落盘位置是宿主 `<dataDir>/shared_prefs/Hchat`。不要再放回 `<dataDir>/files/Hchat` 或 `<dataDir>/Hchat`：微信「清理缓存-其他数据」会扫 `files/`，配置会被清掉。
 - 提交信息和 PR 标题、说明使用中文。
 
 ## 修改完成前

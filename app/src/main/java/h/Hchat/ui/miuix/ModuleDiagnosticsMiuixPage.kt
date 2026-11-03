@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.core.ModuleStatusStore
+import h.Hchat.hooks.items.diagnostics.DiagnosticsFeature
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.utils.HLogSettings
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -56,6 +58,7 @@ private const val DIAGNOSTICS_CHUNK = 14
 private enum class DiagFilter(val label: String) {
     ALL("全部"),
     PROBLEM("异常"),
+    UNVERIFIED("待验证"),
     PENDING("未完成"),
     DISABLED("已关闭")
 }
@@ -74,6 +77,8 @@ internal fun ModuleDiagnosticsMiuixPage(
     provider: FeatureSettingsProvider,
     onBack: () -> Unit
 ) {
+    // 排查页本体就是这个功能的产出：能打开并渲染，才算它可用。
+    LaunchedEffect(Unit) { ModuleStatusStore.markTriggered(DiagnosticsFeature.ID) }
     val listState = rememberLazyListState()
     val scrollBehavior = MiuixScrollBehavior()
     var refreshTick by remember { mutableStateOf(0) }
@@ -89,7 +94,13 @@ internal fun ModuleDiagnosticsMiuixPage(
         it.error.isNotEmpty() || it.health.isNotEmpty() || (it.enabled && !it.installed)
     }
     val disabled = features.filter { !it.enabled }
-    val healthy = (features.size - problems.size - disabled.size).coerceAtLeast(0)
+    // 安装成功、自检也过了，但关键 hook 还没真正命中过——只能算"待验证"，不能算正常。
+    val unverified = features.filter {
+        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() && !it.triggered
+    }
+    val healthy = features.filter {
+        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() && it.triggered
+    }
     val stalledInstalls = installs.filter { !it.installed }
 
     val rows = remember(refreshTick, filter) {
@@ -102,14 +113,24 @@ internal fun ModuleDiagnosticsMiuixPage(
                     !item.enabled -> "已关闭"
                     !item.installed -> "未安装"
                     item.health.isNotEmpty() -> "不可用"
+                    !item.triggered -> "待验证"
                     else -> "正常"
                 },
-                detail = item.error.ifBlank { item.health },
+                detail = item.error.ifBlank {
+                    item.health.ifBlank {
+                        if (item.enabled && item.installed && !item.triggered) {
+                            "已加载，等待实际使用一次"
+                        } else {
+                            ""
+                        }
+                    }
+                },
                 tint = when {
                     item.error.isNotEmpty() -> DiagnosticsDanger
                     !item.enabled -> DiagnosticsWarn
                     !item.installed -> DiagnosticsWarn
                     item.health.isNotEmpty() -> DiagnosticsDanger
+                    !item.triggered -> DiagnosticsWarn
                     else -> DiagnosticsOk
                 }
             )
@@ -126,6 +147,7 @@ internal fun ModuleDiagnosticsMiuixPage(
         when (filter) {
             DiagFilter.ALL -> featureRows + queueRows
             DiagFilter.PROBLEM -> featureRows.filter { it.status == "异常" || it.status == "不可用" }
+            DiagFilter.UNVERIFIED -> featureRows.filter { it.status == "待验证" }
             DiagFilter.PENDING -> featureRows.filter { it.status == "未安装" } + queueRows
             DiagFilter.DISABLED -> featureRows.filter { it.status == "已关闭" }
         }
@@ -143,7 +165,9 @@ internal fun ModuleDiagnosticsMiuixPage(
                 onSecondaryClick = {
                     copyDiagnosticsReport(
                         context,
-                        buildDiagnosticsReport(versionName, features, problems, disabled, stalledInstalls)
+                        buildDiagnosticsReport(
+                            versionName, features, healthy, unverified, problems, disabled, stalledInstalls
+                        )
                     )
                 },
                 middleText = "刷新",
@@ -173,7 +197,10 @@ internal fun ModuleDiagnosticsMiuixPage(
                             else "${locate.located} / ${locate.total}，缺 ${locate.missing.size} 项"
                         )
                         InsetDivider()
-                        SummaryRow("正常 / 不可用·异常 / 关闭", "$healthy · ${problems.size} · ${disabled.size}")
+                        SummaryRow(
+                            "正常 / 待验证 / 不可用·异常 / 关闭",
+                            "${healthy.size} · ${unverified.size} · ${problems.size} · ${disabled.size}"
+                        )
                         InsetDivider()
                         SummaryRow(
                             "安装队列",
@@ -223,6 +250,7 @@ internal fun ModuleDiagnosticsMiuixPage(
                             text = when (item) {
                                 DiagFilter.ALL -> "${item.label} ${features.size + stalledInstalls.size}"
                                 DiagFilter.PROBLEM -> "${item.label} ${problems.size}"
+                                DiagFilter.UNVERIFIED -> "${item.label} ${unverified.size}"
                                 DiagFilter.PENDING -> "${item.label} ${stalledInstalls.size}"
                                 DiagFilter.DISABLED -> "${item.label} ${disabled.size}"
                             },
@@ -240,6 +268,7 @@ internal fun ModuleDiagnosticsMiuixPage(
                             if (features.isEmpty()) "暂无数据" else when (filter) {
                                 DiagFilter.ALL -> "暂无条目"
                                 DiagFilter.PROBLEM -> "未发现异常功能"
+                                DiagFilter.UNVERIFIED -> "所有功能都已实际触发过"
                                 DiagFilter.PENDING -> "安装队列已全部完成"
                                 DiagFilter.DISABLED -> "没有已关闭的功能"
                             }
@@ -338,6 +367,8 @@ private fun StatusRow(title: String, status: String, detail: String, tint: Color
 private fun buildDiagnosticsReport(
     versionName: String,
     features: List<ModuleStatusStore.FeatureStatus>,
+    healthy: List<ModuleStatusStore.FeatureStatus>,
+    unverified: List<ModuleStatusStore.FeatureStatus>,
     problems: List<ModuleStatusStore.FeatureStatus>,
     disabled: List<ModuleStatusStore.FeatureStatus>,
     pendingInstalls: List<ModuleStatusStore.InstallStatus>
@@ -346,7 +377,17 @@ private fun buildDiagnosticsReport(
     builder.appendLine("Hchat 模块排查报告")
     builder.appendLine("微信版本: ${versionName.ifBlank { "未知" }}")
     builder.appendLine("采集时间: ${formatDiagnosticsTime(ModuleStatusStore.updatedAtMillis())}")
-    builder.appendLine("功能点: 共 ${features.size} 项，异常 ${problems.size} 项，已关闭 ${disabled.size} 项")
+    builder.appendLine(
+        "功能点: 共 ${features.size} 项，正常 ${healthy.size} 项，" +
+            "待验证 ${unverified.size} 项，异常 ${problems.size} 项，已关闭 ${disabled.size} 项"
+    )
+    builder.appendLine()
+    builder.appendLine("[待验证功能]（已加载，但关键 hook 还没命中过）")
+    if (unverified.isEmpty()) {
+        builder.appendLine("无")
+    } else {
+        unverified.forEach { builder.appendLine("${it.name} (${it.featureId})") }
+    }
     builder.appendLine()
     builder.appendLine("[异常功能]")
     if (problems.isEmpty()) {

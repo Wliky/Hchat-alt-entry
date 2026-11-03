@@ -7,6 +7,7 @@ import h.Hchat.hooks.api.message.WeChatMessageApi
 import h.Hchat.hooks.api.runtime.WeChatTaskApi
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.FeatureContext
+import h.Hchat.hooks.core.ModuleStatusStore
 import h.Hchat.hooks.items.selectedmessages.SelectedMessageSendHandle
 import h.Hchat.hooks.items.selectedmessages.SelectedMessageSnapshot
 import h.Hchat.hooks.items.selectedmessages.SelectedMessagesRuntimeCoordinator
@@ -176,6 +177,8 @@ class ScheduledTaskRuntime(
                 logger("定时任务立即执行异常", it)
                 0 to expectedTargetCount(running)
             }
+            // 任务真的被调度执行过一次，这个功能才算跑起来。
+            ModuleStatusStore.markTriggered(ScheduledTaskFeature.ID)
             finishImmediateTask(running, result.first, result.second)
         }
         taskApi()?.runAsync(job) ?: Thread(job, "Hchat-ScheduledTask-Now-$taskId").apply {
@@ -227,6 +230,8 @@ class ScheduledTaskRuntime(
                     logger("定时任务执行异常", it)
                     0 to expectedTargetCount(running)
                 }
+                // 到点执行过一次（哪怕发送失败），调度链路已经通了。
+                ModuleStatusStore.markTriggered(ScheduledTaskFeature.ID)
                 finishTask(running, result.first, result.second)
             } finally {
                 releaseExecutionWakeLock(wakeLock)

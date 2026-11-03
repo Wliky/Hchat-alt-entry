@@ -203,6 +203,7 @@ import h.Hchat.hooks.api.media.WeChatFavoriteItem
 import h.Hchat.hooks.api.message.WeChatMessageObserveApi
 import h.Hchat.hooks.api.model.ContactLabelBean
 import h.Hchat.hooks.api.model.WeChatContact
+import h.Hchat.hooks.core.ModuleStatusStore
 import h.Hchat.hooks.items.audiotransform.AudioTransformFeature
 import h.Hchat.hooks.items.audiotransform.AudioTransformCancelledException
 import h.Hchat.hooks.items.audiotransform.AudioTransformSegmenter
@@ -1319,6 +1320,8 @@ internal object AudioTransformSettingsPage {
                 } else if (!copyAudioTransformFileToUri(context, tempFile, outputUri)) {
                     false to "保存失败：无法写入目标文件"
                 } else {
+                    // 转换并落盘成功，才算这个功能真的可用。
+                    ModuleStatusStore.markTriggered(AudioTransformFeature.ID)
                     true to "已保存为 ${outputName.ifBlank { audioTransformSuggestedFileName(inputName, mode) }}"
                 }
             }.getOrElse {

@@ -3,6 +3,7 @@ package h.Hchat.hooks.api.sns
 import android.content.Context
 import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.dexkit.DexMethodCache
+import h.Hchat.hooks.core.FeatureTrigger
 import h.Hchat.hooks.core.HookRegistry
 import h.Hchat.utils.KavaReflector
 import org.luckypray.dexkit.DexKitBridge
@@ -38,8 +39,14 @@ class WeChatSnsPostObserver(
     @Volatile private var hookedMethod: Method? = null
 
     fun subscribe(listener: Listener): Subscription {
-        listeners.addIfAbsent(listener)
-        return Subscription(listener)
+        // 安装期订阅绑定功能 id：朋友圈入库回调真正派发过一次，才算该功能跑起来。
+        val target = FeatureTrigger.wrap(
+            Listener::class.java,
+            listener,
+            HookRegistry.get().currentFeatureTag()
+        )
+        listeners.addIfAbsent(target)
+        return Subscription(target)
     }
 
     internal fun <T> withoutDispatch(block: () -> T): T {

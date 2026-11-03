@@ -1715,6 +1715,14 @@ public class DexFinder {
                     owner, "pause ret:%s", boolean.class, boolean.class);
         }
         if (!isExactInstanceMethod(voicePlaybackResumeMethod, owner, boolean.class)) {
+            // 8.0.80 的 am.x 保留标准 resume()；字符串锚点所在的管理类已与播放器分离，
+            // 必须先查播放器自身，不能拿另一个类的 resume 方法在播放器实例上调用。
+            Method playerResume = KavaReflector.findMethod(owner, "resume");
+            if (isExactInstanceMethod(playerResume, owner, boolean.class)) {
+                voicePlaybackResumeMethod = playerResume;
+            }
+        }
+        if (!isExactInstanceMethod(voicePlaybackResumeMethod, owner, boolean.class)) {
             voicePlaybackResumeMethod = findVoicePlaybackMethod(
                     owner, "resumePlaying set mute false", boolean.class);
         }

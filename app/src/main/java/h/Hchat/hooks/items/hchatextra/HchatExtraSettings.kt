@@ -16,9 +16,9 @@ object HchatExtraSettings {
     const val KEY_MESSAGE_DETAILS_FORMAT = "message_details_format"
     const val KEY_MESSAGE_DETAILS_TIME_FORMAT = "message_details_time_format"
     const val KEY_MESSAGE_DETAILS_POSITION = "message_details_position"
-    const val KEY_MESSAGE_DETAILS_AVATAR_GAP = "message_details_avatar_gap"
+    const val POSITION_AVATAR_ABOVE = "avatar_above"
+    const val POSITION_AVATAR_BELOW = "avatar_below"
     const val KEY_MESSAGE_DETAILS_TEXT_SIZE = "message_details_text_size"
-    const val KEY_MESSAGE_DETAILS_CLICK_SHOW = "message_details_click_show"
     const val KEY_MESSAGE_DETAILS_FORMAT_CONTENT = "message_details_format_content"
     const val KEY_RED_PACKET_DETAILS = "red_packet_details_enable"
     const val KEY_SKIP_WEB_RISK = "skip_web_risk_enable"
@@ -32,12 +32,8 @@ object HchatExtraSettings {
     const val DEFAULT_MESSAGE_DETAILS_FORMAT = "\${time}"
     const val LEGACY_MESSAGE_DETAILS_FORMAT = "\${time} | \${type}"
     const val DEFAULT_MESSAGE_DETAILS_TIME_FORMAT = "HH:mm:ss"
-    const val POSITION_AVATAR_ABOVE = "avatar_above"
-    const val POSITION_AVATAR_BELOW = "avatar_below"
-    const val DEFAULT_MESSAGE_DETAILS_POSITION = POSITION_AVATAR_BELOW
-    const val DEFAULT_MESSAGE_DETAILS_AVATAR_GAP = 1
+    const val DEFAULT_MESSAGE_DETAILS_POSITION = POSITION_AVATAR_ABOVE
     const val DEFAULT_MESSAGE_DETAILS_TEXT_SIZE = 10
-    const val DEFAULT_MESSAGE_DETAILS_CLICK_SHOW = true
     const val DEFAULT_MESSAGE_DETAILS_FORMAT_CONTENT = false
     const val DEFAULT_RED_PACKET_DETAILS = false
     const val DEFAULT_SKIP_WEB_RISK = false

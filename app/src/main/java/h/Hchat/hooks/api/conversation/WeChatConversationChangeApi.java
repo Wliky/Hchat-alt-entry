@@ -108,8 +108,10 @@ public final class WeChatConversationChangeApi {
 
     public Subscription subscribe(Listener listener) {
         if (listener == null) return null;
-        listeners.addIfAbsent(listener);
-        return new Subscription(listener);
+        Listener target = h.Hchat.hooks.core.FeatureTrigger.wrap(
+                Listener.class, listener, h.Hchat.hooks.core.HookRegistry.get().currentFeatureTag());
+        listeners.addIfAbsent(target);
+        return new Subscription(target);
     }
 
     public void unsubscribe(Listener listener) {

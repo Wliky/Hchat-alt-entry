@@ -91,9 +91,23 @@ abstract class BaseFeature : Feature {
         priority: Int
     ): EventBus.Subscription {
         val currentContext = context ?: return EventBus.Subscription.empty()
-        val subscription = currentContext.eventBus().subscribe(eventType, handler, priority)
+        // 事件派发不在安装过程中，这里补回功能上下文：
+        // 处理函数里再注册的 hook / 监听器才能绑定到本功能，命中时才能打点。
+        val featureId = featureId()
+        val tagged = EventHandler<E> { event ->
+            HookRegistry.get().withFeatureTag(featureId) { handler.handleEvent(event) }
+        }
+        val subscription = currentContext.eventBus().subscribe(eventType, tagged, priority)
         subscriptions.add(subscription)
         return subscription
+    }
+
+    /**
+     * 手动标记运行时命中：没有任何 hook/订阅可打点的功能（纯页面、纯配置项、
+     * 定时执行类）在自己的实际生效点调用它，排查页才会从「待验证」变「正常」。
+     */
+    protected fun markHit() {
+        ModuleStatusStore.markTriggered(featureId())
     }
 
     protected fun <T : Any> trackSubscription(subscription: T?): T? {

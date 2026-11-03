@@ -13,6 +13,7 @@ import h.Hchat.hooks.api.model.WeChatMessageTypes
 import h.Hchat.hooks.api.runtime.WeChatDatabaseApi
 import h.Hchat.hooks.core.DexInstallScheduler
 import h.Hchat.hooks.core.FeatureContext
+import h.Hchat.hooks.core.ModuleStatusStore
 import h.Hchat.preferences.HchatStorage
 import h.Hchat.utils.HLog
 import h.Hchat.utils.KavaReflector
@@ -138,6 +139,7 @@ object QuickMarkReadRuntime {
             return -1
         }
         cancelWechatNotifications(appContext)
+        ModuleStatusStore.markTriggered(QuickMarkReadFeature.ID)
         if (showToast) {
             val message = if (failed > 0) {
                 "已读 ${changed} 个会话，${failed} 个提醒处理失败"
@@ -178,6 +180,7 @@ object QuickMarkReadRuntime {
         } else {
             invokeNativeMarkRead(method, storage, talker)
         }
+        if (marked) ModuleStatusStore.markTriggered(QuickMarkReadFeature.ID)
         if (!marked && showToast) toast(appContext, "会话已读失败")
         return marked
     }

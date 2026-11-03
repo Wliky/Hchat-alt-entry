@@ -26,6 +26,10 @@ class QuickMarkReadFeature : BaseFeature() {
 
     override fun featureId(): String = ID
 
+    // hook 挂在 LauncherUI 的 dispatchTouchEvent 上，任何一次触摸都会命中，
+    // 不能拿它当"功能可用"的证据，改为在真正清除未读成功后打点。
+    override fun autoMarkOnHook(): Boolean = false
+
     override fun name(): String = "快捷已读"
 
     override fun onFeatureInit(context: FeatureContext) {

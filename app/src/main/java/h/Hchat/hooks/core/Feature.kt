@@ -26,6 +26,20 @@ interface Feature {
      */
     fun healthCheck(context: FeatureContext): String? = null
 
+    /**
+     * 运行时证据：关键 hook 是否真的命中过。"安装没抛异常"不等于功能跑起来了，
+     * 排查页据此区分"正常"和"待验证"。默认读取运行时命中记录，
+     * 由 [HookRegistry] 的 hook 包装和 [ModuleStatusStore.markTriggered] 写入。
+     */
+    fun runtimeHit(): Boolean = ModuleStatusStore.isTriggered(featureId())
+
+    /**
+     * 安装期注册的 hook 第一次被调用时，是否自动算作"已命中"。
+     * 通用回调（例如 LauncherUI 的 dispatchTouchEvent、消息列表 bind）会在功能真正生效前
+     * 就被高频触发，这类功能返回 false，改为在自己确认成功的分支调用 markHit()。
+     */
+    fun autoMarkOnHook(): Boolean = true
+
     fun onConfigChanged(context: FeatureContext, key: String?) {
     }
 

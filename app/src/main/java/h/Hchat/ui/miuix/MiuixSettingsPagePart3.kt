@@ -1368,6 +1368,14 @@ internal fun MessageDetailsConfigPage(
             )
         )
     }
+    var position by remember {
+        mutableStateOf(
+            sp.getString(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
+                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
+            ).orEmpty()
+        )
+    }
     var lightBg by remember {
         mutableStateOf(
             sp.getString(
@@ -1416,22 +1424,6 @@ internal fun MessageDetailsConfigPage(
             ).orEmpty()
         )
     }
-    var position by remember {
-        mutableStateOf(
-            sp.getString(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
-            ).orEmpty().ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION }
-        )
-    }
-    var avatarGap by remember {
-        mutableStateOf(
-            sp.getInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_AVATAR_GAP,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_AVATAR_GAP
-            ).toString()
-        )
-    }
     var textSize by remember {
         mutableStateOf(
             sp.getInt(
@@ -1440,36 +1432,16 @@ internal fun MessageDetailsConfigPage(
             ).toString()
         )
     }
-    var clickShow by remember {
-        mutableStateOf(
-            sp.getBoolean(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_CLICK_SHOW,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_CLICK_SHOW
-            )
-        )
-    }
-    var formatContent by remember {
-        mutableStateOf(
-            sp.getBoolean(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_FORMAT_CONTENT,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_FORMAT_CONTENT
-            )
-        )
-    }
-
     fun resetValues() {
         enabled = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS
+        position = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
         lightBg = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_BG
         lightText = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_TEXT
         darkBg = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_BG
         darkText = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_TEXT
         format = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_FORMAT
         timeFormat = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT
-        position = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
-        avatarGap = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_AVATAR_GAP.toString()
         textSize = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE.toString()
-        clickShow = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_CLICK_SHOW
-        formatContent = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_FORMAT_CONTENT
     }
 
     fun saveValues() {
@@ -1477,33 +1449,24 @@ internal fun MessageDetailsConfigPage(
         val savedLightText = cleanMessageDetailsColor(lightText, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_TEXT)
         val savedDarkBg = cleanMessageDetailsColor(darkBg, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_BG)
         val savedDarkText = cleanMessageDetailsColor(darkText, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_TEXT)
-        val savedPosition = position.takeIf { it in messageDetailsPositionValues() }
-            ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
-        val savedAvatarGap = (avatarGap.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_AVATAR_GAP)
-            .coerceIn(0, 64)
         sp.edit()
             .putBoolean(HchatExtraSettings.KEY_MESSAGE_DETAILS, enabled)
+            .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION, position)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_BG, savedLightBg)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_TEXT, savedLightText)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_DARK_BG, savedDarkBg)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_DARK_TEXT, savedDarkText)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_FORMAT, format.ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_FORMAT })
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_TIME_FORMAT, timeFormat.ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT })
-            .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION, savedPosition)
-            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_AVATAR_GAP, savedAvatarGap)
             .putInt(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
                 textSize.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE
             )
-            .putBoolean(HchatExtraSettings.KEY_MESSAGE_DETAILS_CLICK_SHOW, clickShow)
-            .putBoolean(HchatExtraSettings.KEY_MESSAGE_DETAILS_FORMAT_CONTENT, formatContent)
             .apply()
         lightBg = savedLightBg
         lightText = savedLightText
         darkBg = savedDarkBg
         darkText = savedDarkText
-        position = savedPosition
-        avatarGap = savedAvatarGap.toString()
         Toast.makeText(context, "设置已保存", Toast.LENGTH_SHORT).show()
     }
 
@@ -1536,22 +1499,19 @@ internal fun MessageDetailsConfigPage(
                     SwitchRow(
                         checked = enabled,
                         title = "消息显示时间",
-                        summary = "开启后按所选位置显示自定义消息时间",
+                        summary = "贴着头像外边界，按收发方向对齐显示",
                         onCheckedChange = { enabled = it }
                     )
                     InsetDivider()
-                    SwitchRow(
-                        checked = clickShow,
-                        title = "点击显详情",
-                        summary = "点击详情文字后打开消息内容详情",
-                        onCheckedChange = { clickShow = it }
-                    )
-                    InsetDivider()
-                    SwitchRow(
-                        checked = formatContent,
-                        title = "内容格式化",
-                        summary = "打开详情时格式化 XML 内容",
-                        onCheckedChange = { formatContent = it }
+                    PopupChoiceRow(
+                        title = "显示位置",
+                        summary = "选择时间在头像上方还是下方",
+                        currentValue = position,
+                        options = listOf(
+                            PopupChoice("头像上方", HchatExtraSettings.POSITION_AVATAR_ABOVE),
+                            PopupChoice("头像下方", HchatExtraSettings.POSITION_AVATAR_BELOW)
+                        ),
+                        onValueChanged = { position = it }
                     )
                 }
             }
@@ -1616,16 +1576,6 @@ internal fun MessageDetailsConfigPage(
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "布局") }
             item {
                 SettingsCard {
-                    PopupChoiceRow(
-                        title = "显示位置",
-                        summary = messageDetailsPositionLabel(position),
-                        options = messageDetailsPositionChoices(),
-                        currentValue = position,
-                        onValueChanged = { position = it }
-                    )
-                    InsetDivider()
-                    NumberInputRow("与头像间距", "单位 dp，可设置 0-64，越小越贴近头像", avatarGap, onValueChange = { avatarGap = it })
-                    InsetDivider()
                     NumberInputRow("字体大小", "单位 sp", textSize, onValueChange = { textSize = it })
                 }
             }
@@ -1656,21 +1606,6 @@ internal fun messageDetailsTimeFormatChoices(current: String): List<PopupChoice<
     )
     return if (choices.any { it.value == current }) choices
     else choices + PopupChoice(label = "自定义 · "+ current.ifBlank { "默认时分秒" }, value = current)
-}
-
-internal fun messageDetailsPositionValues(): Set<String> = setOf(
-    HchatExtraSettings.POSITION_AVATAR_ABOVE,
-    HchatExtraSettings.POSITION_AVATAR_BELOW
-)
-
-internal fun messageDetailsPositionChoices(): List<PopupChoice<String>> = listOf(
-    PopupChoice(label = "头像上方", value = HchatExtraSettings.POSITION_AVATAR_ABOVE),
-    PopupChoice(label = "头像下方", value = HchatExtraSettings.POSITION_AVATAR_BELOW)
-)
-
-internal fun messageDetailsPositionLabel(value: String): String = when (value) {
-    HchatExtraSettings.POSITION_AVATAR_ABOVE -> "头像上方"
-    else -> "头像下方"
 }
 
 internal fun messageDetailsVariables(): List<TemplateVariable> {

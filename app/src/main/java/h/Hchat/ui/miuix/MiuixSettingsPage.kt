@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
+import android.util.Base64
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -2053,6 +2054,18 @@ internal object HchatConfigBackup {
     private const val TYPE_STRING_SET = "string_set"
     private const val KEY_TYPE = "type"
     private const val KEY_VALUE = "value"
+    private const val MAX_ASSET_BYTES = 16L * 1024L * 1024L
+    private const val MAX_TOTAL_ASSET_BYTES = 48L * 1024L * 1024L
+
+    /** 文件型的真实用户配置；缓存、日志、下载文件和运行状态不在备份范围。 */
+    private val assetDirectories = listOf(
+        "custom_friend_avatars",
+        "FloatingShortcut/icons",
+        "custom_bottom_bar_icons",
+        "custom_notification_ringtones"
+    )
+
+    private data class BackupAsset(val path: String, val bytes: ByteArray)
 
     private val prefsNames = listOf(
         UI_PREFS_NAME,
@@ -2155,17 +2168,19 @@ internal object HchatConfigBackup {
                     groupCount++
                 }
             }
+            val (assetsJson, assetCount) = exportAssets(context)
             val root = JSONObject().apply {
                 put("format", "HchatConfigBackup")
                 put("version", VERSION)
                 put("appVersion", BuildConfig.VERSION_NAME)
                 put("exportedAt", System.currentTimeMillis())
                 put("prefs", prefsJson)
+                put("assets", assetsJson)
             }
             context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
                 output.write(root.toString(2).toByteArray(Charsets.UTF_8))
             } ?: return BackupResult(0, 0)
-            BackupResult(groupCount, itemCount)
+            BackupResult(groupCount, itemCount + assetCount)
         }.getOrElse { BackupResult(0, 0) }
     }
 
@@ -2178,6 +2193,12 @@ internal object HchatConfigBackup {
             val root = JSONObject(text)
             if (root.optString("format") != "HchatConfigBackup") return BackupResult(0, 0)
             val prefsJson = root.optJSONObject("prefs") ?: return BackupResult(0, 0)
+            // 先完整校验并解码文件，再改任何现有配置，避免坏文件造成半次恢复。
+            val assets = if (root.has("assets")) {
+                decodeAssets(root.optJSONArray("assets") ?: throw IllegalArgumentException("assets 格式错误"))
+            } else {
+                null
+            }
             var itemCount = 0
             var groupCount = 0
             resolvePrefsNames(context, prefsJson).forEach { name ->
@@ -2192,14 +2213,99 @@ internal object HchatConfigBackup {
                         restored++
                     }
                 }
-                editor.commit()
+                check(editor.commit()) { "配置写入失败" }
                 if (restored > 0) {
                     itemCount += restored
                     groupCount++
                 }
             }
-            BackupResult(groupCount, itemCount)
+            val assetCount = assets?.let { restoreAssets(context, it) } ?: 0
+            BackupResult(groupCount, itemCount + assetCount)
         }.getOrElse { BackupResult(0, 0) }
+    }
+
+    private fun exportAssets(context: Context): Pair<JSONArray, Int> {
+        val array = JSONArray()
+        var count = 0
+        var totalBytes = 0L
+        assetDirectories.forEach { relativeDirectory ->
+            val directory = File(HchatStorage.storageDir(context), relativeDirectory)
+            directory.listFiles()?.sortedBy { it.name }?.forEach { file ->
+                if (!file.isFile || file.name.startsWith("thumb_")) return@forEach
+                val size = file.length()
+                require(size in 0..MAX_ASSET_BYTES) { "单个配置文件超过 16 MB" }
+                totalBytes += size
+                require(totalBytes <= MAX_TOTAL_ASSET_BYTES) { "配置文件合计超过 48 MB" }
+                array.put(JSONObject().apply {
+                    put("path", "$relativeDirectory/${file.name}")
+                    put("data", Base64.encodeToString(file.readBytes(), Base64.NO_WRAP))
+                })
+                count++
+            }
+        }
+        return array to count
+    }
+
+    private fun decodeAssets(array: JSONArray): List<BackupAsset> {
+        val result = mutableListOf<BackupAsset>()
+        val paths = mutableSetOf<String>()
+        var totalBytes = 0L
+        for (index in 0 until array.length()) {
+            val obj = array.optJSONObject(index) ?: throw IllegalArgumentException("配置项格式错误")
+            val path = obj.optString("path")
+            assetDirectoryFor(path)
+            require(paths.add(path)) { "重复的文件路径" }
+            val bytes = try {
+                Base64.decode(obj.optString("data"), Base64.DEFAULT)
+            } catch (e: IllegalArgumentException) {
+                throw IllegalArgumentException("文件内容不是有效 Base64", e)
+            }
+            require(bytes.size <= MAX_ASSET_BYTES) { "单个配置文件超过 16 MB" }
+            totalBytes += bytes.size
+            require(totalBytes <= MAX_TOTAL_ASSET_BYTES) { "配置文件合计超过 48 MB" }
+            result += BackupAsset(path, bytes)
+        }
+        return result
+    }
+
+    /** 只允许白名单目录下的普通文件，拒绝绝对路径、.. 和子目录穿越。 */
+    private fun assetDirectoryFor(path: String): String {
+        require(path.isNotBlank() && !path.startsWith("/") && !path.contains('\\'))
+        require(path.split('/').none { it.isBlank() || it == "." || it == ".." })
+        val directory = assetDirectories.firstOrNull { path.startsWith("$it/") }
+            ?: throw IllegalArgumentException("未知配置目录")
+        val fileName = path.substring(directory.length + 1)
+        require(fileName.isNotBlank() && !fileName.contains('/'))
+        return directory
+    }
+
+    private fun restoreAssets(context: Context, assets: List<BackupAsset>): Int {
+        val storageRoot = HchatStorage.storageDir(context).canonicalFile
+        val targets = assets.map { asset ->
+            val directory = File(storageRoot, assetDirectoryFor(asset.path)).canonicalFile
+            val target = File(storageRoot, asset.path).canonicalFile
+            require(target.parentFile == directory) { "文件路径越界" }
+            require(directory.exists() || directory.mkdirs()) { "无法创建配置目录" }
+            target
+        }
+        assetDirectories.forEach { relativeDirectory ->
+            File(storageRoot, relativeDirectory).listFiles()?.forEach { file ->
+                if (file.isFile && !file.delete()) throw IllegalArgumentException("无法清理旧配置文件")
+            }
+        }
+        assets.forEachIndexed { index, asset ->
+            val target = targets[index]
+            val temporary = File(target.parentFile, ".${target.name}.restore")
+            try {
+                temporary.writeBytes(asset.bytes)
+                if (!temporary.renameTo(target)) {
+                    temporary.copyTo(target, overwrite = true)
+                }
+            } finally {
+                if (temporary.exists()) temporary.delete()
+            }
+        }
+        return assets.size
     }
 
     private fun encodePreferenceValue(value: Any?): JSONObject? {

@@ -35,6 +35,8 @@ import h.Hchat.compat.xposed.XposedHelpers;
 import h.Hchat.dexkit.SettingsDexFinder;
 import h.Hchat.hooks.core.HookRegistry;
 import h.Hchat.hooks.items.quickread.QuickMarkReadRuntime;
+import h.Hchat.hooks.core.FeatureTrigger;
+import h.Hchat.hooks.items.quickterminate.QuickTerminateFeature;
 import h.Hchat.hooks.items.quickterminate.QuickTerminateRuntime;
 import h.Hchat.hooks.items.settings.SettingsEntrySettings;
 import h.Hchat.ui.SettingsUI;
@@ -904,6 +906,9 @@ public class SettingsInjector {
                         items,
                         QUICK_TERMINATE_PLUS_MENU_ID,
                         QUICK_TERMINATE_PLUS_MENU_TITLE)) {
+            if (isQuickTerminatePlusMenuEnabled()) {
+                FeatureTrigger.mark(QuickTerminateFeature.ID);
+            }
             ensurePlusMenuAdapterViewHook(adapter);
             if (adapter != null) {
                 adapter.notifyDataSetChanged();
@@ -942,6 +947,14 @@ public class SettingsInjector {
                     sampleItem,
                     QUICK_TERMINATE_PLUS_MENU_ID,
                     QUICK_TERMINATE_PLUS_MENU_TITLE);
+        }
+        // 加号菜单里真的出现了"快捷终止"这一项，才算这个功能可用。
+        if (isQuickTerminatePlusMenuEnabled()
+                && containsPlusMenuItem(
+                        items,
+                        QUICK_TERMINATE_PLUS_MENU_ID,
+                        QUICK_TERMINATE_PLUS_MENU_TITLE)) {
+            FeatureTrigger.mark(QuickTerminateFeature.ID);
         }
         if (changed && adapter != null) {
             adapter.notifyDataSetChanged();

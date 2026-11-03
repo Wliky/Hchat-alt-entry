@@ -11,6 +11,7 @@ object HchatStorage {
     private const val TAG = "[Hchat:Storage]"
     private const val DIR_NAME = "Hchat"
     private const val FILES_DIR_NAME = "files"
+    private const val PREFS_DIR_NAME = "shared_prefs"
     private val cache = ConcurrentHashMap<String, SharedPreferences>()
     private val registeredNames = java.util.Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
     private val legacyMigrated = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -61,22 +62,27 @@ object HchatStorage {
         val base = try {
             context.dataDir
         } catch (_: Throwable) {
-            context.filesDir
+            context.filesDir.parentFile ?: context.filesDir
         }
-        // 放在宿主 files 子目录：微信"清理缓存-其他缓存"只扫 dataDir 根目录下的临时项，
-        // 不会整目录删 files/，配置不会再被清理掉。
-        val dir = File(File(base, FILES_DIR_NAME), DIR_NAME)
-        migrateLegacyDir(File(base, DIR_NAME), dir)
+        // 放进 shared_prefs：微信"清理缓存-其他数据"只扫 files/、cache/ 等目录，
+        // shared_prefs 是系统 SharedPreferences 目录，清理不会碰这里。
+        val dir = File(File(base, PREFS_DIR_NAME), DIR_NAME)
+        migrateLegacyDirs(base, dir)
         if (!dir.isDirectory && !dir.mkdirs()) {
             HLog.e("$TAG 创建目录失败: ${dir.absolutePath}")
         }
         return dir
     }
 
-    /** 老版本把配置放在 <dataDir>/Hchat，首次启动时搬过来，避免升级后设置全丢。 */
+    /** 兼容两代旧路径：<dataDir>/files/Hchat、<dataDir>/Hchat，首次启动搬到 shared_prefs。 */
+    private fun migrateLegacyDirs(base: File, target: File) {
+        if (!legacyMigrated.compareAndSet(false, true)) return
+        migrateLegacyDir(File(File(base, FILES_DIR_NAME), DIR_NAME), target)
+        migrateLegacyDir(File(base, DIR_NAME), target)
+    }
+
     private fun migrateLegacyDir(legacy: File, target: File) {
         if (!legacy.isDirectory) return
-        if (!legacyMigrated.compareAndSet(false, true)) return
         runCatching {
             if (!target.isDirectory && !target.mkdirs()) return
             legacy.listFiles()?.forEach { file ->
@@ -84,9 +90,7 @@ object HchatStorage {
                 val dest = File(target, file.name)
                 if (!dest.exists()) file.copyTo(dest, overwrite = false)
             }
-            // 复制完就把旧目录删掉：配置只留 files/Hchat 一份。
-            // 旧目录留在 dataDir 根下既可能被微信"清理缓存"扫到，用户清数据后
-            // 也会看到两个 Hchat 目录，属于需要消掉的残留。
+            // 复制完就把旧目录删掉：配置只留 shared_prefs/Hchat 一份，避免清理残留。
             val removed = legacy.deleteRecursively()
             HLog.i("$TAG 配置目录已迁移到 ${target.absolutePath}，旧目录清理=$removed")
         }.onFailure { HLog.e("$TAG 迁移配置目录失败: ${it.message}", it) }

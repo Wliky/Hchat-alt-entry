@@ -529,8 +529,8 @@ private fun FeatureSettingsPage(
 - 点击视频号菜单时只从当前回调参数、点击监听对象的直属字段和一层 holder 字段提取媒体，不做无界对象图扫描，避免误复制或下载相邻视频。当前 `FinderItem` 的普通媒体 JSON 缺少 `media_cdn_info.pcdn_url` 时，会按相同下标读取 `getMediaExtList()` 并合并扩展媒体里的 PCDN 直链；扩展数据仍无直链时继续使用现有密链、密钥和详情补全流程。
 - `alt-entry` 的视频号视频下载会从媒体 `spec` 中优先选择 `codingFormat=h265` 的规格，并把对应 `fileFormat` 作为 `X-snsvideoflag` 请求参数写入原始 CDN 密链后下载解密，避免 PCDN 或默认空规格返回 H.266/VVC 视频。没有 H.265 规格或原始密链不可用时保留原下载流程；规格字段已横向确认微信 `8.0.49`、`8.0.58`、`8.0.66`、`8.0.68`、`8.0.72`、`8.0.74`、`8.0.76`。
 - 视频号聊天分享 XML 先隔离完整 `finderFeed` 节，再用 PullParser `nextText()` 直接读取 `mediaList/media` 叶子字段。ARSCLib 会把 `org.xmlpull.v1` 实现带入最终 APK，R8 full mode 如果混淆这套公共接口，会把 Android `Xml.newPullParser()` 返回的系统解析器错误强转为 APK 内置实现，运行时触发 `ClassCastException`；发布规则必须完整 keep `org.xmlpull.v1.**`，让视频号和普通视频 XML 在 R8 与无 R8 下都通过系统接口调用。解析异常按 10 秒限频记录原始 Throwable、输入长度和内容哈希，不能再静默转换成 `null`；媒体入口、补齐成功、普通未命中和回调检测的临时诊断日志不保留。
-- 模块自己的设置使用 `HchatStorage.preferences(context, name)`。日常读写由 FastKV 处理，路径在微信私有 `<dataDir>/files/Hchat`，不在 Android `shared_prefs/`，也不在 `<dataDir>/Hchat`。
-- 旧版本写在 `<dataDir>/Hchat` 的配置会在首次访问时复制到 `files/Hchat`，复制完成后删除旧目录，避免两份配置并存；`files/` 随微信"清除全部数据"或卸载一并删除，不需要模块再提供清理入口。FastKV 可能为同一个配置名创建 `.kva/.kvb` 文件。功能代码不要直接实例化 FastKV。
+- 模块自己的设置使用 `HchatStorage.preferences(context, name)`。日常读写由 FastKV 处理，路径在微信私有 `<dataDir>/shared_prefs/Hchat`：微信「清理缓存-其他数据」会扫 `files/`，放在那里配置会被清掉，`shared_prefs/` 不在清理范围。
+- 旧版本写在 `<dataDir>/files/Hchat` 或 `<dataDir>/Hchat` 的配置会在首次访问时复制到 `shared_prefs/Hchat`，复制完成后删除旧目录，避免两份配置并存；`shared_prefs/` 随微信"清除全部数据"或卸载一并删除，不需要模块再提供清理入口。FastKV 可能为同一个配置名创建 `.kva/.kvb` 文件。功能代码不要直接实例化 FastKV。
 - 重要：backdrop 只能从页面内容层记录。底栏必须作为独立 overlay 画在 `layerBackdrop(...)` 容器外，否则 blur 目标可能记录自身并在微信宿主进程触发 native `libhwui` 崩溃。
 - 底栏是从 KernelSU 的 KSU 风格液态底栏复制/适配而来，不是 Miuix `NavigationBar`；目前只由 `自定义底栏` 使用。相关文件：
   - `ui/miuix/FloatingBottomBar.kt`
@@ -832,6 +832,19 @@ sFastMyWxid
 
 快照由 `FeatureManager.installAll()` 在安装结束时写入，`DexInstallScheduler` 在每次安装异常和重试耗尽时更新 `lastError`；页面不重新跑定位，打开即可用，点「刷新」重新读取。
 
+功能状态分三态：**正常**（关键 hook 或监听器真的被微信调用过）、**待验证**（安装成功、自检通过，但还没触发过）、**不可用**（安装失败或关键定位缺失）。"安装没抛异常"不再算正常。
+
+运行时命中由 `ModuleStatusStore.markTriggered(featureId)` 记录，登记方式有四种，新增功能时不需要额外写代码：
+
+- `FeatureManager` 安装功能时用 `HookRegistry.withFeatureTag(featureId)` 包住 `install()`，安装期间通过 `HookRegistry.hook(...)` 注册的回调会被 `TriggerMarkingHook` 包一层，第一次真正被调用时打点。
+- `DexInstallScheduler.schedule(...)` 会记住入队时的功能 id，后台定位线程执行 installer 时恢复该上下文，所以 `scheduleInstall()` 里的 hook 同样能打点。
+- `WeChatApis` 各 API 的 `subscribe(...)` 用 `FeatureTrigger.wrap(...)` 把监听器绑定到订阅时的功能 id，事件真正派发一次即打点。
+- `BaseFeature.subscribe(...)` 在事件派发时补回功能上下文，`Events.DexReady` 处理函数里再注册的 hook / 监听器同样能绑定到本功能。
+
+没有任何 hook、也没有订阅的功能（纯设置页、纯菜单项、定时执行类）必须在自己真正生效的位置调用 `BaseFeature.markHit()`，例如转换成功、标签写入成功、菜单项真正注入。不调用就会一直停在"待验证"。
+
+hook 挂在通用回调上的功能（`QuickMarkReadFeature` 的 `dispatchTouchEvent`、`HchatExtraFeature` 的消息列表 bind 等）会被任何一次触摸或消息刷新命中，不能当作可用证据：这类功能重写 `autoMarkOnHook()` 返回 `false`，再在自己确认成功的分支打点。
+
 ## 功能开发模板
 
 新增功能时复制这个结构，不要把业务逻辑写到 `hooks/api` 或 `loader`。
@@ -907,6 +920,15 @@ class ExampleFeature : BaseFeature() {
     companion object {
         const val ID = "example"
     }
+}
+```
+
+功能没有 hook、也没有任何 API 订阅时（纯设置页、纯菜单项、定时执行类），要在真正生效的代码路径调用 `markHit()`，否则排查页会一直显示"待验证"：
+
+```kotlin
+private fun applyResult() {
+    // 真正写成功 / 发送成功 / 菜单项真正注入之后再调用
+    markHit()
 }
 ```
 
@@ -1061,7 +1083,7 @@ UI 规则：
 - 所有页面都要给 `LazyColumn` 传 `rememberLazyListState()`，返回二级菜单时才能保持滚动位置。
 - `LazyColumn` 要加 `.nestedScroll(scrollBehavior.nestedScrollConnection)`，保证 Miuix 顶栏滚动行为一致。
 - 主设置页的 设置 tab 已有 `悬浮底栏` 和 `液态玻璃` 开关，值存在 `Hchat_miuix_ui`。不要在功能页重复做这些全局 UI 设置。
-- 新增功能配置统一使用 `HchatStorage.preferences(context, name)` 或 `ConfigStore`，文件位于微信私有目录 `files/Hchat/`，日常读写由 FastKV 负责。不要直接 `context.getSharedPreferences(...)` 或自行实例化 FastKV 写模块配置。
+- 新增功能配置统一使用 `HchatStorage.preferences(context, name)` 或 `ConfigStore`，文件位于微信私有目录 `shared_prefs/Hchat/`，日常读写由 FastKV 负责。不要直接 `context.getSharedPreferences(...)` 或自行实例化 FastKV 写模块配置。
 - 主底栏实现位于 `ui/miuix/FloatingBottomBar.kt` 及其 `animation/`、`liquid/` 辅助文件。它使用 KSU 风格的多层 backdrop：普通内容层、隐藏主色 tint 层、移动选中液态胶囊。新增功能页不要改这套底栏状态或颜色机制。
 - 底栏图标是本地 `ImageVector`，路径来自 AndroidX Material Rounded。不要在微信内嵌 Compose UI 中使用 `vectorResource(R.drawable...)`。
 - 主功能列表不显示 Provider 图标，保持普通设置列表样式。图标只保留在底部导航。

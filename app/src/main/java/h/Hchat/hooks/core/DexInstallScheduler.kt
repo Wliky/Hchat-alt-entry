@@ -63,6 +63,11 @@ object DexInstallScheduler {
         state.stage = stage
         state.priority = priority
         state.installer = installer
+        // 入队时记录功能 id：后台定位线程跑 installer 时线程局部变量已经丢了。
+        registry.currentFeatureTag()?.takeIf { it.isNotEmpty() }?.let {
+            state.featureTag = it
+            state.featureAutoMark = registry.currentAutoMarkOnHook()
+        }
         if (!isReady(stage)) return@synchronized
         if (!state.running.get() && !state.retryScheduled.get() &&
             state.retryIndex.get() >= MAX_RETRY_ATTEMPTS
@@ -174,7 +179,10 @@ object DexInstallScheduler {
                 val installer = synchronized(stateLock) {
                     if (isCurrent(key, state) && !state.installed.get()) state.installer else null
                 } ?: return
-                ok = HookRegistry.get().withInstallationGeneration(state.generation) { installer() }
+                val registry = HookRegistry.get()
+                ok = registry.withFeatureTag(state.featureTag, state.featureAutoMark) {
+                    registry.withInstallationGeneration(state.generation) { installer() }
+                }
             }
         } catch (_: CancellationException) {
             // 卸载与正在执行的定位竞争时，旧租约失效属于正常取消。
@@ -289,6 +297,8 @@ object DexInstallScheduler {
         @Volatile var stage: Stage = Stage.BRIDGE
         @Volatile var priority: Int = 0
         @Volatile var installer: (() -> Boolean)? = null
+        @Volatile var featureTag: String? = null
+        @Volatile var featureAutoMark: Boolean = true
         @Volatile var lastError: String = ""
         var future: FutureTask<Unit>? = null
         var retryTask: Runnable? = null

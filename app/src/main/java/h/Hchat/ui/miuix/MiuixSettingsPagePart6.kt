@@ -203,6 +203,7 @@ import h.Hchat.hooks.api.media.WeChatFavoriteItem
 import h.Hchat.hooks.api.message.WeChatMessageObserveApi
 import h.Hchat.hooks.api.model.ContactLabelBean
 import h.Hchat.hooks.api.model.WeChatContact
+import h.Hchat.hooks.core.ModuleStatusStore
 import h.Hchat.hooks.items.audiotransform.AudioTransformFeature
 import h.Hchat.hooks.items.audiotransform.AudioTransformCancelledException
 import h.Hchat.hooks.items.audiotransform.AudioTransformSegmenter
@@ -491,6 +492,8 @@ internal fun GroupChatLabelMiuixPage(
     fun saveLabels(next: List<GroupChatLabel>) {
         labels = next
         GroupChatLabelStore.save(context, next)
+        // 这个功能本体就是标签管理页，真正写成功一次才算跑起来。
+        ModuleStatusStore.markTriggered(GroupChatLabelFeature.ID)
     }
 
     SettingsRouteTransition(

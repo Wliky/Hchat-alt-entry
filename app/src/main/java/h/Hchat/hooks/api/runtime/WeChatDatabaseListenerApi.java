@@ -125,8 +125,10 @@ public final class WeChatDatabaseListenerApi {
 
     public Subscription subscribe(Listener listener) {
         if (listener == null) return null;
-        listeners.addIfAbsent(listener);
-        return new Subscription(listener);
+        Listener target = h.Hchat.hooks.core.FeatureTrigger.wrap(
+                Listener.class, listener, h.Hchat.hooks.core.HookRegistry.get().currentFeatureTag());
+        listeners.addIfAbsent(target);
+        return new Subscription(target);
     }
 
     public void unsubscribe(Listener listener) {
@@ -135,8 +137,10 @@ public final class WeChatDatabaseListenerApi {
 
     public QuerySubscription subscribeQuery(QueryInterceptor interceptor) {
         if (interceptor == null) return null;
-        queryInterceptors.addIfAbsent(interceptor);
-        return new QuerySubscription(interceptor);
+        QueryInterceptor target = h.Hchat.hooks.core.FeatureTrigger.wrap(
+                QueryInterceptor.class, interceptor, h.Hchat.hooks.core.HookRegistry.get().currentFeatureTag());
+        queryInterceptors.addIfAbsent(target);
+        return new QuerySubscription(target);
     }
 
     public void unsubscribeQuery(QueryInterceptor interceptor) {

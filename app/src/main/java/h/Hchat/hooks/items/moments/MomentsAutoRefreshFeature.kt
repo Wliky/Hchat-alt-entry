@@ -5,6 +5,7 @@ import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.core.BaseFeature
 import h.Hchat.hooks.core.DexInstallScheduler
 import h.Hchat.hooks.core.FeatureContext
+import h.Hchat.hooks.core.ModuleStatusStore
 import h.Hchat.preferences.HchatStorage
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -101,6 +102,8 @@ private class MomentsAutoRefreshRuntime(
         lastAttemptAt = now
         runCatching { WeChatApis.snsApi()?.refreshTimeline() == true }
             .onSuccess {
+                // 只有刷新请求真正提交成功，才证明定时调度与朋友圈 API 都可用。
+                if (it) ModuleStatusStore.markTriggered(MomentsAutoRefreshFeature.ID)
                 if (!it) lastAttemptAt = now - intervalMillis + minOf(intervalMillis, RETRY_DELAY_MS)
                 saveResult(now, if (it) "刷新请求已提交" else "刷新请求提交失败")
             }

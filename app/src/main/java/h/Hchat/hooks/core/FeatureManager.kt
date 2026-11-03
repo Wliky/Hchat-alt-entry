@@ -31,7 +31,10 @@ class FeatureManager {
         for (feature in features) {
             val displayName = safeName(feature)
             try {
-                feature.onInit(context)
+                // init 阶段的订阅同样归属这个功能，事件派发时才能反过来打点。
+                HookRegistry.get().withFeatureTag(safeFeatureId(feature), feature.autoMarkOnHook()) {
+                    feature.onInit(context)
+                }
                 initializedFeatures.add(feature)
             } catch (e: Throwable) {
                 failures[feature] = describe(e)
@@ -53,7 +56,10 @@ class FeatureManager {
             }
 
             try {
-                feature.install(context)
+                // 安装期间注册的 hook 和监听器都绑定这个功能 id，命中时才能反过来打点。
+                HookRegistry.get().withFeatureTag(safeFeatureId(feature), feature.autoMarkOnHook()) {
+                    feature.install(context)
+                }
                 installedFeatures.add(feature)
                 try {
                     context.eventBus().post(Events.FeatureInstalled(displayName))
@@ -97,6 +103,11 @@ class FeatureManager {
                     }
                 } else {
                     ""
+                },
+                triggered = enabled && installed && try {
+                    feature.runtimeHit()
+                } catch (_: Throwable) {
+                    false
                 }
             )
         }
@@ -130,7 +141,9 @@ class FeatureManager {
         for (feature in installedFeatures) {
             if (featureId != null && featureId != feature.featureId()) continue
             try {
-                feature.onConfigChanged(context, key)
+                HookRegistry.get().withFeatureTag(safeFeatureId(feature), feature.autoMarkOnHook()) {
+                    feature.onConfigChanged(context, key)
+                }
             } catch (e: Throwable) {
                 HLog.e("$TAG onConfigChanged 异常: ${safeName(feature)}, error=$e", e)
             }
@@ -152,6 +165,14 @@ class FeatureManager {
         installedFeatures.clear()
         // 首页投影由聊天分组与标签栏共享，只在全量卸载后复位。
         ConversationGroupHomeProjection.resetAfterUnhookAll()
+    }
+
+    private fun safeFeatureId(feature: Feature): String {
+        return try {
+            feature.featureId()
+        } catch (_: Throwable) {
+            ""
+        }
     }
 
     private fun safeName(feature: Feature): String {
