@@ -776,8 +776,16 @@ public class DexFinder {
             for (Class<?> cl : candidates) {
                 Constructor<?> longCtor = findCtorByExactTypes(
                         cl, String.class, String.class, int.class, int.class, long.class);
+                if (longCtor == null) {
+                    longCtor = findCtorByExactTypes(
+                            cl, String.class, String.class, int.class, int.class, long.class, String.class);
+                }
                 Constructor<?> objectCtor = findCtorByExactTypes(
                         cl, String.class, String.class, int.class, int.class, Object.class);
+                if (objectCtor == null) {
+                    objectCtor = findCtorByExactTypes(
+                            cl, String.class, String.class, int.class, int.class, Object.class, String.class);
+                }
                 if (longCtor != null || objectCtor != null) {
                     sendTextMsgClass = cl;
                     sendTextMsgCtorLong = longCtor;
@@ -1349,14 +1357,9 @@ public class DexFinder {
     }
 
     public void resolveMsgDescTextApi() {
-        if (ensureSnapshotLoaded() && msgDescLocatorResolved) return;
+        if (ensureSnapshotLoaded() && msgDescLocatorResolved && !msgDescTextMethods.isEmpty()) return;
         try {
-            if (msgDescLocatorResolved) return;
-            if (!msgDescTextMethods.isEmpty()) {
-                msgDescLocatorResolved = true;
-                saveCache();
-                return;
-            }
+            if (msgDescLocatorResolved && !msgDescTextMethods.isEmpty()) return;
             // 跨版本通用：微信消息描述文本方法名稳定为 "l"（各版本 xN0.q/r.l），用 "string" 字符串缩小范围后按签名过滤
             List<MethodData> methods = dexKit.findMethod(mkMethodUsingStringsAndName("l", "string"));
             for (MethodData methodData : methods) {
@@ -1370,7 +1373,7 @@ public class DexFinder {
             if (!msgDescTextMethods.isEmpty()) {
                 logDetail("消息描述文本兜底方法: " + msgDescTextMethods.size() + " 个");
             }
-            msgDescLocatorResolved = true;
+            msgDescLocatorResolved = !msgDescTextMethods.isEmpty();
             saveCache();
         } catch (Throwable e) {
             h.Hchat.utils.HLog.e(TAG + " resolveMsgDescTextApi 失败: " + e.getMessage(), e);
@@ -2686,7 +2689,7 @@ public class DexFinder {
         int located = 0;
         int total = 0;
         for (java.lang.reflect.Field field : DexFinder.class.getDeclaredFields()) {
-            if (!isLocateField(field)) continue;
+            if (!isLocateField(field) || isOptionalLocateField(field)) continue;
             total++;
             try {
                 field.setAccessible(true);
@@ -2708,7 +2711,7 @@ public class DexFinder {
     public java.util.List<String> missingLocateFields() {
         java.util.List<String> missing = new java.util.ArrayList<>();
         for (java.lang.reflect.Field field : DexFinder.class.getDeclaredFields()) {
-            if (!isLocateField(field)) continue;
+            if (!isLocateField(field) || isOptionalLocateField(field)) continue;
             try {
                 field.setAccessible(true);
                 if (field.get(this) == null) missing.add(field.getName());
@@ -2716,6 +2719,22 @@ public class DexFinder {
             }
         }
         return missing;
+    }
+
+    private boolean isOptionalLocateField(java.lang.reflect.Field field) {
+        String name = field.getName();
+        if ("openCtor8".equals(name)) return openCtor9 != null || openCtor10 != null;
+        if ("unionOpenCtor9".equals(name)) return unionOpenCtor10 != null;
+        if ("imageCdnTaskClass".equals(name)
+                || "imageCdnSubmitMethod".equals(name)
+                || "imageCdnServiceGetterMethod".equals(name)) {
+            return isMarsCdnReady();
+        }
+        if ("videoPathOwnerGetterMethod".equals(name)) {
+            return videoPathMethod != null && serviceGetterMethod != null;
+        }
+        if ("sendVideoTaskClass".equals(name)) return sendVideoMethod != null;
+        return false;
     }
 
     private static boolean isLocateField(java.lang.reflect.Field field) {
@@ -3139,14 +3158,42 @@ public class DexFinder {
             fm.matcher(mm);
             List<MethodData> methods = dexKit.findMethod(fm);
             count = methods != null ? methods.size() : 0;
-            if (methods == null) return 0;
-            for (MethodData methodData : methods) {
-                try {
-                    Method method = methodData.getMethodInstance(classLoader);
-                    if (!isLocalMessageInsertMethod(method)) continue;
-                    setLocalMessageApi(method);
-                    break;
-                } catch (Throwable ignored) {}
+            if (methods != null) {
+                for (MethodData methodData : methods) {
+                    try {
+                        Method method = methodData.getMethodInstance(classLoader);
+                        if (!isLocalMessageInsertMethod(method)) continue;
+                        setLocalMessageApi(method);
+                        break;
+                    } catch (Throwable ignored) {}
+                }
+            }
+
+            // 8.0.80 起旧静态 x(storage.*)long 被移除；按签名找静态插入方法，
+            // 优先选择同 owner 上仍有 createTime 转换方法的存储实现。
+            if (localMessageInsertMethod == null) {
+                FindMethod fallbackFinder = new FindMethod();
+                MethodMatcher fallbackMatcher = new MethodMatcher();
+                fallbackMatcher.returnType(long.class);
+                fallbackMatcher.paramCount(1);
+                fallbackFinder.matcher(fallbackMatcher);
+                List<MethodData> fallbackMethods = dexKit.findMethod(fallbackFinder);
+                count += fallbackMethods != null ? fallbackMethods.size() : 0;
+                Method fallback = null;
+                if (fallbackMethods != null) {
+                    for (MethodData methodData : fallbackMethods) {
+                        try {
+                            Method method = methodData.getMethodInstance(classLoader);
+                            if (!isLocalMessageInsertMethod(method)) continue;
+                            if (findLocalMessageCreateTimeMethod(method.getDeclaringClass()) != null) {
+                                fallback = method;
+                                break;
+                            }
+                            if (fallback == null) fallback = method;
+                        } catch (Throwable ignored) {}
+                    }
+                }
+                if (fallback != null) setLocalMessageApi(fallback);
             }
         } catch (Throwable ignored) {}
         return count;
@@ -3666,7 +3713,8 @@ public class DexFinder {
             wishLocatorResolved = cachePrefs.getBoolean(LOCATOR_WISH_COMPLETE, false);
             packetCompatLocatorResolved = cachePrefs.getBoolean(LOCATOR_PACKET_COMPLETE, false);
             ecsGiftLocatorResolved = cachePrefs.getBoolean(LOCATOR_ECS_COMPLETE, false);
-            msgDescLocatorResolved = cachePrefs.getBoolean(LOCATOR_MSG_DESC_COMPLETE, false);
+            msgDescLocatorResolved = cachePrefs.getBoolean(LOCATOR_MSG_DESC_COMPLETE, false)
+                    && !msgDescTextMethods.isEmpty();
             sendTextMsgClass = loadClass("sendTextMsgClass");
             serviceGetterMethod = loadMethod("serviceGetterMethod");
             getContactAddMethods = loadMethodList("getContactAddMethods");
@@ -3776,8 +3824,16 @@ public class DexFinder {
             wishWxHbCtor = findCtorByArgCount(wishWxHbClass, 4);
             sendTextMsgCtorLong = findCtorByExactTypes(
                     sendTextMsgClass, String.class, String.class, int.class, int.class, long.class);
+            if (sendTextMsgCtorLong == null) {
+                sendTextMsgCtorLong = findCtorByExactTypes(
+                        sendTextMsgClass, String.class, String.class, int.class, int.class, long.class, String.class);
+            }
             sendTextMsgCtorObject = findCtorByExactTypes(
                     sendTextMsgClass, String.class, String.class, int.class, int.class, Object.class);
+            if (sendTextMsgCtorObject == null) {
+                sendTextMsgCtorObject = findCtorByExactTypes(
+                        sendTextMsgClass, String.class, String.class, int.class, int.class, Object.class, String.class);
+            }
             if (localMessageClass == null && localMessageInsertMethod != null
                     && localMessageInsertMethod.getParameterTypes().length == 1) {
                 localMessageClass = localMessageInsertMethod.getParameterTypes()[0];
@@ -4228,21 +4284,27 @@ public class DexFinder {
         if (!"android.util.Pair".equals(method.getReturnType().getName())) return false;
         if (!KavaReflector.isStatic(method)) return false;
         Class<?>[] params = method.getParameterTypes();
-        if (params.length != 10 && params.length != 12) return false;
+        if (params.length != 10 && params.length != 12 && params.length != 13) return false;
         if (params[0].isPrimitive()) return false;
-        return params[1] == String.class
-                && params[2] == String.class
-                && params[3] == String.class
-                && params[4] == String.class
-                && params[5] == byte[].class
-                && params[6] == String.class
-                && params[7] == String.class
-                && params[8] == String.class
-                && ((params.length == 10 && (params[9] == long.class || params[9] == Long.class))
-                || (params.length == 12
-                && !params[9].isPrimitive()
-                && (params[10] == boolean.class || params[10] == Boolean.class)
-                && params[11] == String.class));
+        if (params[1] != String.class
+                || params[2] != String.class
+                || params[3] != String.class
+                || params[4] != String.class
+                || params[5] != byte[].class
+                || params[6] != String.class
+                || params[7] != String.class
+                || params[8] != String.class) {
+            return false;
+        }
+        if (params.length == 10) {
+            return params[9] == long.class || params[9] == Long.class;
+        }
+        if (params[9].isPrimitive()
+                || (params[10] != boolean.class && params[10] != Boolean.class)
+                || params[11] != String.class) {
+            return false;
+        }
+        return params.length == 12 || params[12] == String.class;
     }
 
     private boolean isAppMsgParseMethod(Method method, Class<?> appMsgClass) {
@@ -4689,12 +4751,7 @@ public class DexFinder {
                     Method method = methodData.getMethodInstance(classLoader);
                     if (method.getDeclaringClass() != helperClass) continue;
                     if (method.getReturnType() != boolean.class) continue;
-                    Class<?>[] params = method.getParameterTypes();
-                    if (params.length == 4
-                            && params[0] == String.class
-                            && params[1] == String.class
-                            && params[2] == String.class
-                            && params[3] == String.class) {
+                    if (isSnsAddVideoSignature(method.getParameterTypes())) {
                         return KavaReflector.accessible(method);
                     }
                 } catch (Throwable ignored) {}
@@ -4708,18 +4765,21 @@ public class DexFinder {
                     Method method = methodData.getMethodInstance(classLoader);
                     if (method.getDeclaringClass() != helperClass) continue;
                     if (method.getReturnType() != boolean.class) continue;
-                    Class<?>[] params = method.getParameterTypes();
-                    if (params.length == 4
-                            && params[0] == String.class
-                            && params[1] == String.class
-                            && params[2] == String.class
-                            && params[3] == String.class) {
+                    if (isSnsAddVideoSignature(method.getParameterTypes())) {
                         return KavaReflector.accessible(method);
                     }
                 } catch (Throwable ignored) {}
             }
         } catch (Throwable ignored) {}
         return null;
+    }
+
+    private boolean isSnsAddVideoSignature(Class<?>[] params) {
+        if (params == null || (params.length != 4 && params.length != 5)) return false;
+        for (Class<?> param : params) {
+            if (param != String.class) return false;
+        }
+        return true;
     }
 
     private Method findSnsCommitMethod(Class<?> helperClass) {
@@ -5361,11 +5421,8 @@ public class DexFinder {
             Class<?>[] params = method.getParameterTypes();
             if (params.length != 6) continue;
             if (params[0] != String.class || params[1] != String.class) continue;
-            if (!params[2].getName().equals("jh2.a")
-                    || !params[3].getName().equals("jh2.a")
-                    || !params[4].getName().equals("jh2.a")) {
-                continue;
-            }
+            Class<?> callback = params[2];
+            if (callback.isPrimitive() || params[3] != callback || params[4] != callback) continue;
             if (params[5] != boolean.class && params[5] != Boolean.class) continue;
             return KavaReflector.accessible(method);
         }

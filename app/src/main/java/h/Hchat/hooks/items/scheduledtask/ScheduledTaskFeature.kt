@@ -26,6 +26,9 @@ class ScheduledTaskFeature : BaseFeature() {
 
     override fun name(): String = "定时任务"
 
+    /** 定时执行类功能：靠线程和闹钟跑，生效时自己调用 markTriggered 打点。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(ScheduledTaskSettingsProvider())
     }

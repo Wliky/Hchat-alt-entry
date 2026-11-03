@@ -8,6 +8,9 @@ class AudioTransformFeature : BaseFeature() {
 
     override fun name(): String = "音频转换"
 
+    /** 纯设置页功能：真正生效点在设置页操作里，由页面调用 markHit 手动打点。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(AudioTransformSettingsProvider())
     }

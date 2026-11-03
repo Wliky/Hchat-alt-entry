@@ -102,6 +102,12 @@ abstract class BaseFeature : Feature {
         return subscription
     }
 
+    /** 安装期是否真的产出了 hook 或事件订阅；用于排查页识别"装了但什么都没挂上"。 */
+    override fun hasRuntimeBinding(): Boolean {
+        if (subscriptions.isNotEmpty() || trackedSubscriptions.isNotEmpty()) return true
+        return HookRegistry.get().hookCountFor(featureId()) > 0
+    }
+
     /**
      * 手动标记运行时命中：没有任何 hook/订阅可打点的功能（纯页面、纯配置项、
      * 定时执行类）在自己的实际生效点调用它，排查页才会从「待验证」变「正常」。

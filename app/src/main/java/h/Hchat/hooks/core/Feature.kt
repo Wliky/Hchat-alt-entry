@@ -40,6 +40,19 @@ interface Feature {
      */
     fun autoMarkOnHook(): Boolean = true
 
+    /**
+     * 本功能是否必须产生运行时绑定（hook 或事件订阅）才算真的挂上。
+     * 纯页面、纯配置项注入、定时执行，以及只借用公共 API 层 hook 的功能返回 false，
+     * 排查页才不会把"没注册 hook"误报成不可用。
+     */
+    fun requiresRuntimeBinding(): Boolean = true
+
+    /**
+     * 安装期是否真的注册了 hook 或事件订阅。默认 true：非 [BaseFeature] 的实现
+     * 不做这项自检，避免误报。
+     */
+    fun hasRuntimeBinding(): Boolean = true
+
     fun onConfigChanged(context: FeatureContext, key: String?) {
     }
 

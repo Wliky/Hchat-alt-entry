@@ -273,6 +273,17 @@ object DexInstallScheduler {
         if (full) installed.sortedBy { it.label }.forEach { HLog.i("$TAG OK ${it.label}") }
     }
 
+    /**
+     * 该功能是否还有没跑完的安装项。用于排查页判定"未注册任何 hook"：
+     * 队列还没轮到它时 hook 数当然是 0，不能据此判成装不上。
+     */
+    fun hasPendingBinding(featureId: String): Boolean {
+        if (featureId.isEmpty()) return false
+        return synchronized(stateLock) {
+            states.values.any { !it.installed.get() && it.featureTag == featureId }
+        }
+    }
+
     /** 供「模块排查」页面读取的安装队列快照。 */
     fun snapshot(): List<ModuleStatusStore.InstallStatus> = synchronized(stateLock) {
         states.entries

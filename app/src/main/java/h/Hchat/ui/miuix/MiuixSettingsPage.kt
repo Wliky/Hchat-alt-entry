@@ -240,7 +240,6 @@ import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
-import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
@@ -278,8 +277,6 @@ import h.Hchat.hooks.items.groupleave.GroupLeaveMonitorSettings
 import h.Hchat.hooks.items.grouplabel.GroupChatLabel
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelFeature
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelStore
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelFeature
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelSettings
 import h.Hchat.hooks.items.groupnicknamecolor.GroupNicknameColorSettings
 import h.Hchat.hooks.items.groupnicknamecolor.GroupNicknameColorStore
 import h.Hchat.hooks.items.grouprename.GroupRenameMonitorFeature
@@ -317,20 +314,8 @@ import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
-import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
-import h.Hchat.hooks.items.moments.MomentsAutoCommentSettings
-import h.Hchat.hooks.items.moments.MomentsAutoLikeFeature
-import h.Hchat.hooks.items.moments.MomentsAutoLikeSettings
-import h.Hchat.hooks.items.moments.MomentsAutoForwardFeature
-import h.Hchat.hooks.items.moments.MomentsAutoForwardSettings
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshFeature
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshSettings
 import h.Hchat.hooks.items.moments.MomentsBottomDetailFeature
 import h.Hchat.hooks.items.moments.MomentsBottomDetailSettings
-import h.Hchat.hooks.items.moments.MomentsContactFilterFeature
-import h.Hchat.hooks.items.moments.MomentsContactFilterSettings
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockFeature
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockSettings
 import h.Hchat.hooks.items.moments.MomentsPostNotificationFeature
 import h.Hchat.hooks.items.moments.MomentsPostNotificationSettings
 import h.Hchat.hooks.items.moments.MomentsUploadTailFeature
@@ -347,8 +332,6 @@ import h.Hchat.hooks.items.momentsfake.MomentsFakeLikeSettingsProvider
 import h.Hchat.hooks.items.momentsfake.MomentsFakeLikeCandidateRepository
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionRuntimeRegistry
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionSettings
-import h.Hchat.hooks.items.multirecall.MultiRecallFeature
-import h.Hchat.hooks.items.multirecall.MultiRecallSettings
 import h.Hchat.hooks.items.payment.core.AutoRedPacketFeature
 import h.Hchat.hooks.items.payment.core.PaymentTemplateTimeFormatter
 import h.Hchat.hooks.items.payment.core.RedPacketReplyStep
@@ -413,6 +396,7 @@ import h.Hchat.hooks.items.typingreport.TypingReportBlockSettings
 import h.Hchat.hooks.items.voiceforward.VoiceForwardFeature
 import h.Hchat.hooks.items.voiceforward.VoiceForwardSettings
 import h.Hchat.hooks.items.hchatextra.BackupSettingsProvider
+import h.Hchat.hooks.items.hchatextra.CompatibilitySettingsProvider
 import h.Hchat.hooks.items.hchatextra.GroupMemberHistorySettingsProvider
 import h.Hchat.hooks.items.hchatextra.MessageDetailsSettingsProvider
 import h.Hchat.hooks.items.hchatextra.RedPacketDetailsSettingsProvider
@@ -425,7 +409,6 @@ import h.Hchat.preferences.HchatStorage
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
-import h.Hchat.utils.KeywordReplacementRule
 import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.compat.xposed.XposedBridge
 import org.json.JSONArray
@@ -582,9 +565,6 @@ internal val momentsPostNotificationTemplateVariables = listOf(
     TemplateVariable("%type%", "类型"),
     TemplateVariable("%content%", "内容"),
     TemplateVariable("%snsid%", "朋友圈ID")
-)
-internal val momentsAutoCommentTemplateVariables = listOf(
-    TemplateVariable(MomentsAutoCommentSettings.VAR_TIME, "时间")
 )
 internal val textSpeechTemplateVariables = listOf(
     TemplateVariable(TextSpeechSettings.VAR_SENDER_NICKNAME, "发送者昵称"),
@@ -2076,11 +2056,6 @@ internal object HchatConfigBackup {
         EditMessageSettings.PREFS_NAME,
         DisableHotUpdateSettings.PREFS_NAME,
         RemoveMomentsAdsSettings.PREFS_NAME,
-        MomentsAutoCommentSettings.PREFS_NAME,
-        MomentsAutoLikeSettings.PREFS_NAME,
-        MomentsAutoForwardSettings.PREFS_NAME,
-        MomentsAutoRefreshSettings.PREFS_NAME,
-        MomentsContactFilterSettings.PREFS_NAME,
         MomentsBottomDetailSettings.PREFS_NAME,
         MomentsPostNotificationSettings.PREFS_NAME,
         MomentsFakeInteractionSettings.PREFS_NAME,
@@ -2112,7 +2087,6 @@ internal object HchatConfigBackup {
         MessageBlockSettings.PREFS_NAME,
         GroupLeaveMonitorSettings.PREFS_NAME,
         GroupRenameMonitorSettings.PREFS_NAME,
-        MultiRecallSettings.PREFS_NAME,
         VoiceForwardSettings.PREFS_NAME,
         FakeScanCameraSettings.PREFS_NAME,
         RedPacketSettings.PREFS_NAME,
@@ -2492,7 +2466,6 @@ internal fun practicalFeatureGroups(
             title = "聊天",
             providers = practicalProviders.filterByIds(
                 AntiRecallFeature.ID,
-                MultiRecallFeature.ID,
                 AutoReplyFeature.ID,
                 MessageAffixFeature.ID,
                 TypingReportBlockFeature.ID,
@@ -2507,7 +2480,6 @@ internal fun practicalFeatureGroups(
                 SwipeQuoteFeature.ID,
                 EmojiSaveFeature.ID,
                 CallMediaLimitFeature.ID,
-                CallRingtoneBlockFeature.ID,
                 EditMessageFeature.ID
             )
         ),
@@ -2550,12 +2522,6 @@ internal fun practicalFeatureGroups(
         FeatureGroupEntry(
             title = "朋友圈",
             providers = practicalProviders.filterByIds(
-                MomentsAutoLikeFeature.ID,
-                MomentsAutoCommentFeature.ID,
-                MomentsAutoForwardFeature.ID,
-                MomentsAutoRefreshFeature.ID,
-                MomentsContactFilterFeature.ID,
-                MomentsKeywordBlockFeature.ID,
                 MomentsBottomDetailFeature.ID,
                 MomentsPostNotificationFeature.ID,
                 OriginalMomentsUploadFeature.ID,
@@ -2586,7 +2552,6 @@ internal fun practicalFeatureGroups(
                 ProfileIdFeature.ID,
                 GroupMemberHistorySettingsProvider.FEATURE_ID,
                 QuickContactEditFeature.ID,
-                QuickGroupChatLabelFeature.ID,
                 QuickMomentsFeature.ID,
                 QuickTerminateFeature.ID,
                 HideChatMenuFeature.ID
@@ -2605,6 +2570,7 @@ internal fun practicalFeatureGroups(
                 FinderMediaDownloadFeature.ID,
                 SkipWebRiskSettingsProvider.FEATURE_ID,
                 BackupSettingsProvider.FEATURE_ID,
+                CompatibilitySettingsProvider.FEATURE_ID,
                 DiagnosticsFeature.ID
             )
         )
@@ -3043,7 +3009,6 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         AntiRecallFeature.ID -> listOf(
             "私聊防撤回", "群聊防撤回", "公众号防撤回", "撤回提示", "自定义撤回提示", "发送时间", "撤回时间", "时间格式", "语音防撤回", "图片防撤回", "视频防撤回"
         )
-        MultiRecallFeature.ID -> listOf("多选撤回", "批量撤回", "多选消息", "分享菜单", "撤回自己消息")
         SelectedMessagesFeature.ID -> listOf("群发助手", "群发助手[H]", "定时转发[H]", "多选消息", "定时转发", "模块群发", "微信原生群发助手", "群发助手间隔延迟", "群发间隔延迟")
         AutoReplyFeature.ID -> listOf(
             "自动回复规则", "任意消息", "关键词", "正则", "艾特我", "@我", "艾特全体", "@所有人", "回复步骤", "延迟回复",
@@ -3081,7 +3046,6 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         EmojiSaveFeature.ID -> listOf("保存表情", "表情保存", "动画表情", "长按菜单", "本地文件")
         SwipeQuoteFeature.ID -> listOf("滑动手势", "左滑引用", "右滑复读", "长按复读", "菜单复读", "+1", "复读语音", "语音时长", "滑动距离")
         CallMediaLimitFeature.ID -> listOf("通话媒体限制", "语音通话", "视频通话", "播放语音", "查看视频", "打开拍摄")
-        CallRingtoneBlockFeature.ID -> listOf("屏蔽通话铃声", "呼入铃声", "呼出铃声", "来电铃声", "等待铃声", "语音通话", "视频通话")
         AudioTransformFeature.ID -> listOf(
             "音频转换",
             "音频转码",
@@ -3125,15 +3089,8 @@ internal fun featureSubSearchTerms(featureId: String): List<String> {
         )
         ZombieCheckFeature.ID -> listOf("僵尸粉检测", "好友关系检测", "单向好友", "删除好友", "异常好友", "好友标签")
         GroupChatLabelFeature.ID -> listOf("群聊标签", "群组分类", "群聊分类", "标签群聊", "批量选择群聊")
-        QuickGroupChatLabelFeature.ID -> listOf("快捷设置群聊标签", "群聊标签", "会话长按菜单", "聊天分组", "群聊分类")
         GroupLeaveMonitorFeature.ID -> listOf("进退群监控", "进群邀请", "退群提醒", "监听群", "批量保护", "新群保护", "群成员变化")
         GroupRenameMonitorFeature.ID -> listOf("改名监控", "群昵称", "群内昵称", "改名提醒", "改名卡片", "改名模板", "批量套用", "改名系统消息")
-        MomentsAutoLikeFeature.ID -> listOf("朋友圈自动点赞", "自动点赞", "点赞自己的朋友圈", "点赞白名单", "点赞黑名单", "同一人每天点赞数量", "每日点赞上限", "随机延迟", "发布时间限制", "关键词过滤", "链接朋友圈", "音乐朋友圈", "卡片朋友圈", "未知类型朋友圈")
-        MomentsAutoCommentFeature.ID -> listOf("朋友圈自动评论", "自动评论", "评论内容", "时间变量", "评论时间", "时间格式", "评论自己的朋友圈", "评论白名单", "评论黑名单", "同一人每天评论数量", "每日评论上限", "评论延迟", "随机延迟", "发布时间限制", "关键词过滤", "评论日志", "链接朋友圈", "音乐朋友圈", "卡片朋友圈", "未知类型朋友圈")
-        MomentsAutoForwardFeature.ID -> listOf("朋友圈自动转发", "静默转发", "指定好友", "每日上限", "包含关键词", "排除关键词", "替换关键词", "替换规则", "文案替换", "文案模板", "链接朋友圈", "音乐朋友圈", "卡片朋友圈", "未知类型朋友圈")
-        MomentsAutoRefreshFeature.ID -> listOf("朋友圈自动刷新", "后台刷新", "原生刷新", "刷新间隔", "刷新时段")
-        MomentsContactFilterFeature.ID -> listOf("朋友圈过滤", "好友过滤", "过滤好友", "只看好友", "朋友圈白名单", "朋友圈黑名单", "好友标签", "聊天分组")
-        MomentsKeywordBlockFeature.ID -> listOf("朋友圈关键词屏蔽", "朋友圈屏蔽", "关键词过滤", "隐藏朋友圈")
         MomentsBottomDetailFeature.ID -> listOf("朋友圈底部详情", "朋友圈时间", "底部时间", "自定义时间", "时间格式", "可见范围")
         MomentsPostNotificationFeature.ID -> listOf("朋友圈发布通知", "朋友圈提醒", "好友发布朋友圈", "朋友圈Toast", "通知模板")
         OriginalMomentsUploadFeature.ID -> listOf("朋友圈原图", "原图上传", "原视频", "原视频上传", "不压缩", "朋友圈图片", "朋友圈视频")
@@ -3224,30 +3181,9 @@ internal sealed class FeatureSubRoute {
     data class OptionPicker(val request: OptionPickerRequest) : FeatureSubRoute()
 }
 
-internal sealed class MomentsAutoLikeRoute {
-    object Main : MomentsAutoLikeRoute()
-    data class ContactPicker(val listMode: Int, val request: ContactPickerRequest) : MomentsAutoLikeRoute()
-}
-
 internal sealed class AtAllNotificationBlockRoute {
     object Main : AtAllNotificationBlockRoute()
     data class GroupPicker(val request: ContactPickerRequest) : AtAllNotificationBlockRoute()
-}
-
-internal sealed class MomentsAutoCommentRoute {
-    object Main : MomentsAutoCommentRoute()
-    data class ContactPicker(val listMode: Int, val request: ContactPickerRequest) : MomentsAutoCommentRoute()
-}
-
-internal sealed class MomentsAutoForwardRoute {
-    object Main : MomentsAutoForwardRoute()
-    object ReplacementRules : MomentsAutoForwardRoute()
-    data class ContactPicker(val request: ContactPickerRequest) : MomentsAutoForwardRoute()
-}
-
-internal sealed class MomentsContactFilterRoute {
-    object Main : MomentsContactFilterRoute()
-    data class ContactPicker(val request: ContactPickerRequest) : MomentsContactFilterRoute()
 }
 
 internal sealed class MomentsPostNotificationRoute {

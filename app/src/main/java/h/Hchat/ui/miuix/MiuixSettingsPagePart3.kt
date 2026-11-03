@@ -229,7 +229,6 @@ import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
-import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
@@ -266,8 +265,6 @@ import h.Hchat.hooks.items.groupleave.GroupLeaveMonitorSettings
 import h.Hchat.hooks.items.grouplabel.GroupChatLabel
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelFeature
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelStore
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelFeature
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelSettings
 import h.Hchat.hooks.items.groupnicknamecolor.GroupNicknameColorSettings
 import h.Hchat.hooks.items.groupnicknamecolor.GroupNicknameColorStore
 import h.Hchat.hooks.items.grouprename.GroupRenameMonitorFeature
@@ -305,20 +302,8 @@ import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
-import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
-import h.Hchat.hooks.items.moments.MomentsAutoCommentSettings
-import h.Hchat.hooks.items.moments.MomentsAutoLikeFeature
-import h.Hchat.hooks.items.moments.MomentsAutoLikeSettings
-import h.Hchat.hooks.items.moments.MomentsAutoForwardFeature
-import h.Hchat.hooks.items.moments.MomentsAutoForwardSettings
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshFeature
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshSettings
 import h.Hchat.hooks.items.moments.MomentsBottomDetailFeature
 import h.Hchat.hooks.items.moments.MomentsBottomDetailSettings
-import h.Hchat.hooks.items.moments.MomentsContactFilterFeature
-import h.Hchat.hooks.items.moments.MomentsContactFilterSettings
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockFeature
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockSettings
 import h.Hchat.hooks.items.moments.MomentsPostNotificationFeature
 import h.Hchat.hooks.items.moments.MomentsPostNotificationSettings
 import h.Hchat.hooks.items.moments.MomentsUploadTailFeature
@@ -335,8 +320,6 @@ import h.Hchat.hooks.items.momentsfake.MomentsFakeLikeSettingsProvider
 import h.Hchat.hooks.items.momentsfake.MomentsFakeLikeCandidateRepository
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionRuntimeRegistry
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionSettings
-import h.Hchat.hooks.items.multirecall.MultiRecallFeature
-import h.Hchat.hooks.items.multirecall.MultiRecallSettings
 import h.Hchat.hooks.items.payment.core.AutoRedPacketFeature
 import h.Hchat.hooks.items.payment.core.PaymentTemplateTimeFormatter
 import h.Hchat.hooks.items.payment.core.RedPacketReplyStep
@@ -412,7 +395,6 @@ import h.Hchat.preferences.HchatStorage
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
-import h.Hchat.utils.KeywordReplacementRule
 import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.compat.xposed.XposedBridge
 import org.json.JSONArray
@@ -1368,13 +1350,17 @@ internal fun MessageDetailsConfigPage(
             )
         )
     }
-    var position by remember {
-        mutableStateOf(
-            sp.getString(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
-            ).orEmpty()
-        )
+    var marginLeft by remember {
+        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT, 0).toString())
+    }
+    var marginTop by remember {
+        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP, 0).toString())
+    }
+    var marginRight by remember {
+        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT, 0).toString())
+    }
+    var marginBottom by remember {
+        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM, 0).toString())
     }
     var lightBg by remember {
         mutableStateOf(
@@ -1434,7 +1420,10 @@ internal fun MessageDetailsConfigPage(
     }
     fun resetValues() {
         enabled = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS
-        position = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
+        marginLeft = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
+        marginTop = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
+        marginRight = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
+        marginBottom = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
         lightBg = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_BG
         lightText = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_TEXT
         darkBg = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_BG
@@ -1451,7 +1440,10 @@ internal fun MessageDetailsConfigPage(
         val savedDarkText = cleanMessageDetailsColor(darkText, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_TEXT)
         sp.edit()
             .putBoolean(HchatExtraSettings.KEY_MESSAGE_DETAILS, enabled)
-            .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION, position)
+            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT, marginLeft.toIntOrNull()?.coerceIn(0, 48) ?: 0)
+            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP, marginTop.toIntOrNull()?.coerceIn(0, 48) ?: 0)
+            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT, marginRight.toIntOrNull()?.coerceIn(0, 48) ?: 0)
+            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM, marginBottom.toIntOrNull()?.coerceIn(0, 48) ?: 0)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_BG, savedLightBg)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_TEXT, savedLightText)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_DARK_BG, savedDarkBg)
@@ -1499,20 +1491,21 @@ internal fun MessageDetailsConfigPage(
                     SwitchRow(
                         checked = enabled,
                         title = "消息显示时间",
-                        summary = "贴着头像外边界，按收发方向对齐显示",
+                        summary = "固定贴在头像上方，按收发方向对齐显示",
                         onCheckedChange = { enabled = it }
                     )
+                }
+            }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "布局间距（dp）") }
+            item {
+                SettingsCard {
+                    NumberInputRow("左间距", "时间视图左侧外边距，范围 0–48dp", marginLeft) { marginLeft = it }
                     InsetDivider()
-                    PopupChoiceRow(
-                        title = "显示位置",
-                        summary = "选择时间在头像上方还是下方",
-                        currentValue = position,
-                        options = listOf(
-                            PopupChoice("头像上方", HchatExtraSettings.POSITION_AVATAR_ABOVE),
-                            PopupChoice("头像下方", HchatExtraSettings.POSITION_AVATAR_BELOW)
-                        ),
-                        onValueChanged = { position = it }
-                    )
+                    NumberInputRow("上间距", "时间视图上侧外边距，范围 0–48dp", marginTop) { marginTop = it }
+                    InsetDivider()
+                    NumberInputRow("右间距", "时间视图右侧外边距，范围 0–48dp", marginRight) { marginRight = it }
+                    InsetDivider()
+                    NumberInputRow("下间距", "时间视图与头像之间的间距，范围 0–48dp", marginBottom) { marginBottom = it }
                 }
             }
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "颜色") }

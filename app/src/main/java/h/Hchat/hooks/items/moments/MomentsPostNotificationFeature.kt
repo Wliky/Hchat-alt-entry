@@ -36,6 +36,9 @@ class MomentsPostNotificationFeature : BaseFeature() {
 
     override fun name(): String = "朋友圈发布通知"
 
+    /** hook 与订阅都在公共 SNS API 层（WeChatSnsPostObserver），本功能只消费事件。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(MomentsPostNotificationSettingsProvider())
     }

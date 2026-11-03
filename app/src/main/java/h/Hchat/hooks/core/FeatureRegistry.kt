@@ -8,7 +8,6 @@ import h.Hchat.hooks.items.autoreply.AutoReplyFeature
 import h.Hchat.hooks.items.autooriginal.AutoOriginalImageFeature
 import h.Hchat.hooks.items.autovieworiginal.AutoViewOriginalFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
-import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.custombottombar.CustomBottomBarFeature
 import h.Hchat.hooks.items.customfriendavatar.CustomFriendAvatarFeature
@@ -24,7 +23,6 @@ import h.Hchat.hooks.items.forwardlimit.RemoveForwardLimitFeature
 import h.Hchat.hooks.items.gameemoji.GameEmojiFeature
 import h.Hchat.hooks.items.groupleave.GroupLeaveMonitorFeature
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelFeature
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelFeature
 import h.Hchat.hooks.items.grouprename.GroupRenameMonitorFeature
 import h.Hchat.hooks.items.hideavatar.HideChatAvatarFeature
 import h.Hchat.hooks.items.hidemenu.HideChatMenuFeature
@@ -36,19 +34,12 @@ import h.Hchat.hooks.items.messageblock.MessageBlockFeature
 import h.Hchat.hooks.items.miniprogramsplashad.SkipGlobalMiniProgramSplashAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
-import h.Hchat.hooks.items.moments.MomentsAutoLikeFeature
-import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
-import h.Hchat.hooks.items.moments.MomentsAutoForwardFeature
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshFeature
 import h.Hchat.hooks.items.moments.MomentsBottomDetailFeature
-import h.Hchat.hooks.items.moments.MomentsContactFilterFeature
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockFeature
 import h.Hchat.hooks.items.moments.MomentsPostNotificationFeature
 import h.Hchat.hooks.items.moments.RemoveMomentsAdsFeature
 import h.Hchat.hooks.items.moments.SnsAntiRecallFeature
 import h.Hchat.hooks.items.moments.MomentsUploadTailFeature
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionFeature
-import h.Hchat.hooks.items.multirecall.MultiRecallFeature
 import h.Hchat.hooks.items.payment.core.AutoRedPacketFeature
 import h.Hchat.hooks.items.payment.fakebalance.FakeWalletBalanceFeature
 import h.Hchat.hooks.items.payment.gift.AutoGiftFeature
@@ -96,12 +87,10 @@ object FeatureRegistry {
             .register(AutoTransferFeature())
             .register(FakeWalletBalanceFeature())
             .register(AntiRecallFeature())
-            .register(MultiRecallFeature())
             .register(DisableHotUpdateFeature())
             .register(ProfileIdFeature())
             .register(HideChatMenuFeature())
             .register(QuickContactEditFeature())
-            .register(QuickGroupChatLabelFeature())
             .register(QuickMomentsFeature())
             .register(QuickMarkReadFeature())
             .register(QuickTerminateFeature())
@@ -116,7 +105,6 @@ object FeatureRegistry {
             .register(RemoveForwardLimitFeature())
             .register(AtAllNotificationBlockFeature())
             .register(CallMediaLimitFeature())
-            .register(CallRingtoneBlockFeature())
             // 自定义通知保留：AtAllNotificationBlockFeature 和铃声选择依赖 CustomNotificationRuntime。
             .register(CustomNotificationFeature())
             .register(TextSpeechFeature())
@@ -133,19 +121,12 @@ object FeatureRegistry {
             .register(GameEmojiFeature())
             .register(SkipMiniProgramVideoAdsFeature())
             .register(SkipGlobalMiniProgramSplashAdsFeature())
-            .register(MomentsAutoLikeFeature())
-            .register(MomentsAutoCommentFeature())
-            .register(MomentsAutoForwardFeature())
-            .register(MomentsAutoRefreshFeature())
-            .register(MomentsKeywordBlockFeature())
-            .register(MomentsContactFilterFeature())
             .register(MomentsBottomDetailFeature())
             .register(MomentsPostNotificationFeature())
             .register(OriginalMomentsUploadFeature())
             .register(MomentsUploadTailFeature())
             .register(SnsAntiRecallFeature())
             .register(MomentsFakeInteractionFeature())
-            // 群聊标签保留：快捷设置群聊标签依赖 GroupChatLabelStore。
             .register(GroupChatLabelFeature())
             .register(GroupLeaveMonitorFeature())
             .register(GroupRenameMonitorFeature())

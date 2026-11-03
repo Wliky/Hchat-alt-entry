@@ -9,6 +9,9 @@ class DiagnosticsFeature : BaseFeature() {
 
     override fun name(): String = "模块排查"
 
+    /** 本功能就是排查页本身，只读内存快照，天然没有 hook。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(ModuleDiagnosticsSettingsProvider())
     }

@@ -97,7 +97,8 @@ class FeatureManager {
                 // 只对真正跑起来的功能做自检；没启用或安装失败的状态已经能说明问题。
                 health = if (enabled && installed) {
                     try {
-                        feature.healthCheck(context).orEmpty()
+                        // healthCheck 没意见时补一条通用自检：声明要靠 hook 生效却一个都没挂上。
+                        feature.healthCheck(context).orEmpty().ifEmpty { describeBindingGap(feature) }
                     } catch (e: Throwable) {
                         describe(e)
                     }
@@ -112,6 +113,25 @@ class FeatureManager {
             )
         }
         ModuleStatusStore.updateFeatures(statuses)
+    }
+
+    /**
+     * 通用兜底自检：功能声明自己必须靠 hook 生效，安装流程也没抛异常，
+     * 却一个 hook / 事件订阅都没注册——这种情况通常是定位失败后静默 return，
+     * 只靠 install 是否抛异常看不出来。
+     *
+     * 两个不判定的场景：功能显式声明不依赖 hook；DexKit 队列里还有它没跑完的安装项
+     * （BRIDGE/WARMUP 未就绪），此时"还没装"不能当成"装不上"。
+     */
+    private fun describeBindingGap(feature: Feature): String {
+        return try {
+            if (!feature.requiresRuntimeBinding()) return ""
+            if (feature.hasRuntimeBinding()) return ""
+            if (DexInstallScheduler.hasPendingBinding(safeFeatureId(feature))) return ""
+            BINDING_GAP
+        } catch (_: Throwable) {
+            ""
+        }
     }
 
     /** 记录定位就位率：排查页用它回答"这个版本到底有多少 API 没找到"。 */
@@ -186,5 +206,8 @@ class FeatureManager {
 
     companion object {
         private const val TAG = "[Hchat:FeatureManager]"
+
+        /** 排查页按"health 非空"判定不可用，这段文字会原样展示给用户。 */
+        const val BINDING_GAP = "未注册任何 hook"
     }
 }

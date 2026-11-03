@@ -11,6 +11,9 @@ class QuickTerminateFeature : BaseFeature() {
 
     override fun name(): String = "快捷终止"
 
+    /** 菜单项由公共层 SettingsInjector 注入，命中打点也在那边完成。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(QuickTerminateSettingsProvider())
     }

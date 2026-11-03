@@ -28,7 +28,7 @@ import org.xmlpull.v1.XmlPullParser;
 /**
  * 微信视频发送 API。
  *
- * 直接执行微信内部 CopyVideoTask，不经过会创建 Dialog 的 SendMsgMgr 高层入口。
+ * 优先执行微信内部 CopyVideoTask；8.0.80 移除该 Task 锚点后，回退到 Wj 直发入口。
  */
 public final class WeChatVideoApi {
     public static final class DownloadInfo {
@@ -107,7 +107,7 @@ public final class WeChatVideoApi {
     public boolean canSendSilently() {
         return hostContext != null
                 && dexFinder != null
-                && dexFinder.sendVideoTaskClass != null;
+                && (dexFinder.sendVideoTaskClass != null || hasDirectSendEntry());
     }
 
     public String resolvePathToken(String token) {
@@ -385,26 +385,27 @@ public final class WeChatVideoApi {
                 return false;
             }
             Object task = newTask();
-            if (task == null) return false;
+            if (task != null) {
+                setField(task, "a", null);
+                setField(task, "b", sendContext());
+                setField(task, "c", false);
+                setField(task, "d", 0);
+                setField(task, "e", videoDurationSeconds(videoPath));
+                setField(task, "f", videoPath);
+                setField(task, "g", realThumbPath);
+                setField(task, "h", talker);
+                setField(task, "i", "");
+                setField(task, "p", "");
+                setField(task, "r", "");
+                setField(task, "s", "");
+                setField(task, "j", false);
+                setField(task, "l", false);
+                setField(task, "m", false);
 
-            setField(task, "a", null);
-            setField(task, "b", sendContext());
-            setField(task, "c", false);
-            setField(task, "d", 0);
-            setField(task, "e", videoDurationSeconds(videoPath));
-            setField(task, "f", videoPath);
-            setField(task, "g", realThumbPath);
-            setField(task, "h", talker);
-            setField(task, "i", "");
-            setField(task, "p", "");
-            setField(task, "r", "");
-            setField(task, "s", "");
-            setField(task, "j", false);
-            setField(task, "l", false);
-            setField(task, "m", false);
-
-            executeTask(task);
-            return true;
+                executeTask(task);
+                return true;
+            }
+            return sendViaEntry(talker, videoPath, realThumbPath);
         } catch (Throwable e) {
             log("发送视频异常: " + e.getMessage());
             return false;
@@ -418,6 +419,57 @@ public final class WeChatVideoApi {
     private Context sendContext() {
         Activity activity = currentActivityApi != null ? currentActivityApi.currentActivity() : null;
         return activity != null ? activity : hostContext;
+    }
+
+    private boolean hasDirectSendEntry() {
+        Method method = dexFinder != null ? dexFinder.sendVideoMethod : null;
+        if (method == null) return false;
+        Class<?>[] params = method.getParameterTypes();
+        return params.length >= 6
+                && params[0] == Context.class
+                && params[1] == String.class
+                && params[2] == String.class
+                && params[3] == String.class
+                && params[4] == int.class
+                && params[5] == int.class;
+    }
+
+    private boolean sendViaEntry(String talker, String videoPath, String thumbPath) {
+        Method method = dexFinder != null ? dexFinder.sendVideoMethod : null;
+        if (method == null || !hasDirectSendEntry()) return false;
+        try {
+            Class<?>[] params = method.getParameterTypes();
+            Object[] args = new Object[params.length];
+            for (int i = 0; i < params.length; i++) {
+                Class<?> type = params[i];
+                if (type == boolean.class) args[i] = false;
+                else if (type == int.class) args[i] = 0;
+                else if (type == long.class) args[i] = 0L;
+                else if (type == float.class) args[i] = 0f;
+                else if (type == double.class) args[i] = 0d;
+                else if (type == String.class) args[i] = "";
+            }
+            args[0] = sendContext();
+            args[1] = talker;
+            args[2] = videoPath;
+            args[3] = thumbPath;
+            args[4] = 43;
+            args[5] = videoDurationSeconds(videoPath);
+            Object receiver = null;
+            if (!KavaReflector.isStatic(method)) {
+                receiver = WeChatInternalServices.getService(dexFinder, method.getDeclaringClass());
+                if (receiver == null) {
+                    receiver = KavaReflector.newInstance(
+                            KavaReflector.findConstructor(method.getDeclaringClass()));
+                }
+                if (receiver == null) return false;
+            }
+            KavaReflector.invoke(method, receiver, args);
+            return true;
+        } catch (Throwable e) {
+            log("直接发送视频失败: " + e.getMessage());
+            return false;
+        }
     }
 
     private Object newTask() {

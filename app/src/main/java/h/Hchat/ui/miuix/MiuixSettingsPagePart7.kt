@@ -230,7 +230,6 @@ import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockFeature
 import h.Hchat.hooks.items.atallnotify.AtAllNotificationBlockSettings
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitFeature
 import h.Hchat.hooks.items.callmedialimit.CallMediaLimitSettings
-import h.Hchat.hooks.items.callmedialimit.CallRingtoneBlockFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroup
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupPickerSupport
@@ -267,8 +266,6 @@ import h.Hchat.hooks.items.groupleave.GroupLeaveMonitorSettings
 import h.Hchat.hooks.items.grouplabel.GroupChatLabel
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelFeature
 import h.Hchat.hooks.items.grouplabel.GroupChatLabelStore
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelFeature
-import h.Hchat.hooks.items.grouplabel.QuickGroupChatLabelSettings
 import h.Hchat.hooks.items.groupnicknamecolor.GroupNicknameColorSettings
 import h.Hchat.hooks.items.groupnicknamecolor.GroupNicknameColorStore
 import h.Hchat.hooks.items.grouprename.GroupRenameMonitorFeature
@@ -306,20 +303,8 @@ import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsFeature
 import h.Hchat.hooks.items.miniprogramvideoad.SkipMiniProgramVideoAdsSettings
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadFeature
 import h.Hchat.hooks.items.moments.OriginalMomentsUploadSettings
-import h.Hchat.hooks.items.moments.MomentsAutoCommentFeature
-import h.Hchat.hooks.items.moments.MomentsAutoCommentSettings
-import h.Hchat.hooks.items.moments.MomentsAutoLikeFeature
-import h.Hchat.hooks.items.moments.MomentsAutoLikeSettings
-import h.Hchat.hooks.items.moments.MomentsAutoForwardFeature
-import h.Hchat.hooks.items.moments.MomentsAutoForwardSettings
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshFeature
-import h.Hchat.hooks.items.moments.MomentsAutoRefreshSettings
 import h.Hchat.hooks.items.moments.MomentsBottomDetailFeature
 import h.Hchat.hooks.items.moments.MomentsBottomDetailSettings
-import h.Hchat.hooks.items.moments.MomentsContactFilterFeature
-import h.Hchat.hooks.items.moments.MomentsContactFilterSettings
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockFeature
-import h.Hchat.hooks.items.moments.MomentsKeywordBlockSettings
 import h.Hchat.hooks.items.moments.MomentsPostNotificationFeature
 import h.Hchat.hooks.items.moments.MomentsPostNotificationSettings
 import h.Hchat.hooks.items.moments.MomentsUploadTailFeature
@@ -336,8 +321,6 @@ import h.Hchat.hooks.items.momentsfake.MomentsFakeLikeSettingsProvider
 import h.Hchat.hooks.items.momentsfake.MomentsFakeLikeCandidateRepository
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionRuntimeRegistry
 import h.Hchat.hooks.items.momentsfake.MomentsFakeInteractionSettings
-import h.Hchat.hooks.items.multirecall.MultiRecallFeature
-import h.Hchat.hooks.items.multirecall.MultiRecallSettings
 import h.Hchat.hooks.items.payment.core.AutoRedPacketFeature
 import h.Hchat.hooks.items.payment.core.PaymentTemplateTimeFormatter
 import h.Hchat.hooks.items.payment.core.RedPacketReplyStep
@@ -413,7 +396,6 @@ import h.Hchat.preferences.HchatStorage
 import h.Hchat.ui.FeatureSettingsProvider
 import h.Hchat.ui.UIRegistry
 import h.Hchat.utils.KavaReflector
-import h.Hchat.utils.KeywordReplacementRule
 import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.compat.xposed.XposedBridge
 import org.json.JSONArray

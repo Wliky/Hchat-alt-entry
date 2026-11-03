@@ -86,6 +86,7 @@ class HchatExtraFeature : BaseFeature() {
         registerSettingsProvider(RedPacketDetailsSettingsProvider())
         registerSettingsProvider(SkipWebRiskSettingsProvider())
         registerSettingsProvider(BackupSettingsProvider())
+        registerSettingsProvider(CompatibilitySettingsProvider())
     }
 
     override fun onFeatureInstall(context: FeatureContext) {
@@ -149,7 +150,10 @@ private class HchatExtraHooker(
         val tokens: Set<String>,
         val timeFormatter: DateTimeFormatter,
         val textSizeSp: Float,
-        val position: String,
+        val marginLeftDp: Int,
+        val marginTopDp: Int,
+        val marginRightDp: Int,
+        val marginBottomDp: Int,
         val lightTextColor: Int,
         val darkTextColor: Int,
         val lightBgColor: Int,
@@ -269,13 +273,10 @@ private class HchatExtraHooker(
         ).orEmpty().ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT }
         val timeFormatter = runCatching { DateTimeFormatter.ofPattern(timePattern) }
             .getOrDefault(DEFAULT_MESSAGE_DETAILS_TIME_FORMATTER)
-        val position = prefs.getString(
-            HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
-            HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
-        ).takeIf {
-            it == HchatExtraSettings.POSITION_AVATAR_ABOVE ||
-                it == HchatExtraSettings.POSITION_AVATAR_BELOW
-        } ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
+        val marginLeftDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT)
+        val marginTopDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP)
+        val marginRightDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT)
+        val marginBottomDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM)
         val lightText = messageDetailsTextColor(false)
         val darkText = messageDetailsTextColor(true)
         val lightBg = messageDetailsBgColor(false)
@@ -294,7 +295,10 @@ private class HchatExtraHooker(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
                 HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE
             ).toFloat(),
-            position = position,
+            marginLeftDp = marginLeftDp,
+            marginTopDp = marginTopDp,
+            marginRightDp = marginRightDp,
+            marginBottomDp = marginBottomDp,
             lightTextColor = resolveMessageDetailsColor(
                 lightText,
                 HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_TEXT,
@@ -324,6 +328,10 @@ private class HchatExtraHooker(
                 Color.TRANSPARENT
             )
         )
+    }
+
+    private fun messageDetailsMargin(key: String): Int {
+        return prefs.getInt(key, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN).coerceIn(0, 48)
     }
 
     fun destroy() {
@@ -1149,9 +1157,9 @@ private class HchatExtraHooker(
         val container = attachMessageDetailsLabel(
             root,
             avatarAnchor.positionView,
+            nativeTimeLabel,
             label,
-            details.isSelf,
-            messageDetailsConfig.position
+            details.isSelf
         )
             ?: run {
                 removeMessageDetailsLabel(label)
@@ -1293,12 +1301,16 @@ private class HchatExtraHooker(
     private fun attachMessageDetailsLabel(
         root: View,
         positionView: View,
+        nativeTimeLabel: TextView?,
         label: TextView,
-        isSelf: Boolean,
-        position: String
+        isSelf: Boolean
     ): View? {
         val relativeRoot = root as? RelativeLayout ?: return null
         val anchor = directChildWithin(relativeRoot, positionView) ?: return null
+        val timeAnchor = nativeTimeLabel
+            ?.takeIf { isViewWithinRoot(it, relativeRoot) }
+            ?.let { directChildWithin(relativeRoot, it) }
+            ?.takeIf { it !== anchor }
         if (label.parent !== relativeRoot) {
             (label.parent as? ViewGroup)?.removeView(label)
             relativeRoot.addView(label)
@@ -1307,22 +1319,28 @@ private class HchatExtraHooker(
             RelativeLayout.LayoutParams.WRAP_CONTENT,
             RelativeLayout.LayoutParams.WRAP_CONTENT
         )
-        val below = position == HchatExtraSettings.POSITION_AVATAR_BELOW
-        params.addRule(if (below) RelativeLayout.BELOW else RelativeLayout.ABOVE, ensureViewId(anchor))
+        // 与 XChat 一致：优先接在微信原时间下方；无可用时间锚点时贴头像容器顶部。
+        params.addRule(
+            if (timeAnchor != null) RelativeLayout.BELOW else RelativeLayout.ALIGN_TOP,
+            ensureViewId(timeAnchor ?: anchor)
+        )
         params.addRule(
             if (isSelf) RelativeLayout.ALIGN_RIGHT else RelativeLayout.ALIGN_LEFT,
             ensureViewId(anchor)
         )
-        val gap = dp(relativeRoot.context, MESSAGE_DETAILS_AVATAR_GAP_DP)
-        if (below) params.topMargin = gap else params.bottomMargin = gap
+        params.leftMargin = dp(relativeRoot.context, messageDetailsConfig.marginLeftDp)
+        params.topMargin = dp(relativeRoot.context, messageDetailsConfig.marginTopDp)
+        params.rightMargin = dp(relativeRoot.context, messageDetailsConfig.marginRightDp)
+        params.bottomMargin = dp(relativeRoot.context, messageDetailsConfig.marginBottomDp)
         label.layoutParams = params
         label.gravity = Gravity.CENTER
+        label.includeFontPadding = false
         label.measure(
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        applyMessageDetailsReservedPadding(relativeRoot, label.measuredHeight, position)
-        return relativeRoot
+        applyMessageDetailsReservedPadding(anchor, label.measuredHeight)
+        return anchor
     }
 
     /** RelativeLayout 的相对规则必须引用根容器的直接子 View。 */
@@ -1340,8 +1358,8 @@ private class HchatExtraHooker(
         return view.id
     }
 
-    /** 按时间所在侧预留空间，另一侧始终还原，切换上/下方时不会累积 padding。 */
-    private fun applyMessageDetailsReservedPadding(container: View, labelHeight: Int, position: String) {
+    /** 只补偿头像容器的顶部空间，避免撑高整条消息；回收时恢复原始 padding。 */
+    private fun applyMessageDetailsReservedPadding(container: View, labelHeight: Int) {
         if (labelHeight <= 0) return
         val original = synchronized(messageDetailsReservedPaddings) {
             messageDetailsReservedPaddings.getOrPut(container) {
@@ -1353,19 +1371,20 @@ private class HchatExtraHooker(
                 )
             }
         }
+        val verticalMargin = dp(
+            container.context,
+            messageDetailsConfig.marginTopDp + messageDetailsConfig.marginBottomDp
+        )
         val reserved = (
-            labelHeight + dp(container.context, MESSAGE_DETAILS_AVATAR_GAP_DP) -
-                dp(container.context, MESSAGE_DETAILS_PADDING_OVERLAP_DP)
+            labelHeight + verticalMargin - dp(container.context, MESSAGE_DETAILS_PADDING_OVERLAP_DP)
             ).coerceAtLeast(0)
-        val below = position == HchatExtraSettings.POSITION_AVATAR_BELOW
-        val top = if (below) original[1] else maxOf(original[1], reserved)
-        val bottom = if (below) maxOf(original[3], reserved) else original[3]
+        val top = maxOf(original[1], reserved)
         if (container.paddingLeft == original[0] && container.paddingTop == top &&
-            container.paddingRight == original[2] && container.paddingBottom == bottom
+            container.paddingRight == original[2] && container.paddingBottom == original[3]
         ) {
             return
         }
-        container.setPadding(original[0], top, original[2], bottom)
+        container.setPadding(original[0], top, original[2], original[3])
     }
 
     private fun restoreMessageDetailsPadding(container: View?) {
@@ -3044,8 +3063,7 @@ private class HchatExtraHooker(
         private const val PREF_PROFILE_ID = "hchat_profile_id"
         private const val MESSAGE_DETAILS_MAX_RETRY = 2
 
-        /** 时间与头像外边界保持 2dp 间距，预留行高时允许 4dp 的视觉交叠。 */
-        private const val MESSAGE_DETAILS_AVATAR_GAP_DP = 2f
+        /** 预留行高时允许少量视觉交叠，避免消息间距被时间标签撑得过大。 */
         private const val MESSAGE_DETAILS_PADDING_OVERLAP_DP = 4f
         private val MESSAGE_DETAILS_COLOR_KEYS = setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_BG,
@@ -3055,7 +3073,10 @@ private class HchatExtraHooker(
         )
         private val MESSAGE_DETAILS_LAYOUT_KEYS = setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
-            HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT,
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP,
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT,
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM
         )
         private val MESSAGE_DETAILS_REBIND_KEYS = MESSAGE_DETAILS_LAYOUT_KEYS + setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS,

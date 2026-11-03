@@ -8,6 +8,9 @@ class GroupChatLabelFeature : BaseFeature() {
 
     override fun name(): String = "群聊标签"
 
+    /** 纯设置页功能：标签数据由设置页维护，没有需要 hook 的运行时路径。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(GroupChatLabelSettingsProvider())
     }

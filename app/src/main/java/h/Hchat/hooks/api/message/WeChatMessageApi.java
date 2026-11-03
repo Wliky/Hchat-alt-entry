@@ -790,18 +790,18 @@ public final class WeChatMessageApi {
         if (sourceArgs != null) {
             Constructor<?> objectCtor = dexFinder.sendTextMsgCtorObject;
             if (objectCtor != null) {
-                return KavaReflector.newInstance(objectCtor, talker, content, messageType, sendFlag, sourceArgs);
+                return newSendTextRequest(objectCtor, talker, content, messageType, sendFlag, sourceArgs);
             }
         }
 
         Constructor<?> longCtor = dexFinder.sendTextMsgCtorLong;
         if (longCtor != null) {
-            return KavaReflector.newInstance(longCtor, talker, content, messageType, sendFlag, 0L);
+            return newSendTextRequest(longCtor, talker, content, messageType, sendFlag, 0L);
         }
 
         Constructor<?> objectCtor = dexFinder.sendTextMsgCtorObject;
         if (objectCtor != null) {
-            return KavaReflector.newInstance(objectCtor, talker, content, messageType, sendFlag, sourceArgs);
+            return newSendTextRequest(objectCtor, talker, content, messageType, sendFlag, sourceArgs);
         }
 
         return RedPacketReflector.newInstanceByArgs(
@@ -814,6 +814,22 @@ public final class WeChatMessageApi {
                         sourceArgs != null ? sourceArgs : 0L
                 }
         );
+    }
+
+    private Object newSendTextRequest(Constructor<?> ctor,
+                                      String talker,
+                                      String content,
+                                      int messageType,
+                                      int sendFlag,
+                                      Object sourceArgs) throws Throwable {
+        Class<?>[] params = ctor.getParameterTypes();
+        Object source = params[4] == long.class || params[4] == Long.class ? 0L : sourceArgs;
+        if (params.length >= 6) {
+            return KavaReflector.newInstance(
+                    ctor, talker, content, messageType, sendFlag, source, "");
+        }
+        return KavaReflector.newInstance(
+                ctor, talker, content, messageType, sendFlag, source);
     }
 
     private Object getPatExtensionInstance() {
@@ -959,10 +975,11 @@ public final class WeChatMessageApi {
 
         if (params.length == 10) {
             args[9] = 0L;
-        } else if (params.length == 12) {
+        } else if (params.length == 12 || params.length == 13) {
             args[9] = newMsgIdTalker(params[9], talker);
             args[10] = false;
             args[11] = "";
+            if (params.length == 13) args[12] = "";
         }
         return args;
     }

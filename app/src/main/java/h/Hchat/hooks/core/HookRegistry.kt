@@ -1,10 +1,13 @@
 package h.Hchat.hooks.core
 
+import h.Hchat.compat.xposed.HookTimingHook
 import h.Hchat.compat.xposed.TriggerMarkingHook
 import h.Hchat.compat.xposed.XC_MethodHook
 import h.Hchat.compat.xposed.XposedBridge
 import java.lang.reflect.Member
 import java.util.concurrent.CancellationException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * 统一保存 Xposed hook 句柄，便于防御性卸载。
@@ -16,6 +19,10 @@ class HookRegistry private constructor() {
     private val featureLease = ThreadLocal<String>()
     private val autoMarkLease = ThreadLocal<Boolean>()
     @Volatile private var generation = 0L
+
+    /** 按功能统计实际注册成功的 hook 数，供「模块排查」判断功能是否真的挂上了。 */
+    private val featureHookCounts = ConcurrentHashMap<String, AtomicInteger>()
+    private val hookOwners = HashMap<XC_MethodHook.Unhook, String>()
 
     fun installationGeneration(): Long = installationLease.get() ?: generation
 
@@ -52,13 +59,20 @@ class HookRegistry private constructor() {
         }
     }
 
+    /** 该功能当前还挂着多少个 hook。 */
+    fun hookCountFor(featureId: String): Int {
+        if (featureId.isEmpty()) return 0
+        return featureHookCounts[featureId]?.get() ?: 0
+    }
+
     fun hook(method: Member, callback: XC_MethodHook): XC_MethodHook.Unhook = synchronized(lock) {
         if (!isInstallationGenerationActive(installationGeneration())) {
             throw CancellationException("安装代次已失效")
         }
-        val unhook = XposedBridge.hookMethod(method, markRuntimeHit(callback))
+        val unhook = XposedBridge.hookMethod(method, instrument(markRuntimeHit(callback)))
         if (unhook != null) {
             unhooks.add(unhook)
+            countHook(unhook)
         }
         unhook
     }
@@ -73,11 +87,44 @@ class HookRegistry private constructor() {
         return TriggerMarkingHook(callback, Runnable { ModuleStatusStore.markTriggered(featureId) })
     }
 
+    /**
+     * 给功能级 hook 套一层采样计时，排查页据此找热点。
+     * 公共 API 层（featureTag 为空）的 hook 不计量，避免把微信自身的调用算到模块头上。
+     * 与 [markRuntimeHit] 不同，这个包装不受 [Feature.autoMarkOnHook] 影响：
+     * 即使功能选了手动打点，它的 hook 开销依然要统计。
+     */
+    private fun instrument(callback: XC_MethodHook): XC_MethodHook {
+        val featureId = featureLease.get()?.takeIf { it.isNotEmpty() } ?: return callback
+        val stat = ModuleStatusStore.hookStatFor(featureId)
+        return HookTimingHook(callback, object : HookTimingHook.Sink {
+            override fun recordCall(): Long = stat.recordCall()
+            override fun sampleAfter(): Boolean = stat.sampleAfter()
+            override fun recordSample(nanos: Long) = stat.recordSample(nanos)
+        })
+    }
+
+    /** 把 hook 记到当前功能名下；只在 [lock] 内调用。 */
+    private fun countHook(unhook: XC_MethodHook.Unhook?) {
+        if (unhook == null) return
+        val featureId = featureLease.get()?.takeIf { it.isNotEmpty() } ?: return
+        hookOwners[unhook] = featureId
+        featureHookCounts.getOrPut(featureId) { AtomicInteger(0) }.incrementAndGet()
+    }
+
+    /** 只在 [lock] 内调用。功能级 hook（含共享 key 抢装）卸载后计数要能回落。 */
+    private fun releaseHook(unhook: XC_MethodHook.Unhook) {
+        val featureId = hookOwners.remove(unhook) ?: return
+        val counter = featureHookCounts[featureId] ?: return
+        if (counter.decrementAndGet() <= 0) featureHookCounts.remove(featureId, counter)
+    }
+
     fun add(unhook: XC_MethodHook.Unhook?) {
         if (unhook == null) return
         synchronized(lock) {
             if (isInstallationGenerationActive(installationGeneration())) {
                 unhooks.add(unhook)
+                // findAndHookMethod 走的是这条路径，同样是功能自己的 hook，必须计数。
+                countHook(unhook)
                 return
             }
         }
@@ -91,13 +138,20 @@ class HookRegistry private constructor() {
         if (unhook == null) return
         unhook.unhook()
         // Xposed 解除回调后，还必须释放模块注册表持有的句柄。
-        synchronized(lock) { unhooks.remove(unhook) }
+        synchronized(lock) {
+            unhooks.remove(unhook)
+            releaseHook(unhook)
+        }
     }
 
     fun unhookAll() {
         val previous = synchronized(lock) {
             generation++
-            unhooks.toList().also { unhooks.clear() }
+            val pending = unhooks.toList()
+            unhooks.clear()
+            hookOwners.clear()
+            featureHookCounts.clear()
+            pending
         }
         for (unhook in previous) {
             try {

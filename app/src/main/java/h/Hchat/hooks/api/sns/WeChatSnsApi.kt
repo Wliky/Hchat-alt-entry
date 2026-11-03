@@ -845,13 +845,17 @@ class WeChatSnsApi(
                     log("朋友圈视频发布失败: 缩略图生成失败")
                     return false
                 }
-                val ok = KavaReflector.invoke(
-                    addVideo,
-                    helper,
+                val videoArgs = mutableListOf<Any?>(
                     validVideo,
                     thumbPath,
                     content.orEmpty(),
                     fileMd5(validVideo)
+                )
+                if (addVideo.parameterTypes.size >= 5) videoArgs.add("")
+                val ok = KavaReflector.invoke(
+                    addVideo,
+                    helper,
+                    *videoArgs.toTypedArray()
                 ) as? Boolean
                 if (ok != true) {
                     log("朋友圈视频添加失败: $validVideo")

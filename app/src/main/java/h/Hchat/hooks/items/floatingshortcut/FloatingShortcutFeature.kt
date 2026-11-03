@@ -11,6 +11,9 @@ class FloatingShortcutFeature : BaseFeature() {
 
     override fun name(): String = "悬浮快捷菜单"
 
+    /** 依赖公共 UI API 的 hook 与 Activity 生命周期回调，聊天页 API 未就绪时自身 hook 数为 0。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(FloatingShortcutSettingsProvider())
     }

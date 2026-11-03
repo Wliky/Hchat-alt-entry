@@ -85,6 +85,11 @@ internal fun ModuleDiagnosticsMiuixPage(
     var filter by remember { mutableStateOf(DiagFilter.ALL) }
     val features = remember(refreshTick) { ModuleStatusStore.features() }
     val installs = remember(refreshTick) { ModuleStatusStore.installs() }
+    val hotspots = remember(refreshTick) { ModuleStatusStore.hookHotspots(8) }
+    val hookCalls = remember(refreshTick) { ModuleStatusStore.hookCallTotal() }
+    val featureNames = remember(refreshTick) {
+        features.associate { it.featureId to it.name }
+    }
     val versionName = remember(refreshTick) {
         runCatching { WeChatApis.version()?.versionName() }.getOrNull().orEmpty()
     }
@@ -166,7 +171,8 @@ internal fun ModuleDiagnosticsMiuixPage(
                     copyDiagnosticsReport(
                         context,
                         buildDiagnosticsReport(
-                            versionName, features, healthy, unverified, problems, disabled, stalledInstalls
+                            versionName, features, healthy, unverified, problems, disabled,
+                            stalledInstalls, hotspots
                         )
                     )
                 },
@@ -208,6 +214,8 @@ internal fun ModuleDiagnosticsMiuixPage(
                             else "未完成 ${stalledInstalls.size} / ${installs.size}"
                         )
                         InsetDivider()
+                        SummaryRow("Hook 回调总数", "$hookCalls 次")
+                        InsetDivider()
                         SummaryRow("快照时间", formatDiagnosticsTime(ModuleStatusStore.updatedAtMillis()))
                     }
                 }
@@ -219,6 +227,51 @@ internal fun ModuleDiagnosticsMiuixPage(
                     SettingsCard {
                         EmptyText("以下 ${missing.size} 项 API 在当前微信版本没找到，依赖它们的功能会不可用：\n" +
                             missing.joinToString("、"))
+                    }
+                }
+            }
+
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "Hook 热点") }
+            item {
+                SettingsCard {
+                    if (hotspots.isEmpty()) {
+                        EmptyText("还没有 hook 被触发过")
+                    } else {
+                        hotspots.forEachIndexed { index, item ->
+                            SummaryRow(
+                                featureNames[item.featureId] ?: item.featureId,
+                                buildString {
+                                    append("${item.calls} 次 · 均 ${formatHookCost(item.averageNanos)}")
+                                    if (item.slowCalls > 0L) append(" · 慢 ${item.slowCalls} 次")
+                                }
+                            )
+                            if (index < hotspots.lastIndex) InsetDivider()
+                        }
+                    }
+                }
+            }
+            item {
+                SettingsCard {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                ModuleStatusStore.resetHookStats()
+                                refreshTick++
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "重置热点统计",
+                            color = MiuixTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "清零后重新观察",
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -371,7 +424,8 @@ private fun buildDiagnosticsReport(
     unverified: List<ModuleStatusStore.FeatureStatus>,
     problems: List<ModuleStatusStore.FeatureStatus>,
     disabled: List<ModuleStatusStore.FeatureStatus>,
-    pendingInstalls: List<ModuleStatusStore.InstallStatus>
+    pendingInstalls: List<ModuleStatusStore.InstallStatus>,
+    hotspots: List<ModuleStatusStore.HookHotspot>
 ): String {
     val builder = StringBuilder()
     builder.appendLine("Hchat 模块排查报告")
@@ -394,7 +448,11 @@ private fun buildDiagnosticsReport(
         builder.appendLine("无")
     } else {
         problems.forEach {
-            builder.appendLine("${it.name} (${it.featureId}): ${it.error.ifBlank { "已启用但安装未完成" }}")
+            // health 非空是"当前版本跑不起来"（多数是定位缺失），不能写成安装未完成。
+            val reason = it.error.ifBlank {
+                it.health.ifBlank { "已启用但安装未完成" }
+            }
+            builder.appendLine("${it.name} (${it.featureId}): $reason")
         }
     }
     builder.appendLine()
@@ -405,14 +463,37 @@ private fun buildDiagnosticsReport(
         pendingInstalls.forEach {
             builder.appendLine("${it.label}: ${it.error.ifBlank { "等待安装" }}（重试 ${it.retryIndex} 次）")
         }
-    }
-    return builder.toString()
+        }
+        builder.appendLine()
+        builder.appendLine("[Hook 热点]（按调用次数排序，耗时只含模块自己的回调）")
+        if (hotspots.isEmpty()) {
+        builder.appendLine("暂无（hook 还没被触发过）")
+        } else {
+        hotspots.forEach {
+            builder.appendLine(
+                buildString {
+                    append("${it.featureId}: ${it.calls} 次，均 ${formatHookCost(it.averageNanos)}")
+                    append("，峰 ${formatHookCost(it.maxNanos)}，采样 ${it.samples} 次")
+                    if (it.slowCalls > 0L) append("，慢 ${it.slowCalls} 次")
+                }
+            )
+        }
+        }
+        return builder.toString()
 }
 
 private fun copyDiagnosticsReport(context: Context, report: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     clipboard.setPrimaryClip(ClipData.newPlainText("Hchat 模块排查", report))
     Toast.makeText(context, "报告已复制", Toast.LENGTH_SHORT).show()
+}
+
+/** 采样耗时是"模块自己这段回调跑了多久"，量级通常在纳秒到微秒，不能按毫秒一刀切。 */
+private fun formatHookCost(nanos: Long): String = when {
+    nanos <= 0L -> "采样中"
+    nanos >= 1_000_000L -> String.format(Locale.US, "%.1f ms", nanos / 1_000_000.0)
+    nanos >= 1_000L -> "${nanos / 1_000L} µs"
+    else -> "$nanos ns"
 }
 
 private fun formatDiagnosticsTime(millis: Long): String {
