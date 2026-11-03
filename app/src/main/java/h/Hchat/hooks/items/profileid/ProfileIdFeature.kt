@@ -146,7 +146,11 @@ class ProfileIdFeature : BaseFeature() {
             val decor = activity.window?.decorView as? ViewGroup ?: return
             if (post) {
                 // 先于历史发言记录完成插入，后者会识别本行并排到其后。
-                decor.postAtFrontOfQueue {
+                // View 没有 postAtFrontOfQueue，队首插入要走它绑定的 Handler。
+                val handler = decor.handler
+                if (handler != null) {
+                    handler.postAtFrontOfQueue { injectProfileIdNow(activity, profileId, kind) }
+                } else {
                     injectProfileIdNow(activity, profileId, kind)
                 }
             } else {

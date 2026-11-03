@@ -1328,10 +1328,10 @@ private class HchatExtraHooker(
             if (isSelf) RelativeLayout.ALIGN_RIGHT else RelativeLayout.ALIGN_LEFT,
             ensureViewId(anchor)
         )
-        params.leftMargin = dp(relativeRoot.context, messageDetailsConfig.marginLeftDp)
-        params.topMargin = dp(relativeRoot.context, messageDetailsConfig.marginTopDp)
-        params.rightMargin = dp(relativeRoot.context, messageDetailsConfig.marginRightDp)
-        params.bottomMargin = dp(relativeRoot.context, messageDetailsConfig.marginBottomDp)
+        params.leftMargin = dp(relativeRoot.context, messageDetailsConfig.marginLeftDp.toFloat())
+        params.topMargin = dp(relativeRoot.context, messageDetailsConfig.marginTopDp.toFloat())
+        params.rightMargin = dp(relativeRoot.context, messageDetailsConfig.marginRightDp.toFloat())
+        params.bottomMargin = dp(relativeRoot.context, messageDetailsConfig.marginBottomDp.toFloat())
         label.layoutParams = params
         label.gravity = Gravity.CENTER
         label.includeFontPadding = false
@@ -1373,7 +1373,7 @@ private class HchatExtraHooker(
         }
         val verticalMargin = dp(
             container.context,
-            messageDetailsConfig.marginTopDp + messageDetailsConfig.marginBottomDp
+            (messageDetailsConfig.marginTopDp + messageDetailsConfig.marginBottomDp).toFloat()
         )
         val reserved = (
             labelHeight + verticalMargin - dp(container.context, MESSAGE_DETAILS_PADDING_OVERLAP_DP)
