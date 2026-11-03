@@ -17,8 +17,6 @@ object HchatExtraSettings {
     const val KEY_MESSAGE_DETAILS_TIME_FORMAT = "message_details_time_format"
     const val KEY_MESSAGE_DETAILS_POSITION = "message_details_position"
     const val KEY_MESSAGE_DETAILS_AVATAR_GAP = "message_details_avatar_gap"
-    const val KEY_MESSAGE_DETAILS_LEFT_MARGIN = "message_details_left_margin"
-    const val KEY_MESSAGE_DETAILS_RIGHT_MARGIN = "message_details_right_margin"
     const val KEY_MESSAGE_DETAILS_TEXT_SIZE = "message_details_text_size"
     const val KEY_MESSAGE_DETAILS_CLICK_SHOW = "message_details_click_show"
     const val KEY_MESSAGE_DETAILS_FORMAT_CONTENT = "message_details_format_content"
@@ -34,13 +32,10 @@ object HchatExtraSettings {
     const val DEFAULT_MESSAGE_DETAILS_FORMAT = "\${time}"
     const val LEGACY_MESSAGE_DETAILS_FORMAT = "\${time} | \${type}"
     const val DEFAULT_MESSAGE_DETAILS_TIME_FORMAT = "HH:mm:ss"
-    const val POSITION_MESSAGE_BOTTOM = "message_bottom"
     const val POSITION_AVATAR_ABOVE = "avatar_above"
     const val POSITION_AVATAR_BELOW = "avatar_below"
     const val DEFAULT_MESSAGE_DETAILS_POSITION = POSITION_AVATAR_BELOW
     const val DEFAULT_MESSAGE_DETAILS_AVATAR_GAP = 1
-    const val DEFAULT_MESSAGE_DETAILS_LEFT_MARGIN = 64
-    const val DEFAULT_MESSAGE_DETAILS_RIGHT_MARGIN = 64
     const val DEFAULT_MESSAGE_DETAILS_TEXT_SIZE = 10
     const val DEFAULT_MESSAGE_DETAILS_CLICK_SHOW = true
     const val DEFAULT_MESSAGE_DETAILS_FORMAT_CONTENT = false

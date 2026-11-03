@@ -83,7 +83,11 @@ internal fun ModuleDiagnosticsMiuixPage(
     val versionName = remember(refreshTick) {
         runCatching { WeChatApis.version()?.versionName() }.getOrNull().orEmpty()
     }
-    val problems = features.filter { it.error.isNotEmpty() || (it.enabled && !it.installed) }
+    val locate = remember(refreshTick) { ModuleStatusStore.locate() }
+    // "问题"包含自检失败：定位缺失的功能安装流程照样不报错，但实际跑不起来。
+    val problems = features.filter {
+        it.error.isNotEmpty() || it.health.isNotEmpty() || (it.enabled && !it.installed)
+    }
     val disabled = features.filter { !it.enabled }
     val healthy = (features.size - problems.size - disabled.size).coerceAtLeast(0)
     val stalledInstalls = installs.filter { !it.installed }
@@ -96,15 +100,17 @@ internal fun ModuleDiagnosticsMiuixPage(
                 status = when {
                     item.error.isNotEmpty() -> "异常"
                     !item.enabled -> "已关闭"
-                    item.installed -> "正常"
-                    else -> "未安装"
+                    !item.installed -> "未安装"
+                    item.health.isNotEmpty() -> "不可用"
+                    else -> "正常"
                 },
-                detail = item.error,
+                detail = item.error.ifBlank { item.health },
                 tint = when {
                     item.error.isNotEmpty() -> DiagnosticsDanger
                     !item.enabled -> DiagnosticsWarn
-                    item.installed -> DiagnosticsOk
-                    else -> DiagnosticsWarn
+                    !item.installed -> DiagnosticsWarn
+                    item.health.isNotEmpty() -> DiagnosticsDanger
+                    else -> DiagnosticsOk
                 }
             )
         }
@@ -119,7 +125,7 @@ internal fun ModuleDiagnosticsMiuixPage(
         }
         when (filter) {
             DiagFilter.ALL -> featureRows + queueRows
-            DiagFilter.PROBLEM -> featureRows.filter { it.status == "异常" }
+            DiagFilter.PROBLEM -> featureRows.filter { it.status == "异常" || it.status == "不可用" }
             DiagFilter.PENDING -> featureRows.filter { it.status == "未安装" } + queueRows
             DiagFilter.DISABLED -> featureRows.filter { it.status == "已关闭" }
         }
@@ -161,7 +167,13 @@ internal fun ModuleDiagnosticsMiuixPage(
                     } else {
                         SummaryRow("微信版本", versionName.ifBlank { "未知" })
                         InsetDivider()
-                        SummaryRow("正常 / 异常 / 关闭", "$healthy · ${problems.size} · ${disabled.size}")
+                        SummaryRow(
+                            "定位就位",
+                            if (locate == null) "未采集"
+                            else "${locate.located} / ${locate.total}，缺 ${locate.missing.size} 项"
+                        )
+                        InsetDivider()
+                        SummaryRow("正常 / 不可用·异常 / 关闭", "$healthy · ${problems.size} · ${disabled.size}")
                         InsetDivider()
                         SummaryRow(
                             "安装队列",
@@ -170,6 +182,16 @@ internal fun ModuleDiagnosticsMiuixPage(
                         )
                         InsetDivider()
                         SummaryRow("快照时间", formatDiagnosticsTime(ModuleStatusStore.updatedAtMillis()))
+                    }
+                }
+            }
+
+            locate?.missing?.takeIf { it.isNotEmpty() }?.let { missing ->
+                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "定位缺失") }
+                item {
+                    SettingsCard {
+                        EmptyText("以下 ${missing.size} 项 API 在当前微信版本没找到，依赖它们的功能会不可用：\n" +
+                            missing.joinToString("、"))
                     }
                 }
             }

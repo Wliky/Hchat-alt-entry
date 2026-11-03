@@ -10,7 +10,16 @@ object ModuleStatusStore {
         val name: String,
         val enabled: Boolean,
         val installed: Boolean,
-        val error: String
+        val error: String,
+        /** 空串表示依赖齐全；非空是当前版本下不可用的原因（多数是定位缺失）。 */
+        val health: String = ""
+    )
+
+    /** 全局定位快照：就位数 / 总数 / 缺失字段名。 */
+    data class LocateStatus(
+        val located: Int,
+        val total: Int,
+        val missing: List<String>
     )
 
     data class InstallStatus(
@@ -33,6 +42,15 @@ object ModuleStatusStore {
     }
 
     fun features(): List<FeatureStatus> = featureStatuses
+
+    @Volatile
+    private var locateStatus: LocateStatus? = null
+
+    fun updateLocate(status: LocateStatus) {
+        locateStatus = status
+    }
+
+    fun locate(): LocateStatus? = locateStatus
 
     fun installs(): List<InstallStatus> = DexInstallScheduler.snapshot()
 

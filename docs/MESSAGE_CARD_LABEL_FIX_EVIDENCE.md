@@ -40,3 +40,14 @@
 ## 本次产物验证
 
 2026-09-11 本地 Release 构建通过（2 分 46 秒），保留 R8 与资源压缩；APK Signature Scheme v2、ZIP 完整性校验通过，ARM 64/32 库完整，签名与前次本地安装包一致。R8 mapping 包含新适配器绑定定位与布局观察器。布局观察器 7 项、预绘制/附着 14 项回归通过，git diff --check 通过。尚未安装或执行微信 UI 回归。
+
+## 改为 overlay 绘制（2026-11-03）
+
+上一版把标签作为消息行的真实子 View，并给行上下补 padding 腾出空间，导致相邻消息间距叠加变大、语音/通话消息在补 padding 与 requestLayout 之间来回闪烁。现在改为 `ViewOverlay` + 自定义 `Drawable`（`AvatarTimeOverlay`）：
+
+- 标签 `TextView` 只用于测量和取色，不再 `addView`，行高与原生完全一致；`avatarGapDp` 只影响文字位置，默认 `1dp`，可调 `0-64`。
+- 位置按 `getLocationInWindow` 差值换算头像矩形，再 `coerceIn` 夹在消息行内；水平居中头像，超宽用 `breakText` + `…` 收尾。
+- 点击用消息行上的 `TouchDelegate` 转发到标签，不新增子 View，也不改变其它区域的触摸分发。
+- 删除 `MessageDetailsLayoutObserver`、消息底部锚点（`addBottomDetailsView`/`rowBottomAnchor`/`wrapCardDetailsAnchor`/`safeBottomAnchor`/`messageContentAnchor`）、左右边距配置以及对应的 padding 预留/裁剪恢复代码；位置选项收敛为头像上方/头像下方，旧的 `message_bottom` 配置读入时落到头像下方。
+
+2026-11-03 `:app:compileReleaseKotlin` 与 `:app:compileReleaseJavaWithJavac` 通过（Gradle 9.7.1，offline）。未做微信真机 UI 回归，间距与对齐效果仍需设备确认。

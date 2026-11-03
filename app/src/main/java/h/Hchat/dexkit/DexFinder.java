@@ -2688,6 +2688,28 @@ public class DexFinder {
         return new int[]{located, total};
     }
 
+    /**
+     * 供排查页使用：{就位数, 总数}。
+     * 排查页判断「功能能不能用」要看这里，而不是看 install() 有没有抛异常。
+     */
+    public int[] locateStatus() {
+        return locateFieldStats();
+    }
+
+    /** 未就位的定位字段名，排查页直接展示，便于定位是哪一项缺失。 */
+    public java.util.List<String> missingLocateFields() {
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        for (java.lang.reflect.Field field : DexFinder.class.getDeclaredFields()) {
+            if (!isLocateField(field)) continue;
+            try {
+                field.setAccessible(true);
+                if (field.get(this) == null) missing.add(field.getName());
+            } catch (Throwable ignored) {
+            }
+        }
+        return missing;
+    }
+
     private static boolean isLocateField(java.lang.reflect.Field field) {
         if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) return false;
         if (field.getType().isPrimitive()) return false;

@@ -64,13 +64,20 @@ class FeatureManager {
                 HLog.e("$TAG 功能安装失败: $displayName, error=$e", e)
             }
         }
-        publishStatus(enabledStates, failures)
+        publishStatus(context, enabledStates, failures)
         DexInstallScheduler.markDexBridgeReady()
     }
 
     /** 把本次安装结果写入快照，「模块排查」页面直接读取，避免再跑一遍定位。 */
-    private fun publishStatus(enabledStates: Map<Feature, Boolean>, failures: Map<Feature, String>) {
+    private fun publishStatus(
+        context: FeatureContext,
+        enabledStates: Map<Feature, Boolean>,
+        failures: Map<Feature, String>
+    ) {
+        publishLocateStatus(context)
         val statuses = features.map { feature ->
+            val enabled = enabledStates[feature] ?: false
+            val installed = installedFeatures.contains(feature)
             ModuleStatusStore.FeatureStatus(
                 featureId = try {
                     feature.featureId()
@@ -78,12 +85,40 @@ class FeatureManager {
                     ""
                 },
                 name = safeName(feature),
-                enabled = enabledStates[feature] ?: false,
-                installed = installedFeatures.contains(feature),
-                error = failures[feature].orEmpty()
+                enabled = enabled,
+                installed = installed,
+                error = failures[feature].orEmpty(),
+                // 只对真正跑起来的功能做自检；没启用或安装失败的状态已经能说明问题。
+                health = if (enabled && installed) {
+                    try {
+                        feature.healthCheck(context).orEmpty()
+                    } catch (e: Throwable) {
+                        describe(e)
+                    }
+                } else {
+                    ""
+                }
             )
         }
         ModuleStatusStore.updateFeatures(statuses)
+    }
+
+    /** 记录定位就位率：排查页用它回答"这个版本到底有多少 API 没找到"。 */
+    private fun publishLocateStatus(context: FeatureContext) {
+        try {
+            val stats = context.dexFinder().locateStatus()
+            if (stats == null || stats.size < 2) return
+            val missing = context.dexFinder().missingLocateFields() ?: emptyList()
+            ModuleStatusStore.updateLocate(
+                ModuleStatusStore.LocateStatus(
+                    located = stats[0],
+                    total = stats[1],
+                    missing = missing
+                )
+            )
+        } catch (e: Throwable) {
+            HLog.e("$TAG 读取定位状态失败: $e", e)
+        }
     }
 
     private fun describe(error: Throwable): String {

@@ -6,13 +6,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -530,6 +530,11 @@ class ProfileIdFeature : BaseFeature() {
         }
 
         private fun insertionIndex(container: ViewGroup, kind: ProfileKind): Int {
+            // 先精确命中"地区"：ID 要贴在它下面，跟着它一起滚动，不跟"备注/标签"抢位置。
+            for (index in 0 until container.childCount) {
+                val child = container.getChildAt(index)
+                if (textOf(child).contains("地区")) return index + 1
+            }
             for (index in 0 until container.childCount) {
                 val child = container.getChildAt(index)
                 val text = textOf(child)
@@ -570,14 +575,19 @@ class ProfileIdFeature : BaseFeature() {
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 )
             }
+            // 文本按内容收窄、超长单行省略：ID 本身很短，用 weight 铺满整行会让右侧
+            // 留出一大片空白，看起来像是挤掉了别的信息。
             val text = TextView(activity).apply {
                 textSize = 16f
                 includeFontPadding = true
-                maxLines = 2
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
             }
             row.addView(text)
-            row.addView(createArrowView(activity, template))
             // 有原生行可参照时完全照抄它的高度、内边距、背景和文字样式，
             // 这样深色模式、机型字号、圆角卡片都能跟微信保持一致。
             if (template != null) {
@@ -585,36 +595,15 @@ class ProfileIdFeature : BaseFeature() {
             } else {
                 applyRowTheme(row, activity)
             }
+            // 整行点击即复制，不再放箭头：箭头意味着"还有下一级"，这里并没有跳转。
+            row.isClickable = true
             bindRow(row, activity, profileId)
             return row
-        }
-
-        /** 箭头优先复用原生行的图标，退化成字符时用次要文字色，避免出现突兀的白色箭头。 */
-        private fun createArrowView(activity: Activity, template: View?): View {
-            val source = template?.let { findFirstImageView(it) }
-            val drawable = source?.drawable?.constantState?.newDrawable()?.mutate()
-            if (drawable != null) {
-                return ImageView(activity).apply {
-                    setImageDrawable(drawable)
-                    scaleType = source.scaleType
-                    layoutParams = LinearLayout.LayoutParams(
-                        source.layoutParams?.width?.takeIf { it > 0 } ?: dp(activity, 16f),
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-                }
-            }
-            return TextView(activity).apply {
-                setText("›")
-                textSize = 24f
-                gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(dp(activity, 24f), ViewGroup.LayoutParams.WRAP_CONTENT)
-            }
         }
 
         private fun applyTemplateStyle(row: LinearLayout, text: TextView, template: View, activity: Activity) {
             row.minimumHeight = template.height.takeIf { it > 0 } ?: template.minimumHeight
             row.setPadding(template.paddingLeft, template.paddingTop, template.paddingRight, template.paddingBottom)
-            template.background?.constantState?.newDrawable()?.mutate()?.let { row.background = it }
             row.isClickable = true
             val sourceText = (template as? ViewGroup)?.let { firstTextChild(it) } ?: (template as? TextView)
             if (sourceText != null) {
@@ -626,19 +615,36 @@ class ProfileIdFeature : BaseFeature() {
                 text.letterSpacing = sourceText.letterSpacing
                 val vertical = sourceText.paddingTop
                 text.setPadding(0, vertical, 0, vertical)
+                alignTextToTemplate(text, template, sourceText)
             } else {
                 text.setTextColor(themeColor(activity, android.R.attr.textColorPrimary, fallbackPrimaryTextColor(activity)))
             }
+            // 上限留出整行可用宽度，超出交给省略号，避免长 ID 撑出屏幕。
+            text.maxWidth = (activity.resources.displayMetrics.widthPixels -
+                row.paddingLeft - row.paddingRight).coerceAtLeast(dp(activity, 120f))
         }
 
-        private fun findFirstImageView(view: View): ImageView? {
-            if (view is ImageView) return view
-            if (view is ViewGroup) {
-                for (index in 0 until view.childCount) {
-                    findFirstImageView(view.getChildAt(index))?.let { return it }
-                }
+        /** 让注入文本的左边线落在原生文本的左边线上，和"地区"那一行严格对齐。 */
+        private fun alignTextToTemplate(text: TextView, template: View, sourceText: TextView) {
+            val offset = leftWithin(template, sourceText) - template.paddingLeft
+            val params = text.layoutParams as? LinearLayout.LayoutParams ?: return
+            val margin = offset.coerceAtLeast(0)
+            if (params.marginStart != margin) {
+                params.marginStart = margin
+                params.marginEnd = 0
+                text.layoutParams = params
             }
-            return null
+        }
+
+        /** descendant 相对 ancestor 的水平偏移；不在同一棵树上时返回 0。 */
+        private fun leftWithin(ancestor: View, descendant: View): Int {
+            var offset = 0
+            var current: View? = descendant
+            while (current != null && current !== ancestor) {
+                offset += current.left
+                current = current.parent as? View
+            }
+            return if (current === ancestor) offset else 0
         }
 
         private fun bindRow(row: View, activity: Activity, profileId: String) {
@@ -655,17 +661,20 @@ class ProfileIdFeature : BaseFeature() {
             }
         }
 
-        /** 从容器里挑一行原生设置项当参照（跳过自己注入的行）。 */
+        /** 从容器里挑一行原生设置项当参照（跳过自己注入的行），优先"地区"那一行。 */
         private fun pickRowTemplate(container: ViewGroup): View? {
+            var fallback: View? = null
             for (index in 0 until container.childCount) {
                 val child = container.getChildAt(index)
                 if (child.tag is String) continue
                 if (child.visibility != View.VISIBLE) continue
                 val group = child as? ViewGroup ?: continue
                 if (firstTextChild(group) == null) continue
-                return child
+                if (fallback == null) fallback = child
+                // ID 行就插在地区下面，照抄地区行的缩进、字号、行高才算对齐。
+                if (textOf(child).contains("地区")) return child
             }
-            return null
+            return fallback
         }
 
         private fun applyRowTheme(row: View, context: Context) {
@@ -691,10 +700,6 @@ class ProfileIdFeature : BaseFeature() {
             } finally {
                 array.recycle()
             }
-        }
-
-        private fun fallbackBackgroundColor(context: Context): Int {
-            return if (isNightMode(context)) Color.rgb(25, 25, 25) else Color.WHITE
         }
 
         private fun fallbackPrimaryTextColor(context: Context): Int {

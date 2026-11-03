@@ -1432,22 +1432,6 @@ internal fun MessageDetailsConfigPage(
             ).toString()
         )
     }
-    var leftMargin by remember {
-        mutableStateOf(
-            sp.getInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_LEFT_MARGIN,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LEFT_MARGIN
-            ).toString()
-        )
-    }
-    var rightMargin by remember {
-        mutableStateOf(
-            sp.getInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_RIGHT_MARGIN,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_RIGHT_MARGIN
-            ).toString()
-        )
-    }
     var textSize by remember {
         mutableStateOf(
             sp.getInt(
@@ -1483,8 +1467,6 @@ internal fun MessageDetailsConfigPage(
         timeFormat = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT
         position = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
         avatarGap = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_AVATAR_GAP.toString()
-        leftMargin = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LEFT_MARGIN.toString()
-        rightMargin = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_RIGHT_MARGIN.toString()
         textSize = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE.toString()
         clickShow = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_CLICK_SHOW
         formatContent = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_FORMAT_CONTENT
@@ -1509,14 +1491,6 @@ internal fun MessageDetailsConfigPage(
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_TIME_FORMAT, timeFormat.ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT })
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION, savedPosition)
             .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_AVATAR_GAP, savedAvatarGap)
-            .putInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_LEFT_MARGIN,
-                leftMargin.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LEFT_MARGIN
-            )
-            .putInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_RIGHT_MARGIN,
-                rightMargin.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_RIGHT_MARGIN
-            )
             .putInt(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
                 textSize.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE

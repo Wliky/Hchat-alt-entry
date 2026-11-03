@@ -84,7 +84,11 @@ object HchatStorage {
                 val dest = File(target, file.name)
                 if (!dest.exists()) file.copyTo(dest, overwrite = false)
             }
-            HLog.i("$TAG 配置目录已迁移到 ${target.absolutePath}")
+            // 复制完就把旧目录删掉：配置只留 files/Hchat 一份。
+            // 旧目录留在 dataDir 根下既可能被微信"清理缓存"扫到，用户清数据后
+            // 也会看到两个 Hchat 目录，属于需要消掉的残留。
+            val removed = legacy.deleteRecursively()
+            HLog.i("$TAG 配置目录已迁移到 ${target.absolutePath}，旧目录清理=$removed")
         }.onFailure { HLog.e("$TAG 迁移配置目录失败: ${it.message}", it) }
     }
 

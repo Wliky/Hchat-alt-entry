@@ -529,8 +529,8 @@ private fun FeatureSettingsPage(
 - 点击视频号菜单时只从当前回调参数、点击监听对象的直属字段和一层 holder 字段提取媒体，不做无界对象图扫描，避免误复制或下载相邻视频。当前 `FinderItem` 的普通媒体 JSON 缺少 `media_cdn_info.pcdn_url` 时，会按相同下标读取 `getMediaExtList()` 并合并扩展媒体里的 PCDN 直链；扩展数据仍无直链时继续使用现有密链、密钥和详情补全流程。
 - `alt-entry` 的视频号视频下载会从媒体 `spec` 中优先选择 `codingFormat=h265` 的规格，并把对应 `fileFormat` 作为 `X-snsvideoflag` 请求参数写入原始 CDN 密链后下载解密，避免 PCDN 或默认空规格返回 H.266/VVC 视频。没有 H.265 规格或原始密链不可用时保留原下载流程；规格字段已横向确认微信 `8.0.49`、`8.0.58`、`8.0.66`、`8.0.68`、`8.0.72`、`8.0.74`、`8.0.76`。
 - 视频号聊天分享 XML 先隔离完整 `finderFeed` 节，再用 PullParser `nextText()` 直接读取 `mediaList/media` 叶子字段。ARSCLib 会把 `org.xmlpull.v1` 实现带入最终 APK，R8 full mode 如果混淆这套公共接口，会把 Android `Xml.newPullParser()` 返回的系统解析器错误强转为 APK 内置实现，运行时触发 `ClassCastException`；发布规则必须完整 keep `org.xmlpull.v1.**`，让视频号和普通视频 XML 在 R8 与无 R8 下都通过系统接口调用。解析异常按 10 秒限频记录原始 Throwable、输入长度和内容哈希，不能再静默转换成 `null`；媒体入口、补齐成功、普通未命中和回调检测的临时诊断日志不保留。
-- 模块自己的设置使用 `HchatStorage.preferences(context, name)`。日常读写由 FastKV 处理，路径在微信私有 `Hchat/` 目录，不在 Android `shared_prefs/`。
-- FastKV 可能为同一个配置名创建 `.kva/.kvb` 文件。`HchatStorage` 不再迁移旧存储数据。功能代码不要直接实例化 FastKV。
+- 模块自己的设置使用 `HchatStorage.preferences(context, name)`。日常读写由 FastKV 处理，路径在微信私有 `<dataDir>/files/Hchat`，不在 Android `shared_prefs/`，也不在 `<dataDir>/Hchat`。
+- 旧版本写在 `<dataDir>/Hchat` 的配置会在首次访问时复制到 `files/Hchat`，复制完成后删除旧目录，避免两份配置并存；`files/` 随微信"清除全部数据"或卸载一并删除，不需要模块再提供清理入口。FastKV 可能为同一个配置名创建 `.kva/.kvb` 文件。功能代码不要直接实例化 FastKV。
 - 重要：backdrop 只能从页面内容层记录。底栏必须作为独立 overlay 画在 `layerBackdrop(...)` 容器外，否则 blur 目标可能记录自身并在微信宿主进程触发 native `libhwui` 崩溃。
 - 底栏是从 KernelSU 的 KSU 风格液态底栏复制/适配而来，不是 Miuix `NavigationBar`；目前只由 `自定义底栏` 使用。相关文件：
   - `ui/miuix/FloatingBottomBar.kt`
@@ -1061,7 +1061,7 @@ UI 规则：
 - 所有页面都要给 `LazyColumn` 传 `rememberLazyListState()`，返回二级菜单时才能保持滚动位置。
 - `LazyColumn` 要加 `.nestedScroll(scrollBehavior.nestedScrollConnection)`，保证 Miuix 顶栏滚动行为一致。
 - 主设置页的 设置 tab 已有 `悬浮底栏` 和 `液态玻璃` 开关，值存在 `Hchat_miuix_ui`。不要在功能页重复做这些全局 UI 设置。
-- 新增功能配置统一使用 `HchatStorage.preferences(context, name)` 或 `ConfigStore`，文件位于微信私有目录 `Hchat/`，日常读写由 FastKV 负责。不要直接 `context.getSharedPreferences(...)` 或自行实例化 FastKV 写模块配置。
+- 新增功能配置统一使用 `HchatStorage.preferences(context, name)` 或 `ConfigStore`，文件位于微信私有目录 `files/Hchat/`，日常读写由 FastKV 负责。不要直接 `context.getSharedPreferences(...)` 或自行实例化 FastKV 写模块配置。
 - 主底栏实现位于 `ui/miuix/FloatingBottomBar.kt` 及其 `animation/`、`liquid/` 辅助文件。它使用 KSU 风格的多层 backdrop：普通内容层、隐藏主色 tint 层、移动选中液态胶囊。新增功能页不要改这套底栏状态或颜色机制。
 - 底栏图标是本地 `ImageVector`，路径来自 AndroidX Material Rounded。不要在微信内嵌 Compose UI 中使用 `vectorResource(R.drawable...)`。
 - 主功能列表不显示 Provider 图标，保持普通设置列表样式。图标只保留在底部导航。

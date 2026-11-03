@@ -8,10 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.text.Editable
 import android.text.InputType
 import android.text.TextUtils
@@ -19,6 +25,7 @@ import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.TouchDelegate
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -131,25 +138,61 @@ private class HchatExtraHooker(
         val hidden: Boolean
     )
 
-    private data class BottomDetailsAnchor(
-        val parent: ViewGroup,
-        val layoutView: View,
-        val alignmentView: View
-    )
+    /**
+     * 方案 A：时间标签只作为消息行 overlay 上的一层绘制，不加入布局树。
+     * 行高、内外边距一律不动，消息间距因此和原生完全一致；位置只跟随头像，
+     * 超出消息行就夹回边界，全程不会触发 requestLayout，语音/通话消息刷新时也不闪。
+     */
+    private class AvatarTimeOverlay : Drawable() {
+        var label: TextView? = null
+        private val backgroundPaint = Paint()
 
-    private data class AvatarDetailsSpacing(
-        val originalTop: Int,
-        val originalBottom: Int,
-        val appliedTop: Int,
-        val appliedBottom: Int,
-        val originalClipToPadding: Boolean,
-        val clipStates: List<AvatarDetailsClipState>
-    )
+        override fun draw(canvas: Canvas) {
+            val view = label ?: return
+            val text = view.text ?: return
+            if (text.isEmpty()) return
+            val paint = view.paint
+            val available = (bounds.width() - view.paddingLeft - view.paddingRight).toFloat()
+            if (available <= 0f) return
+            // 背景色设置仍然生效：以前挂在标签 View 上，现在由 overlay 自己画。
+            (view.background as? ColorDrawable)?.color?.takeIf { it != Color.TRANSPARENT }?.let { color ->
+                backgroundPaint.color = color
+                canvas.drawRect(bounds, backgroundPaint)
+            }
+            val left = (bounds.left + view.paddingLeft).toFloat()
+            val baseline = bounds.top + view.paddingTop + firstLineBaseline(view, paint)
+            val full = paint.measureText(text, 0, text.length)
+            if (full <= available) {
+                canvas.drawText(text, 0, text.length, left + (available - full) / 2f, baseline, paint)
+                return
+            }
+            // 文本长度随时间格式变化（"昨天"和"2026年11月3日 07:48"差很多），
+            // 放不下就用省略号收尾，绝不越过标签范围去盖气泡。
+            val dots = "…"
+            val dotsWidth = paint.measureText(dots)
+            val count = paint.breakText(text, 0, text.length, true, (available - dotsWidth).coerceAtLeast(1f), null)
+            if (count <= 0) return
+            val shownWidth = paint.measureText(text, 0, count)
+            val start = left + (available - shownWidth - dotsWidth) / 2f
+            canvas.drawText(text, 0, count, start, baseline, paint)
+            canvas.drawText(dots, start + shownWidth, baseline, paint)
+        }
 
-    private data class AvatarDetailsClipState(
-        val view: WeakReference<ViewGroup>,
-        val originalClipChildren: Boolean
-    )
+        /** 用标签自身的布局取基线，includeFontPadding 带来的偏移和原生绘制一致。 */
+        private fun firstLineBaseline(view: TextView, paint: Paint): Float {
+            val layout = view.layout
+            if (layout != null && layout.lineCount > 0) return layout.getLineBaseline(0).toFloat()
+            return -paint.fontMetrics.top
+        }
+
+        // overlay 只绘制文本，没有额外的透明度/滤镜需求。
+        override fun setAlpha(alpha: Int) = Unit
+
+        override fun setColorFilter(colorFilter: ColorFilter?) = Unit
+
+        @Deprecated("Deprecated in Java")
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+    }
 
     private data class MessageDetailsConfig(
         val enabled: Boolean,
@@ -159,8 +202,6 @@ private class HchatExtraHooker(
         val timeFormatter: DateTimeFormatter,
         val textSizeSp: Float,
         val avatarGapDp: Int,
-        val leftMarginDp: Int,
-        val rightMarginDp: Int,
         val clickShow: Boolean,
         val lightTextColor: Int,
         val darkTextColor: Int,
@@ -180,12 +221,6 @@ private class HchatExtraHooker(
         val primaryField: Field?,
         val fallbackField: Field?
     )
-
-    private enum class AvatarPositionResult {
-        STABLE,
-        NEEDS_LAYOUT,
-        UNAVAILABLE
-    }
 
     private val prefs = HchatStorage.preferences(context.hostContext(), HchatExtraSettings.PREFS_NAME)
     private val hideAvatarPrefs = HchatStorage.preferences(
@@ -208,13 +243,11 @@ private class HchatExtraHooker(
     private val nativeMessageClassCache = ConcurrentHashMap<Class<*>, Boolean>()
     private val messageNestedFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
     private val messageDetailsFailureKeys = ConcurrentHashMap.newKeySet<String>()
-    private val messageDetailsLabels = Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     private val messageDetailsBindings = WeakHashMap<TextView, MessageDetailsBinding>()
-    private val avatarDetailsSpacings = WeakHashMap<RelativeLayout, AvatarDetailsSpacing>()
+    private val avatarTimeOverlays = WeakHashMap<View, AvatarTimeOverlay>()
+    private val avatarTimeTouchDelegates = WeakHashMap<View, TouchDelegate>()
     private val messageDetailsAttachCallbacks = MessageDetailsAttachQueue()
-    private val messageDetailsLayoutCallbacks = MessageDetailsLayoutObserver()
     private val messageDetailsRetryListeners = MessageDetailsPreDrawQueue()
-    private val messageDetailsPositionListeners = MessageDetailsPreDrawQueue()
     private val messageDetailsColorListeners = MessageDetailsPreDrawQueue()
     private val messageDetailsBindStates = ThreadLocal<ArrayDeque<MessageDetailsBindState>>()
     private val messageDetailsBindTokens = WeakHashMap<View, Any>()
@@ -338,15 +371,7 @@ private class HchatExtraHooker(
             avatarGapDp = prefs.getInt(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_AVATAR_GAP,
                 HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_AVATAR_GAP
-            ).coerceIn(0, 64),
-            leftMarginDp = prefs.getInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_LEFT_MARGIN,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LEFT_MARGIN
-            ),
-            rightMarginDp = prefs.getInt(
-                HchatExtraSettings.KEY_MESSAGE_DETAILS_RIGHT_MARGIN,
-                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_RIGHT_MARGIN
-            ),
+            ).coerceIn(0, MESSAGE_DETAILS_AVATAR_GAP_MAX_DP),
             clickShow = prefs.getBoolean(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_CLICK_SHOW,
                 HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_CLICK_SHOW
@@ -386,20 +411,27 @@ private class HchatExtraHooker(
         forwardedRecordTypes.destroy()
         prefs.unregisterOnSharedPreferenceChangeListener(messageDetailsPrefsListener)
         hideAvatarPrefs.unregisterOnSharedPreferenceChangeListener(hideAvatarPrefsListener)
-        val spacings = synchronized(avatarDetailsSpacings) {
-            avatarDetailsSpacings.entries.map { it.key to it.value }.also { avatarDetailsSpacings.clear() }
+        val overlays = synchronized(avatarTimeOverlays) {
+            avatarTimeOverlays.entries.map { it.key to it.value }.also { avatarTimeOverlays.clear() }
         }
-        spacings.forEach { (parent, spacing) -> restoreAvatarDetailsSpacing(parent, spacing) }
-        synchronized(messageDetailsLabels) {
-            messageDetailsLabels.clear()
+        overlays.forEach { (root, overlay) ->
+            overlay.label = null
+            clearAvatarTimeTouchDelegate(root)
+            runCatching { root.overlay.remove(overlay) }
+        }
+        val delegates = synchronized(avatarTimeTouchDelegates) {
+            avatarTimeTouchDelegates.entries.map { it.key to it.value }.also {
+                avatarTimeTouchDelegates.clear()
+            }
+        }
+        delegates.forEach { (root, delegate) ->
+            if (root.touchDelegate === delegate) root.touchDelegate = null
         }
         synchronized(messageDetailsBindings) {
             messageDetailsBindings.clear()
         }
         messageDetailsAttachCallbacks.clear()
-        messageDetailsLayoutCallbacks.clear()
         messageDetailsRetryListeners.clear()
-        messageDetailsPositionListeners.clear()
         messageDetailsColorListeners.clear()
         synchronized(messageDetailsBindTokens) { messageDetailsBindTokens.clear() }
     }
@@ -613,10 +645,9 @@ private class HchatExtraHooker(
         // once and mount from its outermost hook after all native mutations finish.
         if (messageDetailsBindStates.get()?.any { it.root === root } == true) return state
         messageDetailsAttachCallbacks.cancel(root)
-        messageDetailsLayoutCallbacks.cancel(root)
         synchronized(messageDetailsBindTokens) { messageDetailsBindTokens[root] = Any() }
         messageDetailsRetryListeners.cancel(root)
-        removeTaggedMessageDetailsViews(root)
+        removeAvatarTimeOverlay(root)
         return state
     }
 
@@ -1095,7 +1126,7 @@ private class HchatExtraHooker(
             ?: resolveMessageFromAdapter(bindObject, messageBindPosition(args))
         if (nativeMessage == null) {
             if (attempt >= MESSAGE_DETAILS_MAX_RETRY) {
-                removeTaggedMessageDetailsViews(root)
+                removeAvatarTimeOverlay(root)
                 logMessageDetailsFailure("message", holder, root)
             }
             scheduleMessageDetailsRetry(root, bindObject, args, attempt, capturedHolder)
@@ -1114,7 +1145,7 @@ private class HchatExtraHooker(
         val inserted = insertMessageDetailsLabel(root, label, viewTag, details, nativeMessage = nativeMessage)
         if (!inserted) {
             if (attempt >= MESSAGE_DETAILS_MAX_RETRY) {
-                removeTaggedMessageDetailsViews(root)
+                removeAvatarTimeOverlay(root)
                 logMessageDetailsFailure("layout", viewTag, root)
             }
             scheduleMessageDetailsRetry(root, bindObject, args, attempt, viewTag, nativeMessage)
@@ -1174,12 +1205,6 @@ private class HchatExtraHooker(
             messageDetailsBindTokens[root] === token
         }
 
-    private fun isCurrentMessageDetailsLabel(
-        label: TextView, root: View, parent: ViewGroup, token: Any
-    ): Boolean = isCurrentMessageDetailsBind(root, token) &&
-        label.tag == TAG_MESSAGE_DETAILS_VIEW && label.parent === parent &&
-        isViewWithinRoot(parent, root)
-
     private fun isMessageDetailsHolder(holder: Any, root: View): Boolean {
         val timeView = findHolderTextView(holder, "timeTV", holderTimeFieldCache) ?: return false
         return isViewWithinRoot(timeView, root)
@@ -1204,24 +1229,19 @@ private class HchatExtraHooker(
         val avatarAnchor = findAvatarDetailsAnchor(root, holder, configuredAvatarHidden)
         if (avatarAnchor == null) {
             // 只保留"头像上方/头像下方"两种位置，找不到头像就没有可挂靠的坐标。
-            restoreAvatarDetailsSpacingsAround(root)
+            removeAvatarTimeOverlay(root)
             return false
         }
         val avatarContent = avatarAnchor
             .takeIf { it.hidden }
             ?.let { avatarDetailsContentView(holder, it.parent) }
-        val parent: ViewGroup = avatarAnchor.parent ?: return false
-        if (parent !is RelativeLayout && parent !is LinearLayout) return false
+        // 标签不进入布局树，复用 overlay 上已有的那个，避免每次 bind 都新建 TextView。
         val label = preferredLabel?.takeIf { it.tag == TAG_MESSAGE_DETAILS_VIEW }
-            ?: findDirectMessageDetailsLabel(parent)
+            ?: avatarTimeLabel(root)
             ?: TextView(nativeTimeLabel?.context ?: root.context).also {
                 it.tag = TAG_MESSAGE_DETAILS_VIEW
             }
-        if (label.parent !== parent) {
-            removeTaggedMessageDetailsViews(root, keep = label)
-            (label.parent as? ViewGroup)?.removeView(label)
-        }
-        rememberMessageDetailsLabel(label)
+        removeAvatarTimeOverlayUnless(root, label)
         applyMessageDetailsLabel(label, details)
         val previousBinding = synchronized(messageDetailsBindings) { messageDetailsBindings[label] }
         if (config.clickShow) {
@@ -1242,27 +1262,12 @@ private class HchatExtraHooker(
                 label.isClickable = false
             }
         }
-        val inserted = addAvatarDetailsView(root, avatarAnchor, avatarContent, label, position, details.isSelf)
+        val inserted = addAvatarDetailsView(root, avatarAnchor, avatarContent, label, position)
         if (inserted) {
             rememberMessageDetailsBinding(label, root, nativeTimeLabel, holder, nativeMessage, details)
             observeMessageDetailsAttachment(root, label)
         }
         return inserted
-    }
-
-    private fun observeCardDetailsLayout(root: View, label: TextView) {
-        messageDetailsLayoutCallbacks.observe(root, label) { currentRoot, currentLabel ->
-            if (!messageDetailsConfig.enabled) return@observe
-            val binding = synchronized(messageDetailsBindings) { messageDetailsBindings[currentLabel] }
-                ?: return@observe
-            if (binding.root !== currentRoot) return@observe
-            runCatching {
-                insertMessageDetailsLabel(
-                    currentRoot, binding.nativeTimeLabel, binding.holder, binding.details,
-                    preferredLabel = currentLabel, nativeMessage = binding.nativeMessage
-                )
-            }.onFailure { logger("消息卡片布局恢复失败", it) }
-        }
     }
 
     private fun observeMessageDetailsAttachment(root: View, label: TextView) {
@@ -1281,14 +1286,6 @@ private class HchatExtraHooker(
                 )
             }.onFailure { logger("消息详情重新附着校验失败", it) }
         }
-    }
-
-    private fun findDirectMessageDetailsLabel(parent: ViewGroup): TextView? {
-        for (index in 0 until parent.childCount) {
-            val child = parent.getChildAt(index)
-            if (child is TextView && child.tag == TAG_MESSAGE_DETAILS_VIEW) return child
-        }
-        return null
     }
 
     private fun applyMessageDetailsLabel(label: TextView, details: MessageDetails) {
@@ -1331,12 +1328,6 @@ private class HchatExtraHooker(
         }
     }
 
-    private fun rememberMessageDetailsLabel(label: TextView) {
-        synchronized(messageDetailsLabels) {
-            messageDetailsLabels.add(label)
-        }
-    }
-
     private fun rememberMessageDetailsBinding(
         label: TextView,
         root: View,
@@ -1351,14 +1342,14 @@ private class HchatExtraHooker(
     }
 
     private fun refreshAttachedMessageDetailsLabels() {
-        val labels = synchronized(messageDetailsLabels) {
-            messageDetailsLabels.toList()
+        val bindings = synchronized(messageDetailsBindings) {
+            messageDetailsBindings.entries.map { it.key to it.value }
         }
-        labels.forEach { label ->
-            label.post {
-                if (label.parent != null && label.tag == TAG_MESSAGE_DETAILS_VIEW) {
+        bindings.forEach { (label, binding) ->
+            binding.root.post {
+                if (isAvatarTimeLabel(label, binding.root)) {
                     applyMessageDetailsColors(label)
-                    label.invalidate()
+                    invalidateAvatarTimeOverlay(binding.root)
                 }
             }
         }
@@ -1369,17 +1360,16 @@ private class HchatExtraHooker(
             messageDetailsBindings.entries.map { it.key to it.value }
         }
         bindings.forEach { (label, binding) ->
-            label.post {
+            binding.root.post {
                 val currentBinding = synchronized(messageDetailsBindings) { messageDetailsBindings[label] }
                 if (currentBinding !== binding) return@post
                 if (!messageDetailsConfig.enabled) {
                     messageDetailsAttachCallbacks.cancel(binding.root)
-                    messageDetailsLayoutCallbacks.cancel(binding.root)
                     messageDetailsRetryListeners.cancel(binding.root)
                     removeMessageDetailsLabel(label)
                     return@post
                 }
-                if (label.parent != null && label.tag == TAG_MESSAGE_DETAILS_VIEW) {
+                if (isAvatarTimeLabel(label, binding.root)) {
                     val details = binding.nativeMessage?.let { messageDetails(it) } ?: binding.details
                     insertMessageDetailsLabel(
                         binding.root,
@@ -1399,188 +1389,116 @@ private class HchatExtraHooker(
         target: AvatarDetailsAnchor,
         content: View?,
         label: TextView,
-        position: String,
-        isSelf: Boolean
+        position: String
     ): Boolean {
-        val parent = target.parent
-        val oldParent = label.parent as? ViewGroup
-        val alreadyAttached = oldParent === parent
-        if (oldParent != null && !alreadyAttached) oldParent.removeView(label)
-        val gap = dp(label.context, messageDetailsConfig.avatarGapDp.toFloat())
-        val previousParams = label.layoutParams as? RelativeLayout.LayoutParams
-        val params = previousParams?.takeIf { alreadyAttached && it.rules.all { rule -> rule == 0 } }
-            ?: RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-            )
         configureAvatarDetailsLabel(label)
-        if (label.translationX != 0f) label.translationX = 0f
-        if (label.translationY != 0f) label.translationY = 0f
         if (label.gravity != Gravity.CENTER) label.gravity = Gravity.CENTER
         if (label.textAlignment != View.TEXT_ALIGNMENT_CENTER) {
             label.textAlignment = View.TEXT_ALIGNMENT_CENTER
         }
-        if (!alreadyAttached || target.hidden) label.visibility = View.INVISIBLE
         measureAvatarDetailsLabel(label)
-        // 预留值必须和实际布局无关：用字体度量算出的固定行高 + 间距，一次设定后不再变化。
-        // 之前用 measuredHeight，首帧字体未就绪时是 0，布局完成后又变大，每变一次就要
-        // 重新 setPadding，整行跟着 requestLayout，滚动时表现为聊天界面闪烁。
-        val reservedSpace = reservedAvatarDetailsHeight(label) + gap
-        applyAvatarDetailsSpacing(root, parent, position, reservedSpace)
-        if (!alreadyAttached) {
-            parent.addView(label, params)
-        } else if (params !== previousParams) {
-            label.layoutParams = params
-        }
-        if (!scheduleAvatarDetailsPosition(label, root, target, content, position, gap, isSelf, 0)) {
-            parent.removeView(label)
-            restoreAvatarDetailsSpacingsAround(root)
+        val gap = dp(label.context, messageDetailsConfig.avatarGapDp.toFloat())
+        // 标签不再 addView 到消息行：只挂一层 overlay，行高不动，也就没有"间距变大"。
+        if (!positionAvatarDetailsLabel(root, target, content, label, position, gap)) {
+            removeAvatarTimeOverlay(root)
             return false
         }
-        refreshMessageDetailsColorsAfterAttach(label, newlyAttached = !alreadyAttached)
+        refreshMessageDetailsColors(root, label)
         return true
     }
 
-    private fun scheduleAvatarDetailsPosition(
-        label: TextView,
+    /** 取（或新建）消息行上的 overlay；一条消息只挂一层，复用时只换绑定的标签。 */
+    private fun bindAvatarTimeOverlay(root: View, label: TextView): AvatarTimeOverlay {
+        val overlay = synchronized(avatarTimeOverlays) { avatarTimeOverlays[root] }
+            ?: AvatarTimeOverlay().also {
+                synchronized(avatarTimeOverlays) { avatarTimeOverlays[root] = it }
+                root.overlay.add(it)
+            }
+        if (overlay.label !== label) overlay.label = label
+        return overlay
+    }
+
+    private fun avatarTimeLabel(root: View): TextView? =
+        synchronized(avatarTimeOverlays) { avatarTimeOverlays[root]?.label }
+
+    private fun isAvatarTimeLabel(label: TextView, root: View): Boolean = avatarTimeLabel(root) === label
+
+    private fun invalidateAvatarTimeOverlay(root: View) {
+        synchronized(avatarTimeOverlays) { avatarTimeOverlays[root] }?.invalidateSelf()
+    }
+
+    /**
+     * 标签不在布局树里，收不到点击。用 TouchDelegate 把标签矩形内的触摸转发给它，
+     * 既不新增子 View，也不改行高；矩形外的触摸仍然走微信原生逻辑。
+     */
+    private fun updateAvatarTimeTouchDelegate(root: View, overlay: AvatarTimeOverlay, label: TextView) {
+        clearAvatarTimeTouchDelegate(root)
+        if (!messageDetailsConfig.clickShow) return
+        val bounds = Rect()
+        overlay.copyBounds(bounds)
+        if (bounds.width() <= 0 || bounds.height() <= 0) return
+        val delegate = TouchDelegate(bounds, label)
+        root.touchDelegate = delegate
+        synchronized(avatarTimeTouchDelegates) { avatarTimeTouchDelegates[root] = delegate }
+    }
+
+    private fun clearAvatarTimeTouchDelegate(root: View) {
+        val delegate = synchronized(avatarTimeTouchDelegates) { avatarTimeTouchDelegates.remove(root) } ?: return
+        if (root.touchDelegate === delegate) root.touchDelegate = null
+    }
+
+    private fun removeAvatarTimeOverlay(root: View) {
+        clearAvatarTimeTouchDelegate(root)
+        val overlay = synchronized(avatarTimeOverlays) { avatarTimeOverlays.remove(root) } ?: return
+        overlay.label = null
+        runCatching { root.overlay.remove(overlay) }
+    }
+
+    private fun removeAvatarTimeOverlayUnless(root: View, keep: TextView) {
+        val overlay = synchronized(avatarTimeOverlays) { avatarTimeOverlays[root] }
+        if (overlay != null && overlay.label !== keep) removeAvatarTimeOverlay(root)
+    }
+
+    /** 头像相对消息行根 View 的矩形，标签的绘制位置全部基于它换算。 */
+    private fun avatarRectWithin(root: View, avatar: View): RectF? {
+        if (avatar.width <= 0 || avatar.height <= 0) return null
+        val rootLocation = IntArray(2)
+        val avatarLocation = IntArray(2)
+        root.getLocationInWindow(rootLocation)
+        avatar.getLocationInWindow(avatarLocation)
+        val left = (avatarLocation[0] - rootLocation[0]).toFloat()
+        val top = (avatarLocation[1] - rootLocation[1]).toFloat()
+        return RectF(left, top, left + avatar.width, top + avatar.height)
+    }
+
+    private fun positionAvatarDetailsLabel(
         root: View,
         target: AvatarDetailsAnchor,
         content: View?,
+        label: TextView,
         position: String,
-        gap: Int,
-        isSelf: Boolean,
-        attempt: Int
+        gap: Int
     ): Boolean {
-        val parent = target.parent
-        val token = messageDetailsBindToken(root)
-        return messageDetailsPositionListeners.schedule(label, parent) {
-            if (!isCurrentMessageDetailsLabel(label, root, parent, token)) return@schedule
-            when (positionAvatarDetailsLabel(label, root, target, content, position, gap, isSelf, attempt >= 2)) {
-                AvatarPositionResult.STABLE -> label.visibility = View.VISIBLE
-                AvatarPositionResult.NEEDS_LAYOUT -> {
-                    layoutAvatarDetailsLabelNow(label, parent)
-                    label.visibility = View.VISIBLE
-                    if (attempt < MESSAGE_DETAILS_POSITION_MAX_RETRY) {
-                        scheduleAvatarDetailsPosition(label, root, target, content, position, gap, isSelf, attempt + 1)
-                    }
-                }
-                AvatarPositionResult.UNAVAILABLE -> {
-                    if (attempt < MESSAGE_DETAILS_POSITION_MAX_RETRY) {
-                        scheduleAvatarDetailsPosition(label, root, target, content, position, gap, isSelf, attempt + 1)
-                    } else {
-                        removeMessageDetailsLabel(label)
-                        restoreAvatarDetailsSpacingsAround(root)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun layoutAvatarDetailsLabelNow(label: TextView, parent: RelativeLayout) {
-        val params = label.layoutParams as? RelativeLayout.LayoutParams ?: return
-        val width = params.width.takeIf { it > 0 } ?: label.measuredWidth
-        val height = label.measuredHeight
-        if (width <= 0 || height <= 0) return
-        val left = parent.paddingLeft + params.leftMargin
-        val top = parent.paddingTop + params.topMargin
-        label.layout(left, top, left + width, top + height)
-    }
-
-    private fun applyAvatarDetailsSpacing(
-        root: View,
-        parent: RelativeLayout,
-        position: String,
-        space: Int
-    ) {
-        restoreAvatarDetailsSpacingsAround(root, keep = parent)
-        val existing = synchronized(avatarDetailsSpacings) { avatarDetailsSpacings[parent] }
-        val originalTop = existing?.originalTop ?: parent.paddingTop
-        val originalBottom = existing?.originalBottom ?: parent.paddingBottom
-        val reserved = space.coerceAtLeast(0)
-        val appliedTop = originalTop + if (position == HchatExtraSettings.POSITION_AVATAR_ABOVE) reserved else 0
-        val appliedBottom = originalBottom + if (position == HchatExtraSettings.POSITION_AVATAR_BELOW) reserved else 0
-        val originalClipToPadding = existing?.originalClipToPadding ?: parent.clipToPadding
-        val clipStates = existing?.clipStates ?: disableAvatarDetailsClipping(root, parent)
-        clipStates.forEach { state -> state.view.get()?.clipChildren = false }
-        if (parent.paddingTop != appliedTop || parent.paddingBottom != appliedBottom) {
-            parent.setPadding(parent.paddingLeft, appliedTop, parent.paddingRight, appliedBottom)
-        }
-        parent.clipToPadding = false
-        synchronized(avatarDetailsSpacings) {
-            avatarDetailsSpacings[parent] = AvatarDetailsSpacing(
-                originalTop,
-                originalBottom,
-                appliedTop,
-                appliedBottom,
-                originalClipToPadding,
-                clipStates
-            )
-        }
-    }
-
-    private fun disableAvatarDetailsClipping(root: View, parent: RelativeLayout): List<AvatarDetailsClipState> {
-        val states = ArrayList<AvatarDetailsClipState>()
-        var current: View? = parent
-        while (current != null && current !== root) {
-            if (current is ViewGroup) {
-                states += AvatarDetailsClipState(WeakReference(current), current.clipChildren)
-                current.clipChildren = false
-            }
-            current = current.parent as? View
-        }
-        return states
-    }
-
-    private fun expandAvatarAboveSpacing(parent: RelativeLayout, extra: Int): Boolean {
-        if (extra <= 0) return false
-        val spacing = synchronized(avatarDetailsSpacings) { avatarDetailsSpacings[parent] } ?: return false
-        val updated = spacing.copy(appliedTop = spacing.appliedTop + extra)
-        parent.setPadding(parent.paddingLeft, updated.appliedTop, parent.paddingRight, updated.appliedBottom)
-        synchronized(avatarDetailsSpacings) {
-            avatarDetailsSpacings[parent] = updated
-        }
-        return true
-    }
-
-    private fun expandAvatarBelowSpacing(parent: RelativeLayout, extra: Int): Boolean {
-        if (extra <= 0) return false
-        val spacing = synchronized(avatarDetailsSpacings) { avatarDetailsSpacings[parent] } ?: return false
-        // 允许累计：容器高度要等下一次布局才会变大，缺口可能一次补不满，
-        // 若在这里只放行一次，标签就会停在容器外被裁掉。
-        val updated = spacing.copy(appliedBottom = spacing.appliedBottom + extra)
-        if (updated.appliedBottom == spacing.appliedBottom) return false
-        parent.setPadding(parent.paddingLeft, updated.appliedTop, parent.paddingRight, updated.appliedBottom)
-        synchronized(avatarDetailsSpacings) {
-            avatarDetailsSpacings[parent] = updated
-        }
-        return true
-    }
-
-    private fun restoreAvatarDetailsSpacingsAround(root: View, keep: RelativeLayout? = null) {
-        val entries = synchronized(avatarDetailsSpacings) {
-            avatarDetailsSpacings.entries
-                .filter { (parent, _) -> parent !== keep && isViewWithinRoot(parent, root) }
-                .map { it.key to it.value }
-                .also { matches -> matches.forEach { (parent, _) -> avatarDetailsSpacings.remove(parent) } }
-        }
-        entries.forEach { (parent, spacing) -> restoreAvatarDetailsSpacing(parent, spacing) }
-    }
-
-    private fun restoreAvatarDetailsSpacing(parent: RelativeLayout, spacing: AvatarDetailsSpacing) {
-        val restoredTop = if (parent.paddingTop == spacing.appliedTop) spacing.originalTop else parent.paddingTop
-        val restoredBottom = if (parent.paddingBottom == spacing.appliedBottom) {
-            spacing.originalBottom
+        val overlay = bindAvatarTimeOverlay(root, label)
+        val anchor = content?.takeIf { it.width > 0 && it.height > 0 } ?: target.positionView
+        val rect = avatarRectWithin(root, anchor) ?: return false
+        val height = reservedAvatarDetailsHeight(label)
+        val maxWidth = dp(root.context, AVATAR_DETAILS_LABEL_MAX_DP)
+        val width = label.measuredWidth.coerceIn(1, maxWidth)
+        val centerX = rect.left + rect.width() / 2f
+        val desiredLeft = (centerX - width / 2f).toInt()
+        val desiredTop = if (position == HchatExtraSettings.POSITION_AVATAR_ABOVE) {
+            (rect.top - gap - height).toInt()
         } else {
-            parent.paddingBottom
+            (rect.bottom + gap).toInt()
         }
-        if (restoredTop != parent.paddingTop || restoredBottom != parent.paddingBottom) {
-            parent.setPadding(parent.paddingLeft, restoredTop, parent.paddingRight, restoredBottom)
-        }
-        parent.clipToPadding = spacing.originalClipToPadding
-        spacing.clipStates.forEach { state ->
-            val view = state.view.get() ?: return@forEach
-            if (!view.clipChildren) view.clipChildren = state.originalClipChildren
-        }
+        // 夹在消息行内：宁可贴着头像/气泡边缘，也不靠撑高行高来腾空间。
+        val left = desiredLeft.coerceIn(0, (root.width - width).coerceAtLeast(0))
+        val top = desiredTop.coerceIn(0, (root.height - height).coerceAtLeast(0))
+        overlay.setBounds(left, top, left + width, top + height)
+        overlay.invalidateSelf()
+        updateAvatarTimeTouchDelegate(root, overlay, label)
+        return true
     }
 
     private fun isViewWithinRoot(view: View, root: View): Boolean {
@@ -1590,89 +1508,6 @@ private class HchatExtraHooker(
             current = current.parent as? View
         }
         return false
-    }
-
-    private fun positionAvatarDetailsLabel(
-        label: TextView,
-        root: View,
-        target: AvatarDetailsAnchor,
-        content: View?,
-        position: String,
-        gap: Int,
-        isSelf: Boolean,
-        fallbackBelow: Boolean
-    ): AvatarPositionResult {
-        val parent = target.parent
-        val positionView = target.positionView
-        if (label.parent !== parent || positionView.height <= 0 || (!target.hidden && positionView.width <= 0)) {
-            return AvatarPositionResult.UNAVAILABLE
-        }
-        measureAvatarDetailsLabel(label)
-        val horizontalBounds = avatarDetailsHorizontalBounds(root, parent)
-            ?: return AvatarPositionResult.UNAVAILABLE
-        val avatarBounds = if (positionView === parent) {
-            Rect(parent.paddingLeft, parent.paddingTop, parent.width - parent.paddingRight, parent.height - parent.paddingBottom)
-        } else {
-            Rect(0, 0, positionView.width, positionView.height).also {
-                parent.offsetDescendantRectToMyCoords(positionView, it)
-            }
-        }
-        val params = label.layoutParams as? RelativeLayout.LayoutParams
-            ?: return AvatarPositionResult.UNAVAILABLE
-        val labelWidth = label.measuredWidth
-        val minLeft = horizontalBounds.left
-        val maxLeft = (horizontalBounds.right - labelWidth).coerceAtLeast(minLeft)
-        val contentBounds = content
-            ?.takeIf { target.hidden && it.width > 0 && it.height > 0 && isViewWithinRoot(it, parent) }
-            ?.let { view ->
-                Rect(0, 0, view.width, view.height).also {
-                    parent.offsetDescendantRectToMyCoords(view, it)
-                }
-            }
-        val left = if (target.hidden) {
-            if (isSelf) {
-                (contentBounds?.right?.minus(labelWidth) ?: maxLeft).coerceIn(minLeft, maxLeft)
-            } else {
-                (contentBounds?.left ?: minLeft).coerceIn(minLeft, maxLeft)
-            }
-        } else {
-            (avatarBounds.left + (avatarBounds.width() - labelWidth) / 2).coerceIn(minLeft, maxLeft)
-        }
-        val top = if (position == HchatExtraSettings.POSITION_AVATAR_ABOVE) {
-            avatarBounds.top - label.measuredHeight - gap
-        } else {
-            avatarBounds.bottom + gap
-        }
-        if (position == HchatExtraSettings.POSITION_AVATAR_BELOW) {
-            // 预留已经给足，这里只处理"行被复用到更矮的容器"之类的兜底；
-            // 缺口必须按当前值累计补齐，否则一次补不够标签就会超出容器底部被裁。
-            val overflow = top + label.measuredHeight - parent.height
-            if (overflow > 0 && expandAvatarBelowSpacing(parent, overflow)) {
-                return AvatarPositionResult.NEEDS_LAYOUT
-            }
-        }
-        if (top < 0 && position == HchatExtraSettings.POSITION_AVATAR_ABOVE && !fallbackBelow) {
-            return if (expandAvatarAboveSpacing(parent, -top)) {
-                AvatarPositionResult.NEEDS_LAYOUT
-            } else {
-                AvatarPositionResult.UNAVAILABLE
-            }
-        }
-        val resolvedTop = if (top >= 0) top else avatarBounds.bottom + gap
-        val resolvedLeftMargin = left - parent.paddingLeft
-        val resolvedTopMargin = resolvedTop - parent.paddingTop
-        if (params.width == labelWidth &&
-            params.leftMargin == resolvedLeftMargin &&
-            params.topMargin == resolvedTopMargin
-        ) {
-            return AvatarPositionResult.STABLE
-        }
-        params.width = labelWidth
-        params.leftMargin = resolvedLeftMargin
-        params.marginStart = params.leftMargin
-        params.topMargin = resolvedTopMargin
-        label.layoutParams = params
-        return AvatarPositionResult.NEEDS_LAYOUT
     }
 
     private fun configureAvatarDetailsLabel(label: TextView) {
@@ -1689,10 +1524,12 @@ private class HchatExtraHooker(
         if (label.maxWidth != maxWidth) label.maxWidth = maxWidth
     }
 
-    /** 单行标签的固定高度：字体度量 + 内边距 + 1dp 余量，避免首帧测量为 0 导致的跳动。 */
+    /** 单行标签的固定高度：优先用已测量出的行高，保证基线、字体内边距和原生绘制一致。 */
     private fun reservedAvatarDetailsHeight(label: TextView): Int {
-        val metrics = label.paint.fontMetrics
-        val textHeight = (metrics.descent - metrics.ascent).toInt() + 1
+        val textHeight = label.layout?.height?.takeIf { it > 0 } ?: run {
+            val metrics = label.paint.fontMetrics
+            (metrics.descent - metrics.ascent).toInt() + 1
+        }
         return textHeight + label.paddingTop + label.paddingBottom + dp(label.context, 2f)
     }
 
@@ -1703,263 +1540,21 @@ private class HchatExtraHooker(
         )
     }
 
-    private fun avatarDetailsHorizontalBounds(root: View, parent: RelativeLayout): Rect? {
-        val rootWidth = root.width.takeIf { it > 0 } ?: root.measuredWidth.takeIf { it > 0 }
-        if (rootWidth != null && root is ViewGroup && isViewWithinRoot(parent, root)) {
-            val bounds = Rect(0, 0, rootWidth, root.height.coerceAtLeast(1))
-            if (root !== parent) {
-                root.offsetRectIntoDescendantCoords(parent, bounds)
-            }
-            if (bounds.width() > 0) return bounds
-        }
-        val parentWidth = parent.width.takeIf { it > 0 } ?: parent.measuredWidth.takeIf { it > 0 }
-            ?: return null
-        return Rect(0, 0, parentWidth, parent.height.coerceAtLeast(1))
-    }
-
-    private fun addBottomDetailsView(
-        root: View,
-        parent: ViewGroup,
-        content: View,
-        alignmentView: View,
-        label: TextView,
-        details: MessageDetails,
-        avatarHidden: Boolean
-    ): Boolean {
-        if (label.maxLines != 1) {
-            label.setSingleLine(true)
-            label.maxLines = 1
-            label.setHorizontallyScrolling(false)
-        }
-        if (label.ellipsize != TextUtils.TruncateAt.END) label.ellipsize = TextUtils.TruncateAt.END
-        if (label.maxWidth != Int.MAX_VALUE) label.maxWidth = Int.MAX_VALUE
-        val oldParent = label.parent as? ViewGroup
-        val alreadyAttached = oldParent === parent
-        if (oldParent != null && !alreadyAttached) oldParent.removeView(label)
-        val config = messageDetailsConfig
-        val edge = dp(label.context, config.leftMarginDp.toFloat())
-        val right = dp(label.context, config.rightMarginDp.toFloat())
-        if (label.translationX != 0f) label.translationX = 0f
-        if (label.translationY != 0f) label.translationY = 0f
-        if (parent is RelativeLayout) {
-            ensureViewId(content)
-            val expectedParams = RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-            )
-            expectedParams.addRule(RelativeLayout.BELOW, content.id)
-            // 与头像位置共用同一个间距值，避免"头像旁"和"消息底部"两种入口间距不一致。
-            expectedParams.topMargin = dp(label.context, config.avatarGapDp.toFloat())
-            if (details.isSelf) {
-                if (avatarHidden) {
-                    expectedParams.addRule(RelativeLayout.ALIGN_PARENT_END)
-                    (label.layoutParams as? RelativeLayout.LayoutParams)?.let { current ->
-                        expectedParams.marginEnd = current.marginEnd
-                        expectedParams.rightMargin = current.rightMargin
-                    }
-                } else {
-                    expectedParams.addRule(RelativeLayout.ALIGN_PARENT_END)
-                    expectedParams.marginEnd = right
-                    expectedParams.rightMargin = right
-                }
-                if (label.gravity != Gravity.END) label.gravity = Gravity.END
-                if (label.textAlignment != View.TEXT_ALIGNMENT_TEXT_END) {
-                    label.textAlignment = View.TEXT_ALIGNMENT_TEXT_END
-                }
-            } else {
-                if (avatarHidden) {
-                    expectedParams.addRule(RelativeLayout.ALIGN_PARENT_START)
-                    (label.layoutParams as? RelativeLayout.LayoutParams)?.let { current ->
-                        expectedParams.marginStart = current.marginStart
-                        expectedParams.leftMargin = current.leftMargin
-                    }
-                } else {
-                    expectedParams.addRule(RelativeLayout.ALIGN_PARENT_START)
-                    expectedParams.marginStart = edge
-                    expectedParams.leftMargin = edge
-                }
-                if (label.gravity != Gravity.START) label.gravity = Gravity.START
-                if (label.textAlignment != View.TEXT_ALIGNMENT_TEXT_START) {
-                    label.textAlignment = View.TEXT_ALIGNMENT_TEXT_START
-                }
-            }
-            // Alignment may be cancelled during recycling; it must never own visibility.
-            val expectedVisibility = View.VISIBLE
-            if (label.visibility != expectedVisibility) label.visibility = expectedVisibility
-            if (!alreadyAttached) {
-                parent.addView(label, expectedParams)
-            } else if (!sameRelativeLayoutParams(label.layoutParams, expectedParams)) {
-                label.layoutParams = expectedParams
-            }
-            if (avatarHidden) {
-                scheduleBottomDetailsAlignment(label, root, parent, alignmentView, details.isSelf, 0)
-            } else {
-                messageDetailsPositionListeners.cancel(label)
-            }
-            refreshMessageDetailsColorsAfterAttach(label, newlyAttached = !alreadyAttached)
-            return true
-        }
-        val params = ViewGroup.MarginLayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        params.topMargin = dp(label.context, config.avatarGapDp.toFloat())
-        if (details.isSelf) {
-            if (!avatarHidden) params.marginEnd = right
-            if (label.gravity != Gravity.END) label.gravity = Gravity.END
-            if (label.textAlignment != View.TEXT_ALIGNMENT_TEXT_END) {
-                label.textAlignment = View.TEXT_ALIGNMENT_TEXT_END
-            }
-        } else {
-            if (!avatarHidden) params.marginStart = edge
-            if (label.gravity != Gravity.START) label.gravity = Gravity.START
-            if (label.textAlignment != View.TEXT_ALIGNMENT_TEXT_START) {
-                label.textAlignment = View.TEXT_ALIGNMENT_TEXT_START
-            }
-        }
-        when (parent) {
-            is LinearLayout -> {
-                val linearParams = LinearLayout.LayoutParams(params)
-                linearParams.gravity = if (details.isSelf) Gravity.END else Gravity.START
-                if (avatarHidden) {
-                    (label.layoutParams as? ViewGroup.MarginLayoutParams)?.let { current ->
-                        if (details.isSelf) {
-                            linearParams.marginEnd = current.marginEnd
-                            linearParams.rightMargin = current.rightMargin
-                        } else {
-                            linearParams.marginStart = current.marginStart
-                            linearParams.leftMargin = current.leftMargin
-                        }
-                    }
-                    if (label.visibility != View.VISIBLE) label.visibility = View.VISIBLE
-                } else {
-                    if (label.visibility != View.VISIBLE) label.visibility = View.VISIBLE
-                }
-                val contentIndex = parent.indexOfChild(content)
-                val expectedIndex = contentIndex.takeIf { it >= 0 }?.plus(1) ?: parent.childCount
-                if (!alreadyAttached) {
-                    parent.addView(label, expectedIndex, linearParams)
-                } else {
-                    val currentIndex = parent.indexOfChild(label)
-                    if (currentIndex != expectedIndex) {
-                        parent.removeView(label)
-                        val insertAt = parent.indexOfChild(content).takeIf { it >= 0 }?.plus(1)
-                            ?: parent.childCount
-                        parent.addView(label, insertAt, linearParams)
-                    } else if (!sameLinearLayoutParams(label.layoutParams, linearParams)) {
-                        label.layoutParams = linearParams
-                    }
-                }
-                if (avatarHidden) {
-                    scheduleBottomDetailsAlignment(label, root, parent, alignmentView, details.isSelf, 0)
-                } else {
-                    messageDetailsPositionListeners.cancel(label)
-                }
-                refreshMessageDetailsColorsAfterAttach(label, newlyAttached = !alreadyAttached)
-            }
-            else -> return false
-        }
-        return true
-    }
-
-    private fun scheduleBottomDetailsAlignment(
-        label: TextView,
-        root: View,
-        parent: ViewGroup,
-        alignmentView: View,
-        isSelf: Boolean,
-        attempt: Int
-    ) {
-        val token = messageDetailsBindToken(root)
-        if (!messageDetailsPositionListeners.schedule(label, parent) {
-            if (!isCurrentMessageDetailsLabel(label, root, parent, token)) return@schedule
-            if (positionBottomDetailsLabel(label, parent, alignmentView, isSelf)) {
-                label.visibility = View.VISIBLE
-            } else if (attempt < MESSAGE_DETAILS_POSITION_MAX_RETRY) {
-                scheduleBottomDetailsAlignment(label, root, parent, alignmentView, isSelf, attempt + 1)
-            } else {
-                label.visibility = View.VISIBLE
-            }
-        }) {
-            label.visibility = View.VISIBLE
-        }
-    }
-
-    private fun positionBottomDetailsLabel(
-        label: TextView,
-        parent: ViewGroup,
-        alignmentView: View,
-        isSelf: Boolean
-    ): Boolean {
-        if (label.parent !== parent || parent.width <= 0 || alignmentView.width <= 0 ||
-            !isViewWithinRoot(alignmentView, parent)
-        ) {
-            return false
-        }
-        val bounds = Rect(0, 0, alignmentView.width, alignmentView.height)
-        parent.offsetDescendantRectToMyCoords(alignmentView, bounds)
-        val params = label.layoutParams as? ViewGroup.MarginLayoutParams ?: return false
-        var changed = false
-        if (isSelf) {
-            val margin = (parent.width - parent.paddingRight - bounds.right).coerceAtLeast(0)
-            if (params.marginEnd != margin || params.rightMargin != margin) {
-                params.marginEnd = margin
-                params.rightMargin = margin
-                changed = true
-            }
-        } else {
-            val margin = (bounds.left - parent.paddingLeft).coerceAtLeast(0)
-            if (params.marginStart != margin || params.leftMargin != margin) {
-                params.marginStart = margin
-                params.leftMargin = margin
-                changed = true
-            }
-        }
-        if (changed) label.layoutParams = params
-        return true
-    }
-
-    private fun refreshMessageDetailsColorsAfterAttach(label: TextView, newlyAttached: Boolean) {
-        if (!newlyAttached) return
+    /** 标签本身不在窗口里，颜色刷新后要主动让 overlay 重绘。 */
+    private fun refreshMessageDetailsColors(root: View, label: TextView) {
         applyMessageDetailsColors(label)
-        messageDetailsColorListeners.schedule(label, label) {
-            if (label.parent != null && label.tag == TAG_MESSAGE_DETAILS_VIEW) {
+        messageDetailsColorListeners.schedule(label, root) {
+            if (isAvatarTimeLabel(label, root)) {
                 applyMessageDetailsColors(label)
+                invalidateAvatarTimeOverlay(root)
             }
         }
-        label.post {
-            if (label.parent != null && label.tag == TAG_MESSAGE_DETAILS_VIEW) {
+        root.post {
+            if (isAvatarTimeLabel(label, root)) {
                 applyMessageDetailsColors(label)
-                label.invalidate()
+                invalidateAvatarTimeOverlay(root)
             }
         }
-    }
-
-    private fun sameRelativeLayoutParams(current: ViewGroup.LayoutParams?, expected: RelativeLayout.LayoutParams): Boolean {
-        val value = current as? RelativeLayout.LayoutParams ?: return false
-        return value.width == expected.width &&
-            value.height == expected.height &&
-            value.leftMargin == expected.leftMargin &&
-            value.topMargin == expected.topMargin &&
-            value.rightMargin == expected.rightMargin &&
-            value.bottomMargin == expected.bottomMargin &&
-            value.marginStart == expected.marginStart &&
-            value.marginEnd == expected.marginEnd &&
-            value.rules.contentEquals(expected.rules)
-    }
-
-    private fun sameLinearLayoutParams(current: ViewGroup.LayoutParams?, expected: LinearLayout.LayoutParams): Boolean {
-        val value = current as? LinearLayout.LayoutParams ?: return false
-        return value.width == expected.width &&
-            value.height == expected.height &&
-            value.leftMargin == expected.leftMargin &&
-            value.topMargin == expected.topMargin &&
-            value.rightMargin == expected.rightMargin &&
-            value.bottomMargin == expected.bottomMargin &&
-            value.marginStart == expected.marginStart &&
-            value.marginEnd == expected.marginEnd &&
-            value.gravity == expected.gravity &&
-            value.weight == expected.weight
     }
 
     private fun messageBindPosition(args: Array<Any?>?): Int? {
@@ -2146,32 +1741,18 @@ private class HchatExtraHooker(
 
     private fun clearExcludedMessageDetails(root: View) {
         messageDetailsAttachCallbacks.cancel(root)
-        messageDetailsLayoutCallbacks.cancel(root)
         messageDetailsRetryListeners.cancel(root)
         synchronized(messageDetailsBindTokens) { messageDetailsBindTokens[root] = Any() }
-        removeTaggedMessageDetailsViews(root)
-        restoreAvatarDetailsSpacingsAround(root)
+        removeAvatarTimeOverlay(root)
     }
 
     private fun removeMessageDetailsLabel(label: TextView) {
-        messageDetailsPositionListeners.cancel(label)
         messageDetailsColorListeners.cancel(label)
-        synchronized(messageDetailsBindings) { messageDetailsBindings.remove(label) }
-        synchronized(messageDetailsLabels) { messageDetailsLabels.remove(label) }
-        (label.parent as? ViewGroup)?.removeView(label)
-    }
-
-    private fun removeTaggedMessageDetailsViews(root: View, keep: View? = null) {
-        if (root !is ViewGroup) return
-        var index = root.childCount - 1
-        while (index >= 0) {
-            val child = root.getChildAt(index)
-            if (child !== keep && child is TextView && child.tag == TAG_MESSAGE_DETAILS_VIEW) {
-                removeMessageDetailsLabel(child)
-            } else {
-                removeTaggedMessageDetailsViews(child, keep)
-            }
-            index--
+        val binding = synchronized(messageDetailsBindings) { messageDetailsBindings.remove(label) }
+        val root = binding?.root
+        if (root != null) {
+            val overlay = synchronized(avatarTimeOverlays) { avatarTimeOverlays[root] }
+            if (overlay?.label === label) removeAvatarTimeOverlay(root)
         }
     }
 
@@ -3037,86 +2618,6 @@ private class HchatExtraHooker(
         return view
     }
 
-
-    private fun rowBottomAnchor(root: View): BottomDetailsAnchor? {
-        val group = root as? ViewGroup ?: return null
-        if (group !is RelativeLayout && group !is android.widget.FrameLayout &&
-            !(group is LinearLayout && group.orientation == LinearLayout.VERTICAL)) return null
-        val children = (0 until group.childCount).map(group::getChildAt)
-            .filter { it.visibility != View.GONE && it.tag != TAG_MESSAGE_DETAILS_VIEW }
-        // Multiple native children are indistinguishable before measurement. Retry on
-        // pre-draw instead of wrapping the timestamp/checkbox from a zero-sized row.
-        if (children.size > 1 && children.none { it.bottom > 0 }) return null
-        val bottom = children.maxByOrNull {
-            it.bottom + ((it.layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0)
-        } ?: return null
-        return BottomDetailsAnchor(group, bottom, bottom)
-    }
-
-
-    private fun wrapCardDetailsAnchor(anchor: BottomDetailsAnchor): BottomDetailsAnchor {
-        val content = anchor.layoutView
-        if (content is ViewGroup && content.tag == "hchat_card_details_column") {
-            val card = content.getChildAt(0) ?: return anchor
-            return BottomDetailsAnchor(content, card, card)
-        }
-        (content.parent as? ViewGroup)?.takeIf { it.tag == "hchat_card_details_column" }?.let {
-            return BottomDetailsAnchor(it, content, content)
-        }
-        val parent = content.parent as? ViewGroup ?: return anchor
-        val index = parent.indexOfChild(content)
-        if (index < 0) return anchor
-        val outerParams = content.layoutParams ?: return anchor
-        val width = outerParams.width
-        val height = outerParams.height.takeIf { it >= 0 } ?: ViewGroup.LayoutParams.WRAP_CONTENT
-        outerParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
-        // 新容器必须与原父容器同类：微信之后会把这些视图的布局参数强转成固定类型，换了父容器类型就会崩。
-        val column: ViewGroup = when (parent) {
-            is RelativeLayout -> RelativeLayout(content.context).apply { clipChildren = false }
-            is LinearLayout -> LinearLayout(content.context).apply {
-                orientation = LinearLayout.VERTICAL
-                clipChildren = false
-            }
-            else -> return anchor
-        }
-        column.tag = "hchat_card_details_column"
-        val innerParams: ViewGroup.LayoutParams = when (column) {
-            is RelativeLayout -> RelativeLayout.LayoutParams(width, height)
-            else -> LinearLayout.LayoutParams(width, height)
-        }
-        parent.removeViewAt(index)
-        column.addView(content, innerParams)
-        parent.addView(column, index, outerParams)
-        return BottomDetailsAnchor(column, content, content)
-    }
-
-
-    private fun safeBottomAnchor(root: View, content: View): BottomDetailsAnchor? {
-        val row = root as? ViewGroup ?: return null
-        // 标签只能是完整内容分支的兄弟，绝不退回价格/店铺所在的内部布局。
-        if (row !is RelativeLayout && row !is android.widget.FrameLayout &&
-            !(row is LinearLayout && row.orientation == LinearLayout.VERTICAL)) return null
-        if (content === row || !isViewWithinRoot(content, row)) return null
-        val cardBranch = directChildOf(row, content) ?: return null
-        if (cardBranch.tag == TAG_MESSAGE_DETAILS_VIEW) return null
-        return BottomDetailsAnchor(row, cardBranch, cardBranch)
-    }
-
-
-    private fun messageContentAnchor(holder: Any, label: TextView): BottomDetailsAnchor? {
-        val labelParent = label.parent as? ViewGroup ?: return null
-        if (labelParent !is RelativeLayout && labelParent !is LinearLayout) return null
-        holderMainContentView(holder, labelParent)?.let { mainContent ->
-            val layoutView = directChildOf(labelParent, mainContent) ?: return@let
-            return BottomDetailsAnchor(labelParent, layoutView, mainContent)
-        }
-        messageContentView(holder, labelParent, label)?.let { content ->
-            val layoutView = directChildOf(labelParent, content) ?: return@let
-            return BottomDetailsAnchor(labelParent, layoutView, content)
-        }
-        return null
-    }
-
     private fun holderMainContentView(holder: Any, parent: ViewGroup): View? {
         val holderClass = holder.javaClass
         val method = holderMainContainerMethodCache[holderClass] ?: run {
@@ -3191,19 +2692,6 @@ private class HchatExtraHooker(
             lower.contains("check")
     }
 
-    private fun directChildOf(parent: ViewGroup, view: View): View? {
-        if (view.parent === parent) return view
-        var current: View = view
-        var depth = 0
-        while (depth < 8) {
-            val next = current.parent as? View ?: return null
-            if (next.parent === parent) return next
-            current = next
-            depth++
-        }
-        return null
-    }
-
     private fun viewScoreForBottomDetails(view: View): Int {
         val params = view.layoutParams
         val width = view.width.takeIf { it > 0 }
@@ -3221,12 +2709,6 @@ private class HchatExtraHooker(
         if (view.contentDescription?.toString().orEmpty().contains("avatar", ignoreCase = true)) score -= 600
         if (width in 1..dp(view.context, 72f) && height in 1..dp(view.context, 72f)) score -= 500
         return score
-    }
-
-    private fun ensureViewId(view: View) {
-        if (view.id == View.NO_ID) {
-            view.id = View.generateViewId()
-        }
     }
 
     private fun messageDetailsResolvedTextColor(context: Context): Int {
@@ -3714,7 +3196,7 @@ private class HchatExtraHooker(
 
 /** 头像旁时间标签的最大宽度（dp），超出按省略号收尾。 */
 private const val AVATAR_DETAILS_LABEL_MAX_DP = 96f
-        private const val MESSAGE_DETAILS_POSITION_MAX_RETRY = 4
+        private const val MESSAGE_DETAILS_AVATAR_GAP_MAX_DP = 64
         private val MESSAGE_DETAILS_COLOR_KEYS = setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_BG,
             HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_TEXT,
@@ -3724,9 +3206,7 @@ private const val AVATAR_DETAILS_LABEL_MAX_DP = 96f
         private val MESSAGE_DETAILS_LAYOUT_KEYS = setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
             HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
-            HchatExtraSettings.KEY_MESSAGE_DETAILS_AVATAR_GAP,
-            HchatExtraSettings.KEY_MESSAGE_DETAILS_LEFT_MARGIN,
-            HchatExtraSettings.KEY_MESSAGE_DETAILS_RIGHT_MARGIN
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_AVATAR_GAP
         )
         private val MESSAGE_DETAILS_REBIND_KEYS = MESSAGE_DETAILS_LAYOUT_KEYS + setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS,
