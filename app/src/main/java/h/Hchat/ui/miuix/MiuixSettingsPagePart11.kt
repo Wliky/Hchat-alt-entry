@@ -849,7 +849,7 @@ internal fun RedPacketReplyStepsListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "按顺序发送") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "按顺序发送") }
             if (steps.isEmpty()) {
                 item {
                     SettingsCard {
@@ -924,7 +924,7 @@ internal fun RedPacketReplyStepEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "回复内容") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "回复内容") }
             item {
                 SettingsCard {
                     PopupOptionRow(

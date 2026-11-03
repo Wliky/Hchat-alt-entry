@@ -559,7 +559,7 @@ internal fun GiftMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "自动领取") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "自动领取") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -578,7 +578,7 @@ internal fun GiftMiuixPage(
                     )
                 }
             }
-            item { SmallTitle(text = "领取设置") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "领取设置") }
             item {
                 SettingsCard {
                     InputRow(
@@ -596,7 +596,7 @@ internal fun GiftMiuixPage(
                     )
                 }
             }
-            item { SmallTitle(text = "领取统计") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "领取统计") }
             item {
                 SettingsCard {
                     InfoRow("成功", successCount.toString())
@@ -758,7 +758,7 @@ internal fun MultiRecallMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天消息") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天消息") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -957,7 +957,7 @@ internal fun SelectedMessagesMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "多选消息") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "多选消息") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1057,7 +1057,7 @@ internal fun SelectedMessagesCustomEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "发送目标") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "发送目标") }
             item {
                 SettingsCard {
                     PopupChoiceRow(
@@ -1166,7 +1166,7 @@ internal fun CallMediaLimitMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "音视频通话") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "音视频通话") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1206,7 +1206,7 @@ internal fun CallRingtoneBlockMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "通话铃声") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "通话铃声") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1256,7 +1256,7 @@ internal fun EditMessageMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天记录") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天记录") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1296,7 +1296,7 @@ internal fun QuickContactEditMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "会话列表") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "会话列表") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1336,7 +1336,7 @@ internal fun QuickGroupChatLabelMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "会话列表") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "会话列表") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1376,7 +1376,7 @@ internal fun QuickMomentsMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "会话列表") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "会话列表") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1416,7 +1416,7 @@ internal fun QuickTerminateMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "加号菜单") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "加号菜单") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1458,7 +1458,7 @@ internal fun TypingReportBlockMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "输入状态") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "输入状态") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1547,7 +1547,7 @@ internal fun MessageAffixMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天消息") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天消息") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1650,7 +1650,7 @@ internal fun InputHintMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天输入框") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天输入框") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1716,7 +1716,7 @@ internal fun PatBlockMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天头像") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天头像") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1756,7 +1756,7 @@ internal fun AutoOriginalImageMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天图片") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天图片") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1796,7 +1796,7 @@ internal fun AutoViewOriginalMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天媒体") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天媒体") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1836,7 +1836,7 @@ internal fun RemoveForwardLimitMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "消息转发") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "消息转发") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1890,7 +1890,7 @@ internal fun AtAllNotificationBlockMiuixPage(
                         bottom = padding.calculateBottomPadding() + 84.dp
                     )
                 ) {
-                    item { SmallTitle(text = "群聊通知") }
+                    item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "群聊通知") }
                     item {
                         SettingsCard {
                             SwitchRow(
@@ -1975,7 +1975,7 @@ internal fun DisableHotUpdateMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "热更新") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "热更新") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2137,7 +2137,7 @@ internal fun MomentsAutoLikeMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "自动点赞") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "自动点赞") }
             item {
                 SettingsCard {
                     SwitchRow(enabled, "朋友圈自动点赞", "按下方规则处理新获取的朋友圈") {
@@ -2536,7 +2536,7 @@ internal object MomentsAutoCommentPage {
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "自动评论") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "自动评论") }
             item {
                 SettingsCard {
                     SwitchRow(enabled, "朋友圈自动评论", "按下方规则处理新获取的朋友圈") {
@@ -3093,7 +3093,7 @@ internal fun MomentsAutoForwardMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "自动转发") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "自动转发") }
             item {
                 SettingsCard {
                     SwitchRow(enabled, "朋友圈自动转发", "按规则静默转发指定好友的新朋友圈") {
@@ -3402,7 +3402,7 @@ internal fun KeywordReplacementRulesPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "关键词替换") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "关键词替换") }
             if (rules.isEmpty()) {
                 item {
                     SettingsCard {
@@ -3487,7 +3487,7 @@ internal fun MomentsAutoRefreshMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "后台刷新") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "后台刷新") }
             item {
                 SettingsCard {
                     SwitchRow(enabled, "朋友圈自动刷新", "按设定间隔获取新的朋友圈内容") {
@@ -3646,7 +3646,7 @@ internal fun MomentsContactFilterMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3730,7 +3730,7 @@ internal fun MomentsKeywordBlockMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3848,7 +3848,7 @@ internal fun MomentsBottomDetailMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈底部详情") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈底部详情") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3981,7 +3981,7 @@ internal fun MomentsPostNotificationMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "发布提醒") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "发布提醒") }
             item {
                 SettingsCard {
                     SwitchRow(enabled, "朋友圈发布通知", "指定好友发布新朋友圈时提醒") {
@@ -4065,7 +4065,7 @@ internal fun OriginalMomentsUploadMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -4134,7 +4134,7 @@ internal fun MomentsUploadTailMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
             item {
                 SettingsCard {
                     SwitchRow(

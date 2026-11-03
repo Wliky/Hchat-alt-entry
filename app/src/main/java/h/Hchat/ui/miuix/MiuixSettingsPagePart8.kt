@@ -746,7 +746,7 @@ internal fun RedPacketTemplatePage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     InputRow("模板名称", "例如：慢抢红包群、只抢口令红包", name) { name = it }
@@ -1059,7 +1059,7 @@ internal fun RedPacketBindingPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天") }
             item {
                 SettingsCard {
                     InfoRow("名称", targetTitle)
@@ -1186,7 +1186,7 @@ internal fun AntiRecallMiuixPage(
                 bottom = padding.calculateBottomPadding() + 20.dp
             )
         ) {
-            item { SmallTitle(text = "防撤回") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "防撤回") }
             item {
                 SettingsCard {
                     SwitchRow(

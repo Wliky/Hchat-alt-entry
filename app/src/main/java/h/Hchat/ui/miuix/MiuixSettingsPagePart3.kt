@@ -537,7 +537,7 @@ internal fun SnsAntiRecallMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -750,7 +750,7 @@ internal fun MomentsFakeInteractionMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = provider.title()) }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = provider.title()) }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1255,7 +1255,7 @@ internal fun RemoveMomentsAdsMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "朋友圈") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "朋友圈") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1295,7 +1295,7 @@ internal fun FinderMediaDownloadMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "视频号") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "视频号") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1338,7 +1338,7 @@ internal fun HchatExtraToggleMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "功能开关") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "功能开关") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1556,7 +1556,7 @@ internal fun MessageDetailsConfigPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "基础") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "基础") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1650,15 +1650,8 @@ internal fun MessageDetailsConfigPage(
                         onValueChanged = { position = it }
                     )
                     InsetDivider()
-                    if (position == HchatExtraSettings.POSITION_MESSAGE_BOTTOM) {
-                        NumberInputRow("左边距", "单位 dp，对方消息使用", leftMargin, onValueChange = { leftMargin = it })
-                        InsetDivider()
-                        NumberInputRow("右边距", "单位 dp，自己消息使用", rightMargin, onValueChange = { rightMargin = it })
-                        InsetDivider()
-                    } else {
-                        NumberInputRow("与头像间距", "单位 dp，可设置 0-64", avatarGap, onValueChange = { avatarGap = it })
-                        InsetDivider()
-                    }
+                    NumberInputRow("与头像间距", "单位 dp，可设置 0-64，越小越贴近头像", avatarGap, onValueChange = { avatarGap = it })
+                    InsetDivider()
                     NumberInputRow("字体大小", "单位 sp", textSize, onValueChange = { textSize = it })
                 }
             }
@@ -1692,21 +1685,18 @@ internal fun messageDetailsTimeFormatChoices(current: String): List<PopupChoice<
 }
 
 internal fun messageDetailsPositionValues(): Set<String> = setOf(
-    HchatExtraSettings.POSITION_MESSAGE_BOTTOM,
     HchatExtraSettings.POSITION_AVATAR_ABOVE,
     HchatExtraSettings.POSITION_AVATAR_BELOW
 )
 
 internal fun messageDetailsPositionChoices(): List<PopupChoice<String>> = listOf(
-    PopupChoice(label = "消息下方", value = HchatExtraSettings.POSITION_MESSAGE_BOTTOM),
     PopupChoice(label = "头像上方", value = HchatExtraSettings.POSITION_AVATAR_ABOVE),
     PopupChoice(label = "头像下方", value = HchatExtraSettings.POSITION_AVATAR_BELOW)
 )
 
 internal fun messageDetailsPositionLabel(value: String): String = when (value) {
     HchatExtraSettings.POSITION_AVATAR_ABOVE -> "头像上方"
-    HchatExtraSettings.POSITION_AVATAR_BELOW -> "头像下方"
-    else -> "消息下方"
+    else -> "头像下方"
 }
 
 internal fun messageDetailsVariables(): List<TemplateVariable> {
@@ -1755,7 +1745,7 @@ internal fun ProfileIdMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "资料页") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "资料页") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1823,7 +1813,7 @@ internal fun HideChatMenuMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天菜单") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天菜单") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1883,7 +1873,7 @@ internal fun SettingsEntryMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "入口") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "入口") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2011,7 +2001,7 @@ internal fun FloatingShortcutMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "悬浮入口") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "悬浮入口") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2450,7 +2440,7 @@ internal fun FloatingShortcutAppearanceMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "主按钮") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "主按钮") }
             item {
                 SettingsCard {
                     FloatingShortcutSizeSlider("主按钮大小", bubbleSize) { bubbleSize = it }
@@ -2748,7 +2738,7 @@ internal fun QuickMarkReadMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "快捷已读") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "快捷已读") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3240,7 +3230,7 @@ internal fun AutoReplyMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天自动回复") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天自动回复") }
             item {
                 SettingsCard {
                     SwitchRow(sp, AutoReplySettings.KEY_ENABLE, "启用自动回复", "开启后按规则回复收到的消息", AutoReplySettings.DEFAULT_ENABLE)

@@ -153,7 +153,7 @@ internal fun ModuleDiagnosticsMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "概览") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "概览") }
             item {
                 SettingsCard {
                     if (features.isEmpty()) {
@@ -174,7 +174,7 @@ internal fun ModuleDiagnosticsMiuixPage(
                 }
             }
 
-            item { SmallTitle(text = "日志") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "日志") }
             item {
                 SettingsCard {
                     var logLevel by remember { mutableStateOf(HLogSettings.level(context)) }

@@ -589,7 +589,7 @@ internal fun AutoReplyRuleEditorContent(
             state = listState,
             contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
         ) {
-            item { SmallTitle(text = "基础") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "基础") }
             item {
                 SettingsCard {
                     SwitchRow(current.enabled, "启用规则", "关闭后保留配置但不触发") { onRuleChange(current.copy(enabled = it)) }
@@ -944,7 +944,7 @@ internal fun AutoReplyLabelPickerPage(
             state = listState,
             contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
         ) {
-            item { SmallTitle(text = "搜索") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "搜索") }
             item {
                 SettingsCard {
                     InputRow("关键词", "按标签名筛选", query) { query = it }
@@ -1451,7 +1451,7 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
                         state = mainListState,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
                     ) {
-                        item { SmallTitle(text = "配置分组") }
+                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "配置分组") }
                         item {
                             SettingsCard {
                                 ActionRow("小智AI配置", xiaozhiServe.ifBlank { "未设置 WebSocket 地址" }) {
@@ -1486,7 +1486,7 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
                         state = xiaozhiListState,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
                     ) {
-                        item { SmallTitle(text = "连接地址") }
+                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "连接地址") }
                         item {
                             SettingsCard {
                                 InputRow("WebSocket 地址", "小智服务地址", xiaozhiServe) { xiaozhiServe = it }
@@ -1675,7 +1675,7 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
                         state = zhiliaListState,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
                     ) {
-                        item { SmallTitle(text = "当前配置") }
+                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "当前配置") }
                         item {
                             SettingsCard {
                                 InfoRow("当前启用", activeName)
@@ -1760,7 +1760,7 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
                         state = zhiliaConfigListState,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
                     ) {
-                        item { SmallTitle(text = "配置") }
+                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "配置") }
                         configs.forEach { config ->
                             item {
                                 SettingsCard(modifier = Modifier.padding(bottom = 8.dp)) {
@@ -1838,7 +1838,7 @@ internal fun AutoReplyAiPage(context: Context, sp: SharedPreferences, onBack: ()
                         state = zhiliaModelListState,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 84.dp)
                     ) {
-                        item { SmallTitle(text = "拉取模型") }
+                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "拉取模型") }
                         item {
                             SettingsCard {
                                 ActionRow("拉取模型列表", if (loadingText.isBlank()) "从当前 API 地址获取 /models" else loadingText) {
@@ -2460,7 +2460,7 @@ internal fun CustomNotificationMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "自定义通知") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "自定义通知") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2758,7 +2758,7 @@ internal fun CustomNotificationBatchEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "应用范围") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "应用范围") }
             item { SettingsCard { EmptyText("只会修改已勾选“应用”的项目，未勾选的设置保持原样。群聊专属的 @ 规则只影响群聊规则。") } }
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "基础") }
             item {
@@ -2970,7 +2970,7 @@ internal fun CustomNotificationRuleEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "会话") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "会话") }
             item {
                 SettingsCard {
                     if (isDefault) {
@@ -3444,7 +3444,7 @@ internal fun TextSpeechMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "播报") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "播报") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3812,7 +3812,7 @@ internal fun ZombieCheckMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "检测") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "检测") }
             item {
                 SettingsCard {
                     SwitchRow(

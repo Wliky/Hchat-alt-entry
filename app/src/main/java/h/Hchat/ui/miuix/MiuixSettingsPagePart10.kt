@@ -849,7 +849,7 @@ internal fun WeChatTabletMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "平板模式") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "平板模式") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1171,7 +1171,7 @@ internal fun AutoTransferMiuixPage(
                         bottom = padding.calculateBottomPadding() + 84.dp
                     )
                 ) {
-                    item { SmallTitle(text = "规则") }
+                    item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "规则") }
                     item {
                         SettingsCard {
                             SwitchRow(sp, AutoTransferSettings.KEY_ENABLE, "自动收款", "自动领取待收款转账", false)
@@ -1305,7 +1305,7 @@ internal fun TransferTemplateListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {
@@ -1503,7 +1503,7 @@ internal fun TransferBindingEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天") }
             item {
                 SettingsCard {
                     InfoRow("ID", request.binding.targetId)
@@ -1556,7 +1556,7 @@ internal fun TransferBatchApplyPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "选择模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "选择模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {
@@ -1646,7 +1646,7 @@ internal fun TransferTemplateEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     InputRow("模板名称", "用于默认规则和聊天绑定", value.name) { value = value.copy(name = it) }
@@ -1964,7 +1964,7 @@ internal fun FakeWalletBalanceMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "显示") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "显示") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2144,7 +2144,7 @@ internal fun MemberTitleMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "基础") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "基础") }
             item {
                 SettingsCard {
                     SwitchRow(sp, MemberTitleSettings.KEY_ENABLE, "群员头衔", "在群聊昵称左侧显示身份头衔", MemberTitleSettings.DEFAULT_ENABLE)
@@ -2253,7 +2253,7 @@ internal fun GroupNicknameColorMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "群昵称") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "群昵称") }
             item {
                 SettingsCard {
                     SwitchRow(enabled, "群昵称自定义颜色", "修改群聊成员昵称的颜色和粗细") {
@@ -2338,7 +2338,7 @@ internal fun RealNameTailMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "基础") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "基础") }
             item {
                 SettingsCard {
                     SwitchRow(sp, RealNameTailSettings.KEY_ENABLE, "实名尾字", "在群聊昵称后显示已查询到的实名尾字", RealNameTailSettings.DEFAULT_ENABLE)
@@ -3443,7 +3443,7 @@ internal fun OptionPickerPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "选项") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "选项") }
             item {
                 SettingsCard {
                     request.options.forEachIndexed { index, item ->
@@ -3572,7 +3572,9 @@ internal fun SettingsCard(
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        // 垂直 6dp 让相邻卡片之间自然留出 12dp 分组间距：之前是 0，
+        // 连续两个卡片会紧贴在一起，看起来像一张卡被切开。
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         cornerRadius = 18.dp
     ) {
         content()

@@ -6,11 +6,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -168,7 +170,7 @@ class ProfileIdFeature : BaseFeature() {
                 return
             }
             val container = findInsertionContainer(decor) ?: return
-            val row = createRow(activity, profileId)
+            val row = createRow(activity, profileId, pickRowTemplate(container))
             val index = insertionIndex(container, kind)
             container.addView(row, index.coerceIn(0, container.childCount), row.layoutParams)
         }
@@ -557,7 +559,7 @@ class ProfileIdFeature : BaseFeature() {
             return builder.toString()
         }
 
-        private fun createRow(activity: Activity, profileId: String): LinearLayout {
+        private fun createRow(activity: Activity, profileId: String, template: View? = null): LinearLayout {
             val row = LinearLayout(activity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -574,16 +576,69 @@ class ProfileIdFeature : BaseFeature() {
                 maxLines = 2
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
-            val arrow = TextView(activity).apply {
+            row.addView(text)
+            row.addView(createArrowView(activity, template))
+            // 有原生行可参照时完全照抄它的高度、内边距、背景和文字样式，
+            // 这样深色模式、机型字号、圆角卡片都能跟微信保持一致。
+            if (template != null) {
+                applyTemplateStyle(row, text, template, activity)
+            } else {
+                applyRowTheme(row, activity)
+            }
+            bindRow(row, activity, profileId)
+            return row
+        }
+
+        /** 箭头优先复用原生行的图标，退化成字符时用次要文字色，避免出现突兀的白色箭头。 */
+        private fun createArrowView(activity: Activity, template: View?): View {
+            val source = template?.let { findFirstImageView(it) }
+            val drawable = source?.drawable?.constantState?.newDrawable()?.mutate()
+            if (drawable != null) {
+                return ImageView(activity).apply {
+                    setImageDrawable(drawable)
+                    scaleType = source.scaleType
+                    layoutParams = LinearLayout.LayoutParams(
+                        source.layoutParams?.width?.takeIf { it > 0 } ?: dp(activity, 16f),
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                }
+            }
+            return TextView(activity).apply {
                 setText("›")
                 textSize = 24f
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(dp(activity, 24f), ViewGroup.LayoutParams.WRAP_CONTENT)
             }
-            row.addView(text)
-            row.addView(arrow)
-            bindRow(row, activity, profileId)
-            return row
+        }
+
+        private fun applyTemplateStyle(row: LinearLayout, text: TextView, template: View, activity: Activity) {
+            row.minimumHeight = template.height.takeIf { it > 0 } ?: template.minimumHeight
+            row.setPadding(template.paddingLeft, template.paddingTop, template.paddingRight, template.paddingBottom)
+            template.background?.constantState?.newDrawable()?.mutate()?.let { row.background = it }
+            row.isClickable = true
+            val sourceText = (template as? ViewGroup)?.let { firstTextChild(it) } ?: (template as? TextView)
+            if (sourceText != null) {
+                text.setTextSize(TypedValue.COMPLEX_UNIT_PX, sourceText.textSize)
+                text.setTextColor(sourceText.currentTextColor)
+                text.typeface = sourceText.typeface
+                text.includeFontPadding = sourceText.includeFontPadding
+                text.gravity = sourceText.gravity
+                text.letterSpacing = sourceText.letterSpacing
+                val vertical = sourceText.paddingTop
+                text.setPadding(0, vertical, 0, vertical)
+            } else {
+                text.setTextColor(themeColor(activity, android.R.attr.textColorPrimary, fallbackPrimaryTextColor(activity)))
+            }
+        }
+
+        private fun findFirstImageView(view: View): ImageView? {
+            if (view is ImageView) return view
+            if (view is ViewGroup) {
+                for (index in 0 until view.childCount) {
+                    findFirstImageView(view.getChildAt(index))?.let { return it }
+                }
+            }
+            return null
         }
 
         private fun bindRow(row: View, activity: Activity, profileId: String) {
@@ -600,8 +655,22 @@ class ProfileIdFeature : BaseFeature() {
             }
         }
 
+        /** 从容器里挑一行原生设置项当参照（跳过自己注入的行）。 */
+        private fun pickRowTemplate(container: ViewGroup): View? {
+            for (index in 0 until container.childCount) {
+                val child = container.getChildAt(index)
+                if (child.tag is String) continue
+                if (child.visibility != View.VISIBLE) continue
+                val group = child as? ViewGroup ?: continue
+                if (firstTextChild(group) == null) continue
+                return child
+            }
+            return null
+        }
+
         private fun applyRowTheme(row: View, context: Context) {
-            row.setBackgroundColor(themeColor(context, android.R.attr.colorBackground, fallbackBackgroundColor(context)))
+            // 不画自己的背景：透出微信原生卡片底色和圆角，比直接刷一层 colorBackground 更自然。
+            row.setBackgroundColor(Color.TRANSPARENT)
             if (row is ViewGroup) {
                 var textIndex = 0
                 forEachTextView(row) { textView ->

@@ -2,7 +2,9 @@ package h.Hchat.ui.miuix
 
 import android.content.Context
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -36,7 +38,7 @@ internal fun BackupMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "配置文件") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "配置文件") }
             item {
                 ConfigBackupCard(
                     context = context,

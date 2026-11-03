@@ -2009,17 +2009,25 @@ internal object ConfigImportExportBridge {
                     val uri = data.data ?: return
                     val activity = currentActivity ?: return
                     if (requestCode == CONFIG_EXPORT_REQUEST_CODE) {
-                        val count = HchatConfigBackup.exportToUri(activity, uri)
-                        if (count > 0) {
-                            Toast.makeText(activity, "已导出 $count 项配置", Toast.LENGTH_SHORT).show()
+                        val result = HchatConfigBackup.exportToUri(activity, uri)
+                        if (result.items > 0) {
+                            Toast.makeText(
+                                activity,
+                                "已导出 ${result.groups} 组、${result.items} 项配置",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
                             Toast.makeText(activity, "导出失败", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        val count = HchatConfigBackup.importFromUri(activity, uri)
-                        if (count > 0) {
+                        val result = HchatConfigBackup.importFromUri(activity, uri)
+                        if (result.items > 0) {
                             onImported?.invoke()
-                            Toast.makeText(activity, "已导入 $count 项配置，当前设置页已刷新", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                activity,
+                                "已导入 ${result.groups} 组、${result.items} 项配置，设置页已刷新",
+                                Toast.LENGTH_LONG
+                            ).show()
                         } else {
                             Toast.makeText(activity, "导入失败或文件无配置", Toast.LENGTH_SHORT).show()
                         }
@@ -2034,6 +2042,9 @@ internal object ConfigImportExportBridge {
 
 internal object HchatConfigBackup {
     private const val VERSION = 1
+
+    /** 备份结果：groups 是配置分组数，items 是键值条数。 */
+    data class BackupResult(val groups: Int, val items: Int)
     private const val TYPE_BOOLEAN = "boolean"
     private const val TYPE_INT = "int"
     private const val TYPE_LONG = "long"
@@ -2125,10 +2136,11 @@ internal object HchatConfigBackup {
         return lower.contains("cache") || lower.contains("thumbnail") || lower.contains("temp")
     }
 
-    fun exportToUri(context: Context, uri: Uri): Int {
+    fun exportToUri(context: Context, uri: Uri): BackupResult {
         return runCatching {
             val prefsJson = JSONObject()
             var itemCount = 0
+            var groupCount = 0
             resolvePrefsNames(context).forEach { name ->
                 val sp = HchatStorage.preferences(context, name)
                 val entries = JSONObject()
@@ -2140,6 +2152,7 @@ internal object HchatConfigBackup {
                 }
                 if (entries.length() > 0) {
                     prefsJson.put(name, entries)
+                    groupCount++
                 }
             }
             val root = JSONObject().apply {
@@ -2151,36 +2164,42 @@ internal object HchatConfigBackup {
             }
             context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
                 output.write(root.toString(2).toByteArray(Charsets.UTF_8))
-            } ?: return 0
-            itemCount
-        }.getOrDefault(0)
+            } ?: return BackupResult(0, 0)
+            BackupResult(groupCount, itemCount)
+        }.getOrElse { BackupResult(0, 0) }
     }
 
-    fun importFromUri(context: Context, uri: Uri): Int {
+    fun importFromUri(context: Context, uri: Uri): BackupResult {
         return runCatching {
             val text = context.contentResolver.openInputStream(uri)?.use { input ->
                 input.reader(Charsets.UTF_8).readText()
             }.orEmpty()
-            if (text.isBlank()) return 0
+            if (text.isBlank()) return BackupResult(0, 0)
             val root = JSONObject(text)
-            if (root.optString("format") != "HchatConfigBackup") return 0
-            val prefsJson = root.optJSONObject("prefs") ?: return 0
+            if (root.optString("format") != "HchatConfigBackup") return BackupResult(0, 0)
+            val prefsJson = root.optJSONObject("prefs") ?: return BackupResult(0, 0)
             var itemCount = 0
+            var groupCount = 0
             resolvePrefsNames(context, prefsJson).forEach { name ->
                 val entries = prefsJson.optJSONObject(name) ?: return@forEach
                 val editor = HchatStorage.preferences(context, name).edit().clear()
                 val keys = entries.keys()
+                var restored = 0
                 while (keys.hasNext()) {
                     val key = keys.next()
                     val encoded = entries.optJSONObject(key) ?: continue
                     if (decodePreferenceValue(editor, key, encoded)) {
-                        itemCount++
+                        restored++
                     }
                 }
                 editor.commit()
+                if (restored > 0) {
+                    itemCount += restored
+                    groupCount++
+                }
             }
-            itemCount
-        }.getOrDefault(0)
+            BackupResult(groupCount, itemCount)
+        }.getOrElse { BackupResult(0, 0) }
     }
 
     private fun encodePreferenceValue(value: Any?): JSONObject? {
@@ -2676,7 +2695,7 @@ internal fun SearchHistorySection(
         EmptyText("暂无搜索记录")
         return
     }
-    SmallTitle(text = "搜索记录")
+    SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "搜索记录")
     Column(
         modifier = Modifier.fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -2807,7 +2826,7 @@ internal fun FeatureGroupSettingsPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "功能") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "功能") }
             item { FeatureListCard(group.providers, "暂无功能", onOpenProvider) }
         }
     }

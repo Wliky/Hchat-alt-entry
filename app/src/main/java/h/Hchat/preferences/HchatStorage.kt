@@ -10,8 +10,10 @@ import java.util.concurrent.ConcurrentHashMap
 object HchatStorage {
     private const val TAG = "[Hchat:Storage]"
     private const val DIR_NAME = "Hchat"
+    private const val FILES_DIR_NAME = "files"
     private val cache = ConcurrentHashMap<String, SharedPreferences>()
     private val registeredNames = java.util.Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+    private val legacyMigrated = java.util.concurrent.atomic.AtomicBoolean(false)
 
     @JvmStatic
     fun preferences(context: Context, name: String): SharedPreferences {
@@ -61,11 +63,29 @@ object HchatStorage {
         } catch (_: Throwable) {
             context.filesDir
         }
-        val dir = File(base, DIR_NAME)
+        // 放在宿主 files 子目录：微信"清理缓存-其他缓存"只扫 dataDir 根目录下的临时项，
+        // 不会整目录删 files/，配置不会再被清理掉。
+        val dir = File(File(base, FILES_DIR_NAME), DIR_NAME)
+        migrateLegacyDir(File(base, DIR_NAME), dir)
         if (!dir.isDirectory && !dir.mkdirs()) {
             HLog.e("$TAG 创建目录失败: ${dir.absolutePath}")
         }
         return dir
+    }
+
+    /** 老版本把配置放在 <dataDir>/Hchat，首次启动时搬过来，避免升级后设置全丢。 */
+    private fun migrateLegacyDir(legacy: File, target: File) {
+        if (!legacy.isDirectory) return
+        if (!legacyMigrated.compareAndSet(false, true)) return
+        runCatching {
+            if (!target.isDirectory && !target.mkdirs()) return
+            legacy.listFiles()?.forEach { file ->
+                if (!file.isFile) return@forEach
+                val dest = File(target, file.name)
+                if (!dest.exists()) file.copyTo(dest, overwrite = false)
+            }
+            HLog.i("$TAG 配置目录已迁移到 ${target.absolutePath}")
+        }.onFailure { HLog.e("$TAG 迁移配置目录失败: ${it.message}", it) }
     }
 
     /** 本次进程访问过的配置名。 */

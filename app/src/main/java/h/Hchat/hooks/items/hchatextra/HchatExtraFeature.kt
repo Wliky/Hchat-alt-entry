@@ -261,6 +261,7 @@ private class HchatExtraHooker(
 
     init {
         migrateMessageDetailsDefaultFormat()
+        migrateMessageDetailsPosition()
         messageDetailsConfig = readMessageDetailsConfig()
         prefs.registerOnSharedPreferenceChangeListener(messageDetailsPrefsListener)
         hideAvatarPrefs.registerOnSharedPreferenceChangeListener(hideAvatarPrefsListener)
@@ -279,14 +280,31 @@ private class HchatExtraHooker(
         }
     }
 
+    /** 旧的"消息下方"值没有对应行为了，统一落到头像下方，避免设置页出现无效选项。 */
+    private fun migrateMessageDetailsPosition() {
+        val stored = prefs.getString(HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION, null) ?: return
+        if (stored == HchatExtraSettings.POSITION_AVATAR_ABOVE ||
+            stored == HchatExtraSettings.POSITION_AVATAR_BELOW
+        ) {
+            return
+        }
+        prefs.edit()
+            .putString(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
+                HchatExtraSettings.POSITION_AVATAR_BELOW
+            )
+            .apply()
+    }
+
     private fun readMessageDetailsConfig(): MessageDetailsConfig {
         val position = when (prefs.getString(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_POSITION,
             HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_POSITION
         )) {
             HchatExtraSettings.POSITION_AVATAR_ABOVE -> HchatExtraSettings.POSITION_AVATAR_ABOVE
-            HchatExtraSettings.POSITION_AVATAR_BELOW -> HchatExtraSettings.POSITION_AVATAR_BELOW
-            else -> HchatExtraSettings.POSITION_MESSAGE_BOTTOM
+            // 位置收敛为"头像上方/头像下方"两种：老配置里的"消息底部"直接落到头像下方，
+            // 避免旧值残留导致整条链路走不到任何分支。
+            else -> HchatExtraSettings.POSITION_AVATAR_BELOW
         }
         val format = prefs.getString(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_FORMAT,
@@ -1183,41 +1201,16 @@ private class HchatExtraHooker(
         val config = messageDetailsConfig
         val position = config.position
         val configuredAvatarHidden = configuredAvatarHidden(details.isSelf)
-        val hiddenAvatarBelowUsesBottom =
-            configuredAvatarHidden && position == HchatExtraSettings.POSITION_AVATAR_BELOW
-        val resolvedAvatarAnchor = if (hiddenAvatarBelowUsesBottom) {
-            null
-        } else {
-            findAvatarDetailsAnchor(root, holder, configuredAvatarHidden)
-        }
-        val avatarAnchor = if (
-            position == HchatExtraSettings.POSITION_MESSAGE_BOTTOM || hiddenAvatarBelowUsesBottom
-        ) {
-            null
-        } else {
-            resolvedAvatarAnchor
-        }
+        val avatarAnchor = findAvatarDetailsAnchor(root, holder, configuredAvatarHidden)
         if (avatarAnchor == null) {
+            // 只保留"头像上方/头像下方"两种位置，找不到头像就没有可挂靠的坐标。
             restoreAvatarDetailsSpacingsAround(root)
+            return false
         }
-        val cardMessage = (
-            WeChatMessageTypes.normalize(details.type).let { it == WeChatMessageTypes.APP || it == 44 || it == 82 } ||
-                MessageTypeLabels.subtype(details.type, details.content, details.body) != null
-            )
-        val bottomAnchor = if (avatarAnchor == null) {
-            val candidate = nativeTimeLabel?.let { messageContentAnchor(holder, it) }
-            if (cardMessage) {
-                // The reference module owns the entire row branch. A card's timeTV and
-                // clickArea can belong to a transient inner container or be absent.
-                val branch = candidate?.let { safeBottomAnchor(root, it.layoutView) }
-                    ?: rowBottomAnchor(root)
-                branch?.let(::wrapCardDetailsAnchor)
-            } else candidate
-        } else null
         val avatarContent = avatarAnchor
-            ?.takeIf { it.hidden }
+            .takeIf { it.hidden }
             ?.let { avatarDetailsContentView(holder, it.parent) }
-        val parent: ViewGroup = avatarAnchor?.parent ?: bottomAnchor?.parent ?: return false
+        val parent: ViewGroup = avatarAnchor.parent ?: return false
         if (parent !is RelativeLayout && parent !is LinearLayout) return false
         val label = preferredLabel?.takeIf { it.tag == TAG_MESSAGE_DETAILS_VIEW }
             ?: findDirectMessageDetailsLabel(parent)
@@ -1249,26 +1242,10 @@ private class HchatExtraHooker(
                 label.isClickable = false
             }
         }
-        val inserted = if (avatarAnchor != null) {
-            addAvatarDetailsView(root, avatarAnchor, avatarContent, label, position, details.isSelf)
-        } else {
-            addBottomDetailsView(
-                root,
-                parent,
-                bottomAnchor?.layoutView ?: return false,
-                bottomAnchor.alignmentView,
-                label,
-                details,
-                configuredAvatarHidden || resolvedAvatarAnchor?.hidden == true
-            )
-        }
+        val inserted = addAvatarDetailsView(root, avatarAnchor, avatarContent, label, position, details.isSelf)
         if (inserted) {
             rememberMessageDetailsBinding(label, root, nativeTimeLabel, holder, nativeMessage, details)
-            if (cardMessage && avatarAnchor == null) {
-                observeCardDetailsLayout(root, label)
-            } else {
-                observeMessageDetailsAttachment(root, label)
-            }
+            observeMessageDetailsAttachment(root, label)
         }
         return inserted
     }
@@ -1445,10 +1422,10 @@ private class HchatExtraHooker(
         }
         if (!alreadyAttached || target.hidden) label.visibility = View.INVISIBLE
         measureAvatarDetailsLabel(label)
-        // 上下两种位置都按同一公式一次性预留：一行标签高度 + 间距。
-        // 旧逻辑只给"头像上方"预留，下方靠逐帧 expand 补空间：补一次不够就把标签裁掉，
-        // 而且每帧改一次 padding 会让整行反复 requestLayout，表现为聊天窗口闪烁。
-        val reservedSpace = label.measuredHeight + gap
+        // 预留值必须和实际布局无关：用字体度量算出的固定行高 + 间距，一次设定后不再变化。
+        // 之前用 measuredHeight，首帧字体未就绪时是 0，布局完成后又变大，每变一次就要
+        // 重新 setPadding，整行跟着 requestLayout，滚动时表现为聊天界面闪烁。
+        val reservedSpace = reservedAvatarDetailsHeight(label) + gap
         applyAvatarDetailsSpacing(root, parent, position, reservedSpace)
         if (!alreadyAttached) {
             parent.addView(label, params)
@@ -1704,9 +1681,19 @@ private class HchatExtraHooker(
             label.maxLines = 1
             label.setHorizontallyScrolling(false)
         }
-        if (label.ellipsize != null) label.ellipsize = null
+        // 时间文本长度差很大（"昨天"和"2026年11月3日 07:48"），固定一个略宽于头像的
+        // 上限，超出用省略号收尾：既不会盖住气泡，也不会让整行跟着文本宽度抖动。
+        val maxWidth = dp(label.context, AVATAR_DETAILS_LABEL_MAX_DP)
+        if (label.ellipsize != TextUtils.TruncateAt.END) label.ellipsize = TextUtils.TruncateAt.END
         if (label.minWidth != 0) label.minWidth = 0
-        if (label.maxWidth != Int.MAX_VALUE) label.maxWidth = Int.MAX_VALUE
+        if (label.maxWidth != maxWidth) label.maxWidth = maxWidth
+    }
+
+    /** 单行标签的固定高度：字体度量 + 内边距 + 1dp 余量，避免首帧测量为 0 导致的跳动。 */
+    private fun reservedAvatarDetailsHeight(label: TextView): Int {
+        val metrics = label.paint.fontMetrics
+        val textHeight = (metrics.descent - metrics.ascent).toInt() + 1
+        return textHeight + label.paddingTop + label.paddingBottom + dp(label.context, 2f)
     }
 
     private fun measureAvatarDetailsLabel(label: TextView) {
@@ -3724,6 +3711,9 @@ private class HchatExtraHooker(
         private val RED_PACKET_TIME_MILLIS_RANGE = 1_262_304_000_000L..4_102_444_800_000L
         private const val PREF_PROFILE_ID = "hchat_profile_id"
         private const val MESSAGE_DETAILS_MAX_RETRY = 2
+
+/** 头像旁时间标签的最大宽度（dp），超出按省略号收尾。 */
+private const val AVATAR_DETAILS_LABEL_MAX_DP = 96f
         private const val MESSAGE_DETAILS_POSITION_MAX_RETRY = 4
         private val MESSAGE_DETAILS_COLOR_KEYS = setOf(
             HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_BG,

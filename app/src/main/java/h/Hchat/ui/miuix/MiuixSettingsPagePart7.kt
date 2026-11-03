@@ -920,7 +920,7 @@ internal fun TextVoiceMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "文本转语音") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "文本转语音") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1031,7 +1031,7 @@ internal fun VoiceForwardMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天语音") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天语音") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1507,7 +1507,7 @@ private fun AudioTransformMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "转换方式") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "转换方式") }
             item {
                 SettingsCard {
                     PopupChoiceRow(
@@ -2376,7 +2376,7 @@ internal fun ScheduledTaskMainPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "发送计划") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "发送计划") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2450,7 +2450,7 @@ internal fun ScheduledTaskEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "备注") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "备注") }
             item {
                 SettingsCard {
                     InputRow(
@@ -2461,7 +2461,7 @@ internal fun ScheduledTaskEditorPage(
                     )
                 }
             }
-            item { SmallTitle(text = "任务目标") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "任务目标") }
             item {
                 SettingsCard {
                     if (scheduledTaskEditableItems(task).any { it.type == ScheduledTaskSettings.TYPE_SELECTED_MESSAGE }) {
@@ -3322,7 +3322,7 @@ internal fun FakeScanCameraMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "扫码") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "扫码") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3714,7 +3714,7 @@ internal fun RedPacketMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "核心功能") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "核心功能") }
             item {
                 SettingsCard {
                     SwitchRow(sp, RedPacketSettings.KEY_ENABLE, "自动抢红包", "开启后自动识别并抢红包", false)
@@ -4093,7 +4093,7 @@ internal fun RedPacketTemplateListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {

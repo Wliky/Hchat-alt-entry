@@ -527,7 +527,7 @@ internal fun QuoteDeleteClearMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天输入框") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天输入框") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -567,7 +567,7 @@ internal fun EmojiSaveMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天表情") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天表情") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -609,7 +609,7 @@ internal fun SwipeQuoteMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "引用") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "引用") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -687,7 +687,7 @@ internal fun FakeVoiceDurationMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天语音") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天语音") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -747,7 +747,7 @@ internal fun VoicePreviewMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天语音") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天语音") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -798,7 +798,7 @@ internal fun SkipMiniProgramVideoAdsMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "小程序") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "小程序") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -854,7 +854,7 @@ internal fun SkipGlobalMiniProgramSplashAdsMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "小程序") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "小程序") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -918,7 +918,7 @@ internal fun FakeLocationMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "定位") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "定位") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1031,7 +1031,7 @@ internal fun GameEmojiMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "发送方式") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "发送方式") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1210,7 +1210,7 @@ internal fun HideChatAvatarMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "聊天头像") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "聊天头像") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1270,7 +1270,7 @@ internal fun RoundAvatarMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "全局头像") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "全局头像") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1367,7 +1367,7 @@ internal fun CustomFriendAvatarMiuixPage(
                             bottom = padding.calculateBottomPadding() + 84.dp
                         )
                     ) {
-                        item { SmallTitle(text = "自定义头像") }
+                        item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "自定义头像") }
                         item {
                             SettingsCard {
                                 SwitchRow(
@@ -1878,7 +1878,7 @@ internal fun MessageBlockMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "基础") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "基础") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -1960,7 +1960,7 @@ internal fun MessageBlockTemplateListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {
@@ -2099,7 +2099,7 @@ internal fun MessageBlockListManagerPage(
                     }
                 }
             }
-            item { SmallTitle(text = listTitle) }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = listTitle) }
             item {
                 SettingsCard {
                     if (bindings.isEmpty()) {
@@ -2205,7 +2205,7 @@ internal fun MessageBlockBatchBindingPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "批量配置") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "批量配置") }
             item {
                 SettingsCard {
                     SelectRow(
@@ -2345,7 +2345,7 @@ internal fun MessageBlockDefaultRulePage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "默认规则") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "默认规则") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2498,7 +2498,7 @@ internal fun MessageBlockTemplatePage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     InputRow("模板名称", "用于区分不同屏蔽模板", name) { name = it }
@@ -2627,7 +2627,7 @@ internal fun MessageBlockBindingPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "名单信息") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "名单信息") }
             item {
                 SettingsCard {
                     SelectRow(
@@ -3005,7 +3005,7 @@ private fun ConversationGroupListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "功能") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "功能") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -3092,7 +3092,7 @@ private fun ConversationGroupAutomaticGroupingPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "归拢目标") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "归拢目标") }
             item {
                 SettingsCard {
                     PopupChoiceRow(
@@ -3407,7 +3407,7 @@ private fun ConversationGroupEditorPage(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            item { SmallTitle(text = "分组内容") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "分组内容") }
             item {
                 SettingsCard {
                     InputRow("分组名称", "同一层级内不能重名", name) { name = it }
@@ -3748,7 +3748,7 @@ private fun ConversationGroupParentPickerPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "可用分组") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "可用分组") }
             item {
                 SettingsCard {
                     if (candidates.isEmpty()) {

@@ -108,7 +108,7 @@ internal fun FloatingBottomBarMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "悬浮样式") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "悬浮样式") }
             item {
                 SettingsCard {
                     SwitchRow(

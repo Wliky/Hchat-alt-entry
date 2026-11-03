@@ -11,10 +11,12 @@ permissions:
   contents: write
 
 env:
-  HCAT_SINGLE_VERSION_NAME_BASE: "5.5.6"
-  # lite 频道是新仓库，run_number 从 1 开始；基数留足空间，保证版本 Code 高于旧包。
-  HCAT_SINGLE_VERSION_CODE_BASE: "5000"
+  HCAT_SINGLE_VERSION_NAME_BASE: "6.0.0"
+  # lite 频道升到 6.x，Code 基数同步抬高，保证高于 5.x 的旧包。
+  HCAT_SINGLE_VERSION_CODE_BASE: "6000"
   HCAT_SINGLE_RUN_NUMBER_BASE: "0"
+  # lite 频道首个 6.0 版本用干净版本号，冲突时自动 bump。
+  HCAT_LITE_VERSION_NAME: "6.0.0"
 
 jobs:
   build:
@@ -93,6 +95,9 @@ jobs:
           }
 
           version_name="$(bump_version "$latest_semver")"
+          if [ "$current_branch" = "lite" ] && [ -n "$HCAT_LITE_VERSION_NAME" ]; then
+            version_name="$HCAT_LITE_VERSION_NAME"
+          fi
           while gh release view "v${version_name}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || git ls-remote --exit-code --tags origin "refs/tags/v${version_name}" >/dev/null 2>&1; do
             version_name="$(bump_version "$version_name")"

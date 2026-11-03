@@ -595,7 +595,7 @@ internal fun GroupChatLabelListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "分类标签") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "分类标签") }
             item {
                 SettingsCard {
                     if (labels.isEmpty()) {
@@ -658,7 +658,7 @@ internal fun GroupChatLabelEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "标签") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "标签") }
             item {
                 SettingsCard {
                     InputRow("标签名称", "用于任务和名单选择器", name) { name = it }
@@ -899,7 +899,7 @@ internal fun GroupRenameMonitorMiuixPage(
                         bottom = padding.calculateBottomPadding() + 84.dp
                     )
                 ) {
-                    item { SmallTitle(text = "提醒方式") }
+                    item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "提醒方式") }
                     item {
                         SettingsCard {
                             SwitchRow(noticeEnabled, "插入系统消息", "在对应群聊插入可点击成员资料的改名消息", onCheckedChange = { noticeEnabled = it })
@@ -1224,7 +1224,7 @@ internal fun GroupRenameTemplateListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {
@@ -1302,7 +1302,7 @@ internal fun GroupRenameTemplateEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     InputRow("模板名称", "用于列表和批量套用", name) { name = it }
@@ -1561,7 +1561,7 @@ internal fun GroupRenameGroupEditorPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     PopupChoiceRow(
@@ -1584,7 +1584,7 @@ internal fun GroupRenameGroupEditorPage(
                 }
             }
             if (boundTemplate == null) {
-                item { SmallTitle(text = "提示设置") }
+                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "提示设置") }
                 item {
                     SettingsCard {
                         PopupChoiceRow(
@@ -2120,7 +2120,7 @@ internal fun GroupLeaveMonitorMiuixPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "系统消息") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "系统消息") }
             item {
                 SettingsCard {
                     SwitchRow(
@@ -2590,7 +2590,7 @@ internal fun GroupLeaveTemplateListPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {
@@ -2708,7 +2708,7 @@ internal fun GroupLeaveBatchTemplateBindingPage(
                 bottom = padding.calculateBottomPadding() + 84.dp
             )
         ) {
-            item { SmallTitle(text = "模板") }
+            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
             item {
                 SettingsCard {
                     if (templates.isEmpty()) {
@@ -2874,7 +2874,7 @@ internal fun GroupLeaveTemplateEditorPage(
                     bottom = padding.calculateBottomPadding() + 84.dp
                 )
             ) {
-                item { SmallTitle(text = "模板") }
+                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
                 item {
                     SettingsCard {
                         InputRow("模板名称", "用于区分不同群回复配置", name) { name = it }
@@ -3192,7 +3192,7 @@ internal fun GroupMemberGroupEditorPage(
                     bottom = padding.calculateBottomPadding() + 84.dp
                 )
             ) {
-                item { SmallTitle(text = "模板") }
+                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "模板") }
                 item {
                     SettingsCard {
                         if (templates.isEmpty()) {
@@ -3232,7 +3232,7 @@ internal fun GroupMemberGroupEditorPage(
                         }
                     }
                 } else {
-                    item { SmallTitle(text = "事件") }
+                    item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "事件") }
             item {
                 SettingsCard {
                     SwitchRow(joinEnabled, "进群回复", "该群检测到成员进群时发送", onCheckedChange = { joinEnabled = it })
