@@ -1066,8 +1066,10 @@ internal fun NumberInputRow(
     title: String,
     summary: String,
     value: String,
-    onValueChange: (String) -> Unit,
-    allowNegative: Boolean = false
+    // 必须排在 onValueChange 之前：Kotlin 的尾随 lambda 只认最后一个参数，
+    // 把带默认值的 Boolean 放到最后，所有 `NumberInputRow(a, b, c) { ... }` 都会报 onValueChange 缺失。
+    allowNegative: Boolean = false,
+    onValueChange: (String) -> Unit
 ) {
     InputRow(title, summary, normalizeNumberInput(value, allowNegative), onValueChange = { next ->
         onValueChange(normalizeNumberInput(next, allowNegative))

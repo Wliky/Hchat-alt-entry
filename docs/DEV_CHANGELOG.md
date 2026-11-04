@@ -70,6 +70,10 @@
   - 8.0.80 已删除 `CopyVideoTask` 及其日志锚点，`sendVideoTaskClass` 保持可选缺失，走直发回退
   - `app/src/main/java/h/Hchat/dexkit/DexFinder.java`、`app/src/main/java/h/Hchat/hooks/api/media/WeChatVideoApi.java`
 
+- 修复 `NumberInputRow` 编译失败：`allowNegative` 原本排在 `onValueChange` 之后，尾随 lambda 被当成 `Boolean` 参数，63 处 `NumberInputRow(a, b, c) { ... }` 全部报 `No value passed for parameter 'onValueChange'`。把 `allowNegative` 前移，`onValueChange` 保持末位
+  - `app/src/main/java/h/Hchat/ui/miuix/MiuixSettingsPagePart11.kt`
+  - 教训：带默认值的非函数参数不能放在函数参数之后，否则破坏所有尾随 lambda 调用点；这类改动本地 lint 查不出来，只能靠整包编译
+
 ### 待做
 
 - 收成 8 组 + 规范命名与描述
