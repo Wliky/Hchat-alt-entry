@@ -23,13 +23,25 @@ class WeChatTabletFeature : BaseFeature() {
 
     override fun name(): String = "平板模式"
 
+    /** hook 装在 ModuleEntry 的早期入口，不在 FeatureManager 的 featureTag 范围内，不能按 hook 计数判定。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(WeChatTabletSettingsProvider())
     }
 
     override fun onFeatureInstall(context: FeatureContext) {
         if (!isEnabled(context.hostContext())) return
-        install(context.hostContext(), context.hostClassLoader(), context.dexKitBridge())
+        // 该功能的 hook 由 ModuleEntry 早期安装，不在 featureTag 统计范围内，
+        // 必须由安装结果自己给出"确实生效"的证据，否则排查页永远显示待验证。
+        if (install(context.hostContext(), context.hostClassLoader(), context.dexKitBridge())) {
+            markHit()
+        }
+    }
+
+    override fun healthCheck(context: FeatureContext): String? {
+        if (!isEnabled(context.hostContext())) return null
+        return lastInstallFailure
     }
 
     companion object {
@@ -43,6 +55,10 @@ class WeChatTabletFeature : BaseFeature() {
         private val padHookedLoaders = HashSet<String>()
         private val loginButtonHookedLoaders = HashSet<String>()
 
+        /** 最近一次安装失败原因，供 healthCheck 展示；成功时清空。 */
+        @Volatile
+        private var lastInstallFailure: String? = null
+
         @JvmStatic
         fun isEnabled(context: Context?): Boolean {
             if (context == null) return false
@@ -51,9 +67,12 @@ class WeChatTabletFeature : BaseFeature() {
         }
 
         @JvmStatic
-        fun install(context: Context?, classLoader: ClassLoader?, dexKit: org.luckypray.dexkit.DexKitBridge?) {
-            if (context == null || classLoader == null || dexKit == null) return
-            if (!isEnabled(context)) return
+        fun install(context: Context?, classLoader: ClassLoader?, dexKit: org.luckypray.dexkit.DexKitBridge?): Boolean {
+            if (context == null || classLoader == null || dexKit == null) {
+                lastInstallFailure = "缺少 DexKit 或 ClassLoader，无法定位"
+                return false
+            }
+            if (!isEnabled(context)) return false
             val cache = HchatStorage.preferences(context, CACHE_PREFS)
             val runtimeKey = cacheKey(context, classLoader)
             val padAlreadyHooked = isPadHooked(classLoader)
@@ -62,7 +81,8 @@ class WeChatTabletFeature : BaseFeature() {
             }
             if (!padAlreadyHooked && padMethod == null) {
                 HLog.e("$TAG 安装失败: 未定位平板检测方法")
-                return
+                lastInstallFailure = "当前微信版本未定位到平板检测方法"
+                return false
             }
             if (padMethod != null) hookPadCheck(padMethod, classLoader)
             if (!isLoginButtonHooked(classLoader)) {
@@ -80,6 +100,8 @@ class WeChatTabletFeature : BaseFeature() {
                     saveCachedDescriptor(cache, runtimeKey, CACHE_LOGIN_BUTTON_METHOD, loginButtonMethod)
                 }
             }
+            lastInstallFailure = null
+            return isPadHooked(classLoader)
         }
 
         @JvmStatic
@@ -91,7 +113,10 @@ class WeChatTabletFeature : BaseFeature() {
             var padReady = isPadHooked(classLoader)
             if (!padReady) {
                 val padMethod = loadCachedMethod(cache, runtimeKey, classLoader, CACHE_PAD_METHOD)
-                    ?: return false
+                if (padMethod == null) {
+                    lastInstallFailure = "缓存中没有平板检测方法，等待 DexKit 重新定位"
+                    return false
+                }
                 hookPadCheck(padMethod, classLoader)
                 saveCachedDescriptor(cache, runtimeKey, CACHE_PAD_METHOD, padMethod)
                 padReady = isPadHooked(classLoader)
@@ -102,6 +127,7 @@ class WeChatTabletFeature : BaseFeature() {
                     saveCachedDescriptor(cache, runtimeKey, CACHE_LOGIN_BUTTON_METHOD, it)
                 }
             }
+            lastInstallFailure = if (padReady) null else "平板检测 hook 未挂上"
             return padReady
         }
 

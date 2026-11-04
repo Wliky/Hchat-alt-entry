@@ -829,9 +829,11 @@ sFastMyWxid
 
 ### 模块排查
 
-`杂项 → 模块排查` 页面读取 `ModuleStatusStore` 的内存快照，逐条列出全部功能点的启用、安装与失败原因，同时展示 `DexInstallScheduler.snapshot()` 中尚未完成的 DexKit 定位项、最后错误和重试次数，可一键复制文本报告。
+`杂项 → 模块排查` 页面读取 `ModuleStatusStore` 的进程内快照，逐条列出全部功能点的启用、安装与失败原因，同时展示 `DexInstallScheduler.snapshot()` 中尚未完成的 DexKit 定位项、最后错误和重试次数，可一键复制文本报告。
 
 快照由 `FeatureManager.installAll()` 在安装结束时写入，`DexInstallScheduler` 在每次安装异常和重试耗尽时更新 `lastError`；页面不重新跑定位，打开即可用，点「刷新」重新读取。
+
+命中记录另外落盘：`FeatureManager.installAll()` 开头调用 `ModuleStatusStore.attach(hostContext, versionName)`，从 `HchatStorage` 的 `Hchat_module_status` 配置回灌 `triggered:<微信版本>`，首次命中时整份 id 集合用逗号拼接写回。同一版本重启微信后仍保留"正常"标记；微信版本变化时删除旧 key，避免把旧版本的命中算到新版本上。安装快照本身仍只存在内存，重启后由 `installAll()` 重新生成。
 
 功能状态分三态：**正常**（关键 hook 或监听器真的被微信调用过）、**待验证**（安装成功、自检通过，但还没触发过）、**不可用**（安装失败或关键定位缺失）。"安装没抛异常"不再算正常。
 
@@ -849,6 +851,8 @@ sFastMyWxid
 `healthCheck()` 之外还有一层通用自检，由 `FeatureManager.publishStatus()` 在 `health` 为空时补算：功能声明自己依赖运行时绑定（`requiresRuntimeBinding()`，默认 `true`），安装成功、也没有任何未跑完的 DexKit 安装项，但 `HookRegistry.hookCountFor(featureId)` 为 0 且没有 `BaseFeature.subscribe()` / `trackSubscription()` 订阅，就把 `health` 填成 `未注册任何 hook`，排查页显示为"不可用"。
 
 这条规则兜住的是"定位失败后静默 `return`、`install()` 却正常返回"的情况——只看安装是否抛异常发现不了。
+
+菜单类功能（`hide_chat_menu`、`quick_moments`、`quick_contact_edit`）直接用 `healthCheck()` 返回定位器的安装结果，能区分「创建方法未定位到」和「Hook 安装失败」。这三项还订阅了 `Events.DexReady`，`hasRuntimeBinding()` 会因为订阅成立而漏判，必须靠 `healthCheck` 兜住。
 
 之所以不产生绑定的功能要显式声明，是因为它们本来就没有 hook：
 

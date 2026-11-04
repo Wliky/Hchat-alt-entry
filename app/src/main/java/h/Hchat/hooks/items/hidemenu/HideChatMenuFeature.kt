@@ -38,6 +38,8 @@ class HideChatMenuFeature : BaseFeature() {
         runtime = null
     }
 
+    override fun healthCheck(context: FeatureContext): String? = runtime?.installFailure
+
     private fun scheduleInstall() {
         DexInstallScheduler.schedule(ID, name()) {
             runtime?.install() == true
@@ -55,10 +57,20 @@ private class HideChatMenuRuntime(
     private val prefs = HchatStorage.preferences(context.hostContext(), HideChatMenuSettings.PREFS_NAME)
     private val hookedMethods = Collections.newSetFromMap(ConcurrentHashMap<Method, Boolean>())
 
+    /** 最近一次安装失败原因，供 healthCheck 展示；成功时清空。 */
+    @Volatile
+    var installFailure: String? = null
+        private set
+
     @Synchronized
     fun install(): Boolean {
         val methods = SingleMessageMenuLocator.menuCreateMethods(context) { message, throwable ->
             HLog.e("$TAG $message", throwable)
+        }
+        if (methods.isEmpty()) {
+            installFailure = "聊天长按菜单创建方法未定位到"
+            HLog.e("$TAG 定位或安装聊天长按菜单 Hook 失败")
+            return false
         }
         var installed = 0
         methods.forEach { method ->
@@ -67,6 +79,11 @@ private class HideChatMenuRuntime(
             } else if (hookedMethods.add(method) && hookMenuCreate(method)) {
                 installed++
             }
+        }
+        installFailure = if (installed == 0) {
+            "聊天长按菜单 Hook 安装失败（候选 ${methods.size} 个）"
+        } else {
+            null
         }
         if (installed == 0) {
             HLog.e("$TAG 定位或安装聊天长按菜单 Hook 失败")

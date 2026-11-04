@@ -33,8 +33,13 @@ object HchatExtraSettings {
     const val DEFAULT_MESSAGE_DETAILS_FORMAT = "\${time}"
     const val LEGACY_MESSAGE_DETAILS_FORMAT = "\${time} | \${type}"
     const val DEFAULT_MESSAGE_DETAILS_TIME_FORMAT = "HH:mm:ss"
-    const val DEFAULT_MESSAGE_DETAILS_MARGIN = 0
+    const val DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL = 8
+    const val DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL = 0
+    const val MESSAGE_DETAILS_MARGIN_MIN = -6
+    const val MESSAGE_DETAILS_MARGIN_MAX = 12
     const val DEFAULT_MESSAGE_DETAILS_TEXT_SIZE = 10
+    const val MESSAGE_DETAILS_TEXT_SIZE_MIN = 8
+    const val MESSAGE_DETAILS_TEXT_SIZE_MAX = 16
     const val DEFAULT_MESSAGE_DETAILS_FORMAT_CONTENT = false
     const val DEFAULT_RED_PACKET_DETAILS = false
     const val DEFAULT_SKIP_WEB_RISK = false

@@ -20,13 +20,24 @@ class DisableHotUpdateFeature : BaseFeature() {
 
     override fun name(): String = "屏蔽热更新"
 
+    /** hook 装在 ModuleEntry 的早期入口，不在 FeatureManager 的 featureTag 范围内，不能按 hook 计数判定。 */
+    override fun requiresRuntimeBinding(): Boolean = false
+
     override fun onFeatureInit(context: FeatureContext) {
         registerSettingsProvider(DisableHotUpdateSettingsProvider())
     }
 
     override fun onFeatureInstall(context: FeatureContext) {
         if (!isEnabled(context.hostContext())) return
-        install(context.hostContext(), context.hostClassLoader(), context.dexKitBridge())
+        // 早期 hook 不在 featureTag 统计范围内，只能由安装结果自己给出生效证据。
+        if (install(context.hostContext(), context.hostClassLoader(), context.dexKitBridge())) {
+            markHit()
+        }
+    }
+
+    override fun healthCheck(context: FeatureContext): String? {
+        if (!isEnabled(context.hostContext())) return null
+        return lastInstallFailure
     }
 
     companion object {
@@ -51,6 +62,10 @@ class DisableHotUpdateFeature : BaseFeature() {
         private val earlyInstalledLoaders = HashSet<String>()
         private val lateInstalledLoaders = HashSet<String>()
 
+        /** 最近一次安装失败原因，供 healthCheck 展示；成功时清空。 */
+        @Volatile
+        private var lastInstallFailure: String? = null
+
         @JvmStatic
         fun isEnabled(context: Context?): Boolean {
             if (context == null) return false
@@ -62,35 +77,44 @@ class DisableHotUpdateFeature : BaseFeature() {
         }
 
         @JvmStatic
-        fun install(context: Context?, classLoader: ClassLoader?, dexKit: DexKitBridge?) {
-            if (context == null || classLoader == null || dexKit == null) return
-            if (!isEnabled(context)) return
-            installEarly(context, classLoader)
+        fun install(context: Context?, classLoader: ClassLoader?, dexKit: DexKitBridge?): Boolean {
+            if (context == null || classLoader == null || dexKit == null) {
+                lastInstallFailure = "缺少 DexKit 或 ClassLoader，无法定位"
+                return false
+            }
+            if (!isEnabled(context)) return false
+            val earlyReady = installEarly(context, classLoader)
             val key = loaderKey(classLoader)
             synchronized(this) {
-                if (lateInstalledLoaders.contains(key)) return
-                val cache = DexMethodCache.prefs(context, CACHE_PREFS)
-                val runtimeKey = DexMethodCache.runtimeKey(context, classLoader)
-                hookSyncResponseConsumer(classLoader, dexKit, cache, runtimeKey)
-                hookUpgradeResponse(classLoader, dexKit, cache, runtimeKey)
-                hookManualUpdater(classLoader, dexKit, cache, runtimeKey)
-                hookLegacyPatchService(classLoader)
-                lateInstalledLoaders.add(key)
+                if (!lateInstalledLoaders.contains(key)) {
+                    val cache = DexMethodCache.prefs(context, CACHE_PREFS)
+                    val runtimeKey = DexMethodCache.runtimeKey(context, classLoader)
+                    hookSyncResponseConsumer(classLoader, dexKit, cache, runtimeKey)
+                    hookUpgradeResponse(classLoader, dexKit, cache, runtimeKey)
+                    hookManualUpdater(classLoader, dexKit, cache, runtimeKey)
+                    hookLegacyPatchService(classLoader)
+                    lateInstalledLoaders.add(key)
+                }
             }
+            // 早期 hook（Tinker 开关 + patch 加载拦截）是屏蔽热更新的关键路径，
+            // 晚装入口只是补充；早期没挂上就如实报不可用，不假装正常。
+            lastInstallFailure = if (earlyReady) null else "当前微信版本未定位到 Tinker 拦截入口"
+            return earlyReady
         }
 
         @JvmStatic
-        fun installEarly(context: Context?, classLoader: ClassLoader?) {
-            if (context == null || classLoader == null) return
-            if (!isEnabled(context)) return
+        fun installEarly(context: Context?, classLoader: ClassLoader?): Boolean {
+            if (context == null || classLoader == null) return false
+            if (!isEnabled(context)) return false
             val key = loaderKey(classLoader)
-            synchronized(this) {
-                if (earlyInstalledLoaders.contains(key)) return
+            return synchronized(this) {
+                if (earlyInstalledLoaders.contains(key)) return@synchronized true
                 val installedFlags = hookTinkerFlags(classLoader)
                 val installedLoader = hookTinkerLoader(classLoader)
                 if (installedFlags || installedLoader) {
                     earlyInstalledLoaders.add(key)
                 }
+                installedFlags || installedLoader
             }
         }
 

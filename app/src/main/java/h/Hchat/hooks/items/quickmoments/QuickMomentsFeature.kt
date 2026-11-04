@@ -52,6 +52,8 @@ class QuickMomentsFeature : BaseFeature() {
         runtime = null
     }
 
+    override fun healthCheck(context: FeatureContext): String? = runtime?.installFailure
+
     private fun scheduleInstall() {
         DexInstallScheduler.schedule(ID, name()) {
             runtime?.install() == true
@@ -138,14 +140,25 @@ private class QuickMomentsMenuRuntime(
         ConversationMenuExtensionRegistry.register(conversationMenuExtension)
     }
 
+    /** 最近一次安装失败原因，供 healthCheck 展示；成功时清空。 */
+    @Volatile
+    var installFailure: String? = null
+        private set
+
     @Synchronized
     fun install(): Boolean {
-        val create = ConversationMenuLocator.menuCreateMethod(context, logger) ?: return false
-        return hook(create, object : XC_MethodHook() {
+        val create = ConversationMenuLocator.menuCreateMethod(context, logger)
+        if (create == null) {
+            installFailure = "会话长按菜单创建方法未定位到"
+            return false
+        }
+        val installed = hook(create, object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 addMenuItem(param)
             }
         })
+        installFailure = if (installed) null else "会话长按菜单创建方法 Hook 失败"
+        return installed
     }
 
     fun destroy() {

@@ -178,9 +178,16 @@ class ProfileIdFeature : BaseFeature() {
         private fun injectContactPreferenceId(activity: Activity, profileId: String): Boolean {
             val decor = activity.window?.decorView as? ViewGroup ?: return false
             val adapter = findProfileListView(decor)?.adapter
-            if (adapter != null && injectContactPreference(adapter, activity, profileId)) return true
+            if (adapter != null && injectContactPreference(adapter, activity, profileId)) {
+                // 好友页原来的点击只绑在 Preference 对象上，部分版本点不动；
+                // 和群聊页一样，渲染完成后再给整行 View 补一次。
+                bindRenderedRow(activity, profileId)
+                return true
+            }
             val screen = KavaReflector.invokeMethod(activity, "getPreferenceScreen") ?: return false
-            return injectContactPreference(screen, activity, profileId)
+            if (!injectContactPreference(screen, activity, profileId)) return false
+            bindRenderedRow(activity, profileId)
+            return true
         }
 
         private fun injectContactPreference(container: Any, activity: Activity, profileId: String): Boolean {
@@ -277,7 +284,7 @@ class ProfileIdFeature : BaseFeature() {
                 bindPreference(existing, profileId, titleGetter)
                 bindPreferenceClick(existing, activity, profileId)
                 notifyPreferenceChanged(screen)
-                bindRenderedChatroomRow(activity, profileId)
+                bindRenderedRow(activity, profileId)
                 return
             }
             val preferenceClass = KavaReflector.loadClass(
@@ -298,7 +305,7 @@ class ProfileIdFeature : BaseFeature() {
                 return
             }
             notifyPreferenceChanged(screen)
-            bindRenderedChatroomRow(activity, profileId)
+            bindRenderedRow(activity, profileId)
         }
 
         private fun findChatroomAnchorPreference(screen: Any): Any? {
@@ -399,7 +406,8 @@ class ProfileIdFeature : BaseFeature() {
             }
         }
 
-        private fun bindRenderedChatroomRow(activity: Activity, profileId: String, attempt: Int = 0) {
+        /** Preference 的点击回调在部分版本不生效，渲染完成后直接给整行 View 补一次点击。 */
+        private fun bindRenderedRow(activity: Activity, profileId: String, attempt: Int = 0) {
             val decor = activity.window?.decorView as? ViewGroup ?: return
             decor.postDelayed({
                 val title = "$LABEL: $profileId"
@@ -411,7 +419,7 @@ class ProfileIdFeature : BaseFeature() {
                     return@postDelayed
                 }
                 if (attempt + 1 < CHATROOM_BIND_RETRY_LIMIT) {
-                    bindRenderedChatroomRow(activity, profileId, attempt + 1)
+                    bindRenderedRow(activity, profileId, attempt + 1)
                 }
             }, if (attempt == 0) 0L else 120L)
         }

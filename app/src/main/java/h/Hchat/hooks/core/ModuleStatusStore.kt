@@ -1,5 +1,8 @@
 package h.Hchat.hooks.core
 
+import android.content.Context
+import android.content.SharedPreferences
+import h.Hchat.preferences.HchatStorage
 import h.Hchat.utils.HLog
 import java.util.concurrent.atomic.AtomicLong
 
@@ -8,6 +11,9 @@ import java.util.concurrent.atomic.AtomicLong
  * 写入与读取都在宿主进程内，不需要跨进程通信。
  */
 object ModuleStatusStore {
+    private const val PREFS_NAME = "Hchat_module_status"
+    private const val KEY_TRIGGERED_PREFIX = "triggered:"
+
     data class FeatureStatus(
         val featureId: String,
         val name: String,
@@ -17,14 +23,20 @@ object ModuleStatusStore {
         /** 空串表示依赖齐全；非空是当前版本下不可用的原因（多数是定位缺失）。 */
         val health: String = "",
         /** 关键 hook 是否真的命中过；未命中只说明还没被触发，不能算正常。 */
-        val triggered: Boolean = false
+        val triggered: Boolean = false,
+        /**
+         * 本功能是否存在可观测的运行时信号（注册过 hook）。
+         * 纯配置项、纯页面注入没有 hook，不能因为"没触发"就报成待验证。
+         */
+        val runtimeTracked: Boolean = true
     )
 
-    /** 全局定位快照：就位数 / 总数 / 缺失字段名。 */
+    /** 全局定位快照：就位数 / 总数 / 必需缺失 / 可选缺失（有回退路径）。 */
     data class LocateStatus(
         val located: Int,
         val total: Int,
-        val missing: List<String>
+        val missing: List<String>,
+        val optionalMissing: List<String> = emptyList()
     )
 
     data class InstallStatus(
@@ -47,6 +59,49 @@ object ModuleStatusStore {
      */
     private val triggeredIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
+    /** 命中记录的落盘入口；为空表示还没绑定宿主存储，此时退回纯内存行为。 */
+    @Volatile
+    private var prefs: SharedPreferences? = null
+
+    @Volatile
+    private var triggeredKey: String? = null
+
+    /**
+     * 绑定宿主存储并回灌当前微信版本的历史命中记录。
+     *
+     * 命中记录必须按微信版本隔离：跨版本升级后，旧版本能命中的 hook 在新版本可能压根没装上，
+     * 沿用旧记录会把"待验证"错报成"正常"。
+     */
+    fun attach(context: Context, versionName: String) {
+        val store = runCatching { HchatStorage.preferences(context, PREFS_NAME) }.getOrNull() ?: return
+        val key = KEY_TRIGGERED_PREFIX + versionName.ifBlank { "unknown" }
+        prefs = store
+        triggeredKey = key
+
+        val saved = runCatching { store.getString(key, "") }.getOrNull().orEmpty()
+        if (saved.isNotEmpty()) {
+            triggeredIds.addAll(saved.split(',').filter { it.isNotBlank() })
+        }
+        // 只保留当前版本，避免用户长期跨版本使用后无限堆积。
+        runCatching {
+            val stale = store.all.keys.filter { it.startsWith(KEY_TRIGGERED_PREFIX) && it != key }
+            if (stale.isNotEmpty()) {
+                val editor = store.edit()
+                stale.forEach(editor::remove)
+                editor.apply()
+            }
+        }.onFailure { HLog.e("$TAG 清理旧版本命中记录失败: ${it.message}", it) }
+    }
+
+    /** 只在首次命中时调用；调用方已保证同一 id 不会重复进入。 */
+    private fun persistTriggered() {
+        val store = prefs ?: return
+        val key = triggeredKey ?: return
+        runCatching {
+            store.edit().putString(key, triggeredIds.joinToString(",")).apply()
+        }.onFailure { HLog.e("$TAG 写入命中记录失败: ${it.message}", it) }
+    }
+
     fun updateFeatures(statuses: List<FeatureStatus>) {
         featureStatuses = statuses
         updatedAtMillis = System.currentTimeMillis()
@@ -62,6 +117,8 @@ object ModuleStatusStore {
         if (featureId.isEmpty()) return
         // hook 回调会高频进入这里，已命中过的功能直接返回，避免每次都复制整张快照。
         if (!triggeredIds.add(featureId)) return
+        // 只有首次命中才写盘，重复命中不碰存储；写盘后重启微信仍能保留"用过"的证据。
+        persistTriggered()
         val snapshot = featureStatuses
         if (snapshot.isEmpty()) return
         var changed = false
@@ -199,6 +256,18 @@ object ModuleStatusStore {
 
     /** 全部功能的 hook 调用总数，概览里一眼看出模块被调了多少次。 */
     fun hookCallTotal(): Long = hookStats.values.sumOf { it.callCount }
+
+    /**
+     * 单个功能（含 `id#子项` 分段计时）的累计调用数。
+     * 排查页用它兜底判断"确实跑过"，不再只依赖功能自己上报。
+     */
+    fun hookCallsFor(featureId: String): Long {
+        if (featureId.isEmpty()) return 0L
+        val prefix = "$featureId#"
+        return hookStats.entries.sumOf { (key, stat) ->
+            if (key == featureId || key.startsWith(prefix)) stat.callCount else 0L
+        }
+    }
 
     /** 排查页的「重置热点统计」：清空累计值后重新观察，已安装的 hook 不受影响。 */
     fun resetHookStats() {

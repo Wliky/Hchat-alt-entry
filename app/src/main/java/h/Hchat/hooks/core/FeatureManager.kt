@@ -1,6 +1,7 @@
 package h.Hchat.hooks.core
 
 import h.Hchat.event.Events
+import h.Hchat.hooks.api.core.WeChatApis
 import h.Hchat.hooks.items.settings.SettingsFeature
 import h.Hchat.hooks.items.conversationgroup.ConversationGroupHomeProjection
 import h.Hchat.utils.HLog
@@ -25,6 +26,9 @@ class FeatureManager {
     fun installedFeatures(): List<Feature> = Collections.unmodifiableList(installedFeatures)
 
     fun installAll(context: FeatureContext) {
+        // 命中记录按微信版本落盘，必须早于功能安装回灌：
+        // 否则安装期间立即触发的 hook 会把历史记录覆盖成"只有本次进程"。
+        ModuleStatusStore.attach(context.hostContext(), currentWeChatVersion())
         val initializedFeatures = ArrayList<Feature>()
         val enabledStates = HashMap<Feature, Boolean>()
         val failures = HashMap<Feature, String>()
@@ -74,6 +78,13 @@ class FeatureManager {
         DexInstallScheduler.markDexBridgeReady()
     }
 
+    /** 版本号只用于隔离命中记录；取不到时归入 unknown，不影响功能本身。 */
+    private fun currentWeChatVersion(): String = try {
+        WeChatApis.version()?.versionName().orEmpty()
+    } catch (_: Throwable) {
+        ""
+    }
+
     /** 把本次安装结果写入快照，「模块排查」页面直接读取，避免再跑一遍定位。 */
     private fun publishStatus(
         context: FeatureContext,
@@ -109,6 +120,12 @@ class FeatureManager {
                     feature.runtimeHit()
                 } catch (_: Throwable) {
                     false
+                },
+                // 没注册 hook 的功能没有可观测信号，排查页不能把它算成"待验证"。
+                runtimeTracked = try {
+                    HookRegistry.get().hookCountFor(safeFeatureId(feature)) > 0
+                } catch (_: Throwable) {
+                    false
                 }
             )
         }
@@ -140,11 +157,13 @@ class FeatureManager {
             val stats = context.dexFinder().locateStatus()
             if (stats == null || stats.size < 2) return
             val missing = context.dexFinder().missingLocateFields() ?: emptyList()
+            val optionalMissing = context.dexFinder().optionalMissingLocateFields() ?: emptyList()
             ModuleStatusStore.updateLocate(
                 ModuleStatusStore.LocateStatus(
                     located = stats[0],
                     total = stats[1],
-                    missing = missing
+                    missing = missing,
+                    optionalMissing = optionalMissing
                 )
             )
         } catch (e: Throwable) {

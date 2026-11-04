@@ -430,8 +430,8 @@ public final class WeChatVideoApi {
                 && params[1] == String.class
                 && params[2] == String.class
                 && params[3] == String.class
-                && params[4] == int.class
-                && params[5] == int.class;
+                && (params[4] == int.class || params[4] == Integer.class)
+                && (params[5] == int.class || params[5] == Integer.class);
     }
 
     private boolean sendViaEntry(String talker, String videoPath, String thumbPath) {

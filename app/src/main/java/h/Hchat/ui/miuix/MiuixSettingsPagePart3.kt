@@ -1351,16 +1351,36 @@ internal fun MessageDetailsConfigPage(
         )
     }
     var marginLeft by remember {
-        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT, 0).toString())
+        mutableStateOf(
+            sp.getInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT,
+                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL
+            ).toString()
+        )
     }
     var marginTop by remember {
-        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP, 0).toString())
+        mutableStateOf(
+            sp.getInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP,
+                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL
+            ).toString()
+        )
     }
     var marginRight by remember {
-        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT, 0).toString())
+        mutableStateOf(
+            sp.getInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT,
+                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL
+            ).toString()
+        )
     }
     var marginBottom by remember {
-        mutableStateOf(sp.getInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM, 0).toString())
+        mutableStateOf(
+            sp.getInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM,
+                HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL
+            ).toString()
+        )
     }
     var lightBg by remember {
         mutableStateOf(
@@ -1420,10 +1440,10 @@ internal fun MessageDetailsConfigPage(
     }
     fun resetValues() {
         enabled = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS
-        marginLeft = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
-        marginTop = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
-        marginRight = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
-        marginBottom = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN.toString()
+        marginLeft = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL.toString()
+        marginTop = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL.toString()
+        marginRight = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL.toString()
+        marginBottom = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL.toString()
         lightBg = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_BG
         lightText = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_LIGHT_TEXT
         darkBg = HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_BG
@@ -1440,10 +1460,34 @@ internal fun MessageDetailsConfigPage(
         val savedDarkText = cleanMessageDetailsColor(darkText, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_DARK_TEXT)
         sp.edit()
             .putBoolean(HchatExtraSettings.KEY_MESSAGE_DETAILS, enabled)
-            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT, marginLeft.toIntOrNull()?.coerceIn(0, 48) ?: 0)
-            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP, marginTop.toIntOrNull()?.coerceIn(0, 48) ?: 0)
-            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT, marginRight.toIntOrNull()?.coerceIn(0, 48) ?: 0)
-            .putInt(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM, marginBottom.toIntOrNull()?.coerceIn(0, 48) ?: 0)
+            .putInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT,
+                marginLeft.toIntOrNull()?.coerceIn(
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MIN,
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MAX
+                ) ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL
+            )
+            .putInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP,
+                marginTop.toIntOrNull()?.coerceIn(
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MIN,
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MAX
+                ) ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL
+            )
+            .putInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT,
+                marginRight.toIntOrNull()?.coerceIn(
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MIN,
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MAX
+                ) ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL
+            )
+            .putInt(
+                HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM,
+                marginBottom.toIntOrNull()?.coerceIn(
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MIN,
+                    HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MAX
+                ) ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL
+            )
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_BG, savedLightBg)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_LIGHT_TEXT, savedLightText)
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_DARK_BG, savedDarkBg)
@@ -1452,7 +1496,11 @@ internal fun MessageDetailsConfigPage(
             .putString(HchatExtraSettings.KEY_MESSAGE_DETAILS_TIME_FORMAT, timeFormat.ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT })
             .putInt(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
-                textSize.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE
+                (textSize.toIntOrNull() ?: HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE)
+                    .coerceIn(
+                        HchatExtraSettings.MESSAGE_DETAILS_TEXT_SIZE_MIN,
+                        HchatExtraSettings.MESSAGE_DETAILS_TEXT_SIZE_MAX
+                    )
             )
             .apply()
         lightBg = savedLightBg
@@ -1494,18 +1542,6 @@ internal fun MessageDetailsConfigPage(
                         summary = "固定贴在头像上方，按收发方向对齐显示",
                         onCheckedChange = { enabled = it }
                     )
-                }
-            }
-            item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "布局间距（dp）") }
-            item {
-                SettingsCard {
-                    NumberInputRow("左间距", "时间视图左侧外边距，范围 0–48dp", marginLeft) { marginLeft = it }
-                    InsetDivider()
-                    NumberInputRow("上间距", "时间视图上侧外边距，范围 0–48dp", marginTop) { marginTop = it }
-                    InsetDivider()
-                    NumberInputRow("右间距", "时间视图右侧外边距，范围 0–48dp", marginRight) { marginRight = it }
-                    InsetDivider()
-                    NumberInputRow("下间距", "时间视图与头像之间的间距，范围 0–48dp", marginBottom) { marginBottom = it }
                 }
             }
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "颜色") }
@@ -1569,7 +1605,27 @@ internal fun MessageDetailsConfigPage(
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "布局") }
             item {
                 SettingsCard {
-                    NumberInputRow("字体大小", "单位 sp", textSize, onValueChange = { textSize = it })
+                    NumberInputRow("字体大小", "单位 sp，范围 8–16", textSize, onValueChange = { textSize = it })
+                    InsetDivider()
+                    NumberInputRow(
+                        "左间距", "范围 -6–12dp，负数向左偏移", marginLeft,
+                        onValueChange = { marginLeft = it }, allowNegative = true
+                    )
+                    InsetDivider()
+                    NumberInputRow(
+                        "上间距", "范围 -6–12dp，负数向上偏移", marginTop,
+                        onValueChange = { marginTop = it }, allowNegative = true
+                    )
+                    InsetDivider()
+                    NumberInputRow(
+                        "右间距", "范围 -6–12dp，负数向右偏移", marginRight,
+                        onValueChange = { marginRight = it }, allowNegative = true
+                    )
+                    InsetDivider()
+                    NumberInputRow(
+                        "下间距", "与头像之间的间距，范围 -6–12dp", marginBottom,
+                        onValueChange = { marginBottom = it }, allowNegative = true
+                    )
                 }
             }
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "操作") }

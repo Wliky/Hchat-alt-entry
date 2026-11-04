@@ -60,6 +60,15 @@ class QuickContactEditFeature : BaseFeature() {
         runtime = null
     }
 
+    override fun healthCheck(context: FeatureContext): String? {
+        val target = runtime ?: return null
+        val failures = listOfNotNull(
+            target.conversationMenuFailure,
+            target.snsAvatarMenuFailure
+        )
+        return failures.takeIf { it.isNotEmpty() }?.joinToString("；")
+    }
+
     private fun scheduleDexInstall() {
         DexInstallScheduler.schedule(ID, name()) {
             runtime?.installConversationMenuHook() == true
@@ -98,6 +107,15 @@ private class QuickContactEditRuntime(
     @Volatile
     private var pendingSnsMenuTarget: MenuTarget? = null
     private val avatarBindings = Collections.synchronizedMap(WeakHashMap<View, AvatarBinding>())
+
+    /** 最近一次安装失败原因，供 healthCheck 展示；成功时清空。 */
+    @Volatile
+    var conversationMenuFailure: String? = null
+        private set
+    @Volatile
+    var snsAvatarMenuFailure: String? = null
+        private set
+
     private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == QuickContactEditSettings.KEY_ENABLE && !enabled()) {
             main.post(::restoreAvatarBindings)
@@ -139,12 +157,22 @@ private class QuickContactEditRuntime(
     @Synchronized
     fun installConversationMenuHook(): Boolean {
         val create = ConversationMenuLocator.menuCreateMethod(context, logger)
-        val createInstalled = create != null && hook(create, object : XC_MethodHook() {
+        if (create == null) {
+            conversationMenuFailure = "会话长按菜单创建方法未定位到"
+            logger("快捷设置备注和标签菜单创建 Hook 未安装", null)
+            return false
+        }
+        val createInstalled = hook(create, object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 addMenuItem(param)
             }
         })
-        if (!createInstalled) logger("快捷设置备注和标签菜单创建 Hook 未安装", null)
+        if (createInstalled) {
+            conversationMenuFailure = null
+        } else {
+            conversationMenuFailure = "会话长按菜单创建方法 Hook 失败"
+            logger("快捷设置备注和标签菜单创建 Hook 未安装", null)
+        }
         return createInstalled
     }
 
@@ -176,6 +204,12 @@ private class QuickContactEditRuntime(
         }
         if (createInstalled <= 0) logger("朋友圈头像菜单创建 Hook 未安装", null)
         if (clickInstalled <= 0) logger("朋友圈头像菜单点击 Hook 未安装", null)
+        snsAvatarMenuFailure = when {
+            createInstalled <= 0 && clickInstalled <= 0 -> "朋友圈头像菜单创建与点击 Hook 均未安装"
+            createInstalled <= 0 -> "朋友圈头像菜单创建 Hook 未安装"
+            clickInstalled <= 0 -> "朋友圈头像菜单点击 Hook 未安装"
+            else -> null
+        }
         return createInstalled > 0 && clickInstalled > 0
     }
 

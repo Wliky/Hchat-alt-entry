@@ -273,6 +273,12 @@ public class DexFinder {
         openUnionLocatorResolved = false;
         networkQueueLocatorResolved = false;
         if (loadCache()) {
+            // 早期版本漏了全量解析 sendVideoMethod，老缓存里这个字段恒为 null。
+            // 此时 resolvedAll 还没置位、cacheLoadAttempted 已置位，
+            // ensureSnapshotLoaded() 会返回 false，正好可以放行一次补解析。
+            if (sendVideoMethod == null && resolveSendVideoApi()) {
+                saveCache();
+            }
             resolvedAll = true;
             logDetail("命中缓存: " + shortKey(runtimeCacheKey));
             return;
@@ -292,6 +298,7 @@ public class DexFinder {
         resolveSendXmlApi();
         resolveGroupSolitaireApi();
         resolveLocalMessageApi();
+        resolveSendVideoApi();
         resolveSendVideoTaskApi();
         resolveVideoPathApi();
         resolveVideoInfoApi();
@@ -1437,10 +1444,10 @@ public class DexFinder {
         }
     }
 
-    public void resolveSendVideoApi() {
-        if (ensureSnapshotLoaded()) return;
+    public boolean resolveSendVideoApi() {
+        if (ensureSnapshotLoaded()) return sendVideoMethod != null;
         try {
-            if (sendVideoMethod != null) return;
+            if (sendVideoMethod != null) return true;
 
             List<MethodData> methods = dexKit.findMethod(
                     mkMethodUsingStrings("send vedio args error"));
@@ -1458,6 +1465,7 @@ public class DexFinder {
         } catch (Throwable e) {
             h.Hchat.utils.HLog.e(TAG + " resolveSendVideoApi 失败: " + e.getMessage(), e);
         }
+        return sendVideoMethod != null;
     }
 
     public void resolveSendVideoTaskApi() {
@@ -2721,6 +2729,20 @@ public class DexFinder {
         return missing;
     }
 
+    /** 可选定位字段的缺失清单：有回退路径，不影响功能可用性，排查页单独展示。 */
+    public java.util.List<String> optionalMissingLocateFields() {
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        for (java.lang.reflect.Field field : DexFinder.class.getDeclaredFields()) {
+            if (!isLocateField(field) || !isOptionalLocateField(field)) continue;
+            try {
+                field.setAccessible(true);
+                if (field.get(this) == null) missing.add(field.getName());
+            } catch (Throwable ignored) {
+            }
+        }
+        return missing;
+    }
+
     private boolean isOptionalLocateField(java.lang.reflect.Field field) {
         String name = field.getName();
         if ("openCtor8".equals(name)) return openCtor9 != null || openCtor10 != null;
@@ -2733,7 +2755,11 @@ public class DexFinder {
         if ("videoPathOwnerGetterMethod".equals(name)) {
             return videoPathMethod != null && serviceGetterMethod != null;
         }
-        if ("sendVideoTaskClass".equals(name)) return sendVideoMethod != null;
+        // 8.0.80 起 CopyVideoTask 的锚点串已不存在，静默视频改走直发回退，
+        // 两项同属可选路径：任一缺失都不应算作必需缺失。
+        if ("sendVideoMethod".equals(name) || "sendVideoTaskClass".equals(name)) {
+            return sendVideoMethod == null || sendVideoTaskClass == null;
+        }
         return false;
     }
 

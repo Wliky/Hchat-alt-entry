@@ -52,6 +52,9 @@ private val DiagnosticsDanger = Color(0xFFE5484D)
 private val DiagnosticsWarn = Color(0xFFE8A33D)
 private val DiagnosticsOk = Color(0xFF3FA45B)
 
+/** 没有 hook 可观测的功能：不算正常，也不算未验证，用中性色区分。 */
+private val DiagnosticsIdle = Color(0xFF8A8A8E)
+
 /** 卡片内一次最多铺多少行，超过就换一张卡，避免单个 item 过高影响滑动。 */
 private const val DIAGNOSTICS_CHUNK = 14
 
@@ -85,10 +88,28 @@ internal fun ModuleDiagnosticsMiuixPage(
     var filter by remember { mutableStateOf(DiagFilter.ALL) }
     val features = remember(refreshTick) { ModuleStatusStore.features() }
     val installs = remember(refreshTick) { ModuleStatusStore.installs() }
-    val hotspots = remember(refreshTick) { ModuleStatusStore.hookHotspots(8) }
+    // 子项（id#名称）单独归并，不占父功能的展示名额。
+    val hotspots = remember(refreshTick) { ModuleStatusStore.hookHotspots(Int.MAX_VALUE) }
     val hookCalls = remember(refreshTick) { ModuleStatusStore.hookCallTotal() }
+    // hook 命中不一定都走 markTriggered（通用回调、早期入口），用累计调用数兜底，
+    // 避免"实际用过了却一直显示待验证"。
+    val liveHitIds = remember(refreshTick) {
+        features.asSequence()
+            .filter { it.enabled && it.installed }
+            .map { it.featureId }
+            .filter { ModuleStatusStore.hookCallsFor(it) > 0L }
+            .toSet()
+    }
     val featureNames = remember(refreshTick) {
         features.associate { it.featureId to it.name }
+    }
+    // 父功能取前 12 条，分段计时归到各自父项下面。
+    val parentHotspots = remember(hotspots) {
+        hotspots.filter { !it.featureId.contains('#') }.take(12)
+    }
+    val childHotspotsByParent = remember(hotspots) {
+        hotspots.filter { it.featureId.contains('#') }
+            .groupBy { it.featureId.substringBefore('#') }
     }
     val versionName = remember(refreshTick) {
         runCatching { WeChatApis.version()?.versionName() }.getOrNull().orEmpty()
@@ -99,12 +120,21 @@ internal fun ModuleDiagnosticsMiuixPage(
         it.error.isNotEmpty() || it.health.isNotEmpty() || (it.enabled && !it.installed)
     }
     val disabled = features.filter { !it.enabled }
+    val hit = { item: ModuleStatusStore.FeatureStatus ->
+        item.triggered || liveHitIds.contains(item.featureId)
+    }
     // 安装成功、自检也过了，但关键 hook 还没真正命中过——只能算"待验证"，不能算正常。
     val unverified = features.filter {
-        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() && !it.triggered
+        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() &&
+            it.runtimeTracked && !hit(it)
+    }
+    // 没有 hook 可观测的功能（纯页面/配置项）不能算待验证，单列"无信号"。
+    val untracked = features.filter {
+        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() &&
+            !it.runtimeTracked && !hit(it)
     }
     val healthy = features.filter {
-        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() && it.triggered
+        it.enabled && it.installed && it.error.isEmpty() && it.health.isEmpty() && hit(it)
     }
     val stalledInstalls = installs.filter { !it.installed }
 
@@ -118,15 +148,18 @@ internal fun ModuleDiagnosticsMiuixPage(
                     !item.enabled -> "已关闭"
                     !item.installed -> "未安装"
                     item.health.isNotEmpty() -> "不可用"
-                    !item.triggered -> "待验证"
+                    !item.runtimeTracked && !hit(item) -> "无信号"
+                    !hit(item) -> "待验证"
                     else -> "正常"
                 },
                 detail = item.error.ifBlank {
                     item.health.ifBlank {
-                        if (item.enabled && item.installed && !item.triggered) {
-                            "已加载，等待实际使用一次"
-                        } else {
-                            ""
+                        when {
+                            item.enabled && item.installed && !item.runtimeTracked && !hit(item) ->
+                                "没有 hook 可观测，也没有主动上报运行证据"
+                            item.enabled && item.installed && !hit(item) ->
+                                "已加载，等待实际使用一次"
+                            else -> ""
                         }
                     }
                 },
@@ -135,7 +168,8 @@ internal fun ModuleDiagnosticsMiuixPage(
                     !item.enabled -> DiagnosticsWarn
                     !item.installed -> DiagnosticsWarn
                     item.health.isNotEmpty() -> DiagnosticsDanger
-                    !item.triggered -> DiagnosticsWarn
+                    !item.runtimeTracked && !hit(item) -> DiagnosticsIdle
+                    !hit(item) -> DiagnosticsWarn
                     else -> DiagnosticsOk
                 }
             )
@@ -171,8 +205,8 @@ internal fun ModuleDiagnosticsMiuixPage(
                     copyDiagnosticsReport(
                         context,
                         buildDiagnosticsReport(
-                            versionName, features, healthy, unverified, problems, disabled,
-                            stalledInstalls, hotspots
+                            versionName, features, locate, healthy, unverified, untracked,
+                            problems, disabled, stalledInstalls, hotspots
                         )
                     )
                 },
@@ -207,6 +241,10 @@ internal fun ModuleDiagnosticsMiuixPage(
                             "正常 / 待验证 / 不可用·异常 / 关闭",
                             "${healthy.size} · ${unverified.size} · ${problems.size} · ${disabled.size}"
                         )
+                        if (untracked.isNotEmpty()) {
+                            InsetDivider()
+                            SummaryRow("无运行时信号", "${untracked.size} 项（没有 hook 可观测）")
+                        }
                         InsetDivider()
                         SummaryRow(
                             "安装队列",
@@ -217,12 +255,14 @@ internal fun ModuleDiagnosticsMiuixPage(
                         SummaryRow("Hook 回调总数", "$hookCalls 次")
                         InsetDivider()
                         SummaryRow("快照时间", formatDiagnosticsTime(ModuleStatusStore.updatedAtMillis()))
+                        InsetDivider()
+                        SummaryRow("命中记录", "按微信版本保存，升级微信后重置")
                     }
                 }
             }
 
             locate?.missing?.takeIf { it.isNotEmpty() }?.let { missing ->
-                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "定位缺失") }
+                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "定位缺失（必需）") }
                 item {
                     SettingsCard {
                         EmptyText("以下 ${missing.size} 项 API 在当前微信版本没找到，依赖它们的功能会不可用：\n" +
@@ -231,21 +271,37 @@ internal fun ModuleDiagnosticsMiuixPage(
                 }
             }
 
+            locate?.optionalMissing?.takeIf { it.isNotEmpty() }?.let { optionalMissing ->
+                item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "定位缺失（可选）") }
+                item {
+                    SettingsCard {
+                        EmptyText("以下 ${optionalMissing.size} 项没找到，但有回退路径，不影响功能：\n" +
+                            optionalMissing.joinToString("、"))
+                    }
+                }
+            }
+
             item { SmallTitle(modifier = Modifier.padding(top = 10.dp), text = "Hook 热点") }
             item {
                 SettingsCard {
-                    if (hotspots.isEmpty()) {
+                    if (parentHotspots.isEmpty()) {
                         EmptyText("还没有 hook 被触发过")
                     } else {
-                        hotspots.forEachIndexed { index, item ->
+                        var first = true
+                        parentHotspots.forEach { item ->
+                            if (!first) InsetDivider()
+                            first = false
                             SummaryRow(
                                 featureNames[item.featureId] ?: item.featureId,
-                                buildString {
-                                    append("${item.calls} 次 · 均 ${formatHookCost(item.averageNanos)}")
-                                    if (item.slowCalls > 0L) append(" · 慢 ${item.slowCalls} 次")
-                                }
+                                hotspotValue(item)
                             )
-                            if (index < hotspots.lastIndex) InsetDivider()
+                            // 分段计时挂在父功能下面，显示子项名，不单独占热点名额。
+                            childHotspotsByParent[item.featureId]?.forEach { child ->
+                                SummaryRow(
+                                    "  └ ${child.featureId.substringAfter('#')}",
+                                    hotspotValue(child)
+                                )
+                            }
                         }
                     }
                 }
@@ -302,7 +358,9 @@ internal fun ModuleDiagnosticsMiuixPage(
                         FilterPill(
                             text = when (item) {
                                 DiagFilter.ALL -> "${item.label} ${features.size + stalledInstalls.size}"
-                                DiagFilter.PROBLEM -> "${item.label} ${problems.size}"
+                                // 未安装的走"未完成"页，这里只数真正的异常与不可用。
+                                DiagFilter.PROBLEM -> "${item.label} " +
+                                    problems.count { it.error.isNotEmpty() || it.health.isNotEmpty() }
                                 DiagFilter.UNVERIFIED -> "${item.label} ${unverified.size}"
                                 DiagFilter.PENDING -> "${item.label} ${stalledInstalls.size}"
                                 DiagFilter.DISABLED -> "${item.label} ${disabled.size}"
@@ -390,8 +448,13 @@ private fun SummaryRow(label: String, value: String) {
 /** 正常项只占一行，只有异常/待安装才展开第二行原因，避免整页被文字挤满。 */
 @Composable
 private fun StatusRow(title: String, status: String, detail: String, tint: Color) {
+    // 原因常常超过两行（缺字段清单），点一下展开，排查时才能看全。
+    var expanded by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 9.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = detail.isNotBlank()) { expanded = !expanded }
+            .padding(horizontal = 16.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(tint))
@@ -408,7 +471,7 @@ private fun StatusRow(title: String, status: String, detail: String, tint: Color
                     text = detail,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     fontSize = 11.sp,
-                    maxLines = 2,
+                    maxLines = if (expanded) Int.MAX_VALUE else 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -420,8 +483,10 @@ private fun StatusRow(title: String, status: String, detail: String, tint: Color
 private fun buildDiagnosticsReport(
     versionName: String,
     features: List<ModuleStatusStore.FeatureStatus>,
+    locate: ModuleStatusStore.LocateStatus?,
     healthy: List<ModuleStatusStore.FeatureStatus>,
     unverified: List<ModuleStatusStore.FeatureStatus>,
+    untracked: List<ModuleStatusStore.FeatureStatus>,
     problems: List<ModuleStatusStore.FeatureStatus>,
     disabled: List<ModuleStatusStore.FeatureStatus>,
     pendingInstalls: List<ModuleStatusStore.InstallStatus>,
@@ -433,14 +498,45 @@ private fun buildDiagnosticsReport(
     builder.appendLine("采集时间: ${formatDiagnosticsTime(ModuleStatusStore.updatedAtMillis())}")
     builder.appendLine(
         "功能点: 共 ${features.size} 项，正常 ${healthy.size} 项，" +
-            "待验证 ${unverified.size} 项，异常 ${problems.size} 项，已关闭 ${disabled.size} 项"
+            "待验证 ${unverified.size} 项，无信号 ${untracked.size} 项，" +
+            "异常 ${problems.size} 项，已关闭 ${disabled.size} 项"
+    )
+    builder.appendLine(
+        "定位就位: " + if (locate == null) {
+            "未采集"
+        } else {
+            "${locate.located} / ${locate.total}，必需缺失 ${locate.missing.size} 项，" +
+                "可选缺失 ${locate.optionalMissing.size} 项"
+        }
     )
     builder.appendLine()
-    builder.appendLine("[待验证功能]（已加载，但关键 hook 还没命中过）")
+    // 对齐微信版本时最先要看的就是这两段：缺了哪些 API，以及是否必需。
+    builder.appendLine("[定位缺失（必需）]（依赖它们的功能会不可用）")
+    when {
+        locate == null -> builder.appendLine("未采集")
+        locate.missing.isEmpty() -> builder.appendLine("无")
+        else -> builder.appendLine(locate.missing.joinToString("、"))
+    }
+    builder.appendLine()
+    builder.appendLine("[定位缺失（可选）]（有回退路径，不影响功能）")
+    when {
+        locate == null -> builder.appendLine("未采集")
+        locate.optionalMissing.isEmpty() -> builder.appendLine("无")
+        else -> builder.appendLine(locate.optionalMissing.joinToString("、"))
+    }
+    builder.appendLine()
+    builder.appendLine("[待验证功能]（已加载，但还没有任何运行证据；命中记录按微信版本保存）")
     if (unverified.isEmpty()) {
         builder.appendLine("无")
     } else {
         unverified.forEach { builder.appendLine("${it.name} (${it.featureId})") }
+    }
+    builder.appendLine()
+    builder.appendLine("[无运行时信号]（没有 hook 可观测，也没有主动上报；不代表不可用）")
+    if (untracked.isEmpty()) {
+        builder.appendLine("无")
+    } else {
+        untracked.forEach { builder.appendLine("${it.name} (${it.featureId})") }
     }
     builder.appendLine()
     builder.appendLine("[异常功能]")
@@ -465,27 +561,42 @@ private fun buildDiagnosticsReport(
         }
         }
         builder.appendLine()
-        builder.appendLine("[Hook 热点]（按调用次数排序，耗时只含模块自己的回调）")
-        if (hotspots.isEmpty()) {
+    builder.appendLine("[Hook 热点]（按慢调用与调用次数排序，耗时只含模块自己的回调）")
+    val parentHotspots = hotspots.filter { !it.featureId.contains('#') }.take(12)
+    if (parentHotspots.isEmpty()) {
         builder.appendLine("暂无（hook 还没被触发过）")
-        } else {
-        hotspots.forEach {
+    } else {
+        parentHotspots.forEach { item ->
             builder.appendLine(
                 buildString {
-                    append("${it.featureId}: ${it.calls} 次，均 ${formatHookCost(it.averageNanos)}")
-                    append("，峰 ${formatHookCost(it.maxNanos)}，采样 ${it.samples} 次")
-                    if (it.slowCalls > 0L) append("，慢 ${it.slowCalls} 次")
+                    append("${item.featureId}: ${item.calls} 次，均 ${formatHookCost(item.averageNanos)}")
+                    append("，峰 ${formatHookCost(item.maxNanos)}，采样 ${item.samples} 次")
+                    if (item.slowCalls > 0L) append("，慢 ${item.slowCalls} 次")
                 }
             )
+            // 分段计时跟在父功能后面，读报告时能直接看出慢在哪个阶段。
+            hotspots.asSequence()
+                .filter { it.featureId.startsWith("${item.featureId}#") }
+                .forEach { child ->
+                    builder.appendLine(
+                        "  └ ${child.featureId.substringAfter('#')}: ${child.calls} 次，" +
+                            "均 ${formatHookCost(child.averageNanos)}"
+                    )
+                }
         }
-        }
-        return builder.toString()
+    }
+    return builder.toString()
 }
 
 private fun copyDiagnosticsReport(context: Context, report: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     clipboard.setPrimaryClip(ClipData.newPlainText("Hchat 模块排查", report))
     Toast.makeText(context, "报告已复制", Toast.LENGTH_SHORT).show()
+}
+
+private fun hotspotValue(item: ModuleStatusStore.HookHotspot): String = buildString {
+    append("${item.calls} 次 · 均 ${formatHookCost(item.averageNanos)}")
+    if (item.slowCalls > 0L) append(" · 慢 ${item.slowCalls} 次")
 }
 
 /** 采样耗时是"模块自己这段回调跑了多久"，量级通常在纳秒到微秒，不能按毫秒一刀切。 */

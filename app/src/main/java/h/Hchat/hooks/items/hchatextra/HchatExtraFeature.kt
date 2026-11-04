@@ -174,6 +174,7 @@ private class HchatExtraHooker(
     )
 
     private val prefs = HchatStorage.preferences(context.hostContext(), HchatExtraSettings.PREFS_NAME)
+    private val timeFormatterCache = ConcurrentHashMap<String, DateTimeFormatter>()
     private val hideAvatarPrefs = HchatStorage.preferences(
         context.hostContext(),
         HideChatAvatarSettings.PREFS_NAME
@@ -182,6 +183,7 @@ private class HchatExtraHooker(
     private val hookedMethods = Collections.newSetFromMap(ConcurrentHashMap<Method, Boolean>())
     private val hookedClasses = Collections.newSetFromMap(ConcurrentHashMap<Class<*>, Boolean>())
     private val holderRootFieldCache = ConcurrentHashMap<Class<*>, Field>()
+    private val holderRootMissing = ConcurrentHashMap.newKeySet<Class<*>>()
     private val itemMethodCache = ConcurrentHashMap<Class<*>, Method>()
     private val itemListFieldCache = ConcurrentHashMap<Class<*>, Field>()
     private val holderTimeFieldCache = ConcurrentHashMap<Class<*>, Field>()
@@ -273,10 +275,22 @@ private class HchatExtraHooker(
         ).orEmpty().ifBlank { HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TIME_FORMAT }
         val timeFormatter = runCatching { DateTimeFormatter.ofPattern(timePattern) }
             .getOrDefault(DEFAULT_MESSAGE_DETAILS_TIME_FORMATTER)
-        val marginLeftDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT)
-        val marginTopDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP)
-        val marginRightDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT)
-        val marginBottomDp = messageDetailsMargin(HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM)
+        val marginLeftDp = messageDetailsMargin(
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_LEFT,
+            HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL
+        )
+        val marginTopDp = messageDetailsMargin(
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_TOP,
+            HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL
+        )
+        val marginRightDp = messageDetailsMargin(
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_RIGHT,
+            HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_HORIZONTAL
+        )
+        val marginBottomDp = messageDetailsMargin(
+            HchatExtraSettings.KEY_MESSAGE_DETAILS_MARGIN_BOTTOM,
+            HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN_VERTICAL
+        )
         val lightText = messageDetailsTextColor(false)
         val darkText = messageDetailsTextColor(true)
         val lightBg = messageDetailsBgColor(false)
@@ -294,6 +308,9 @@ private class HchatExtraHooker(
             textSizeSp = prefs.getInt(
                 HchatExtraSettings.KEY_MESSAGE_DETAILS_TEXT_SIZE,
                 HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_TEXT_SIZE
+            ).coerceIn(
+                HchatExtraSettings.MESSAGE_DETAILS_TEXT_SIZE_MIN,
+                HchatExtraSettings.MESSAGE_DETAILS_TEXT_SIZE_MAX
             ).toFloat(),
             marginLeftDp = marginLeftDp,
             marginTopDp = marginTopDp,
@@ -330,8 +347,11 @@ private class HchatExtraHooker(
         )
     }
 
-    private fun messageDetailsMargin(key: String): Int {
-        return prefs.getInt(key, HchatExtraSettings.DEFAULT_MESSAGE_DETAILS_MARGIN).coerceIn(0, 48)
+    private fun messageDetailsMargin(key: String, default: Int): Int {
+        return prefs.getInt(key, default).coerceIn(
+            HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MIN,
+            HchatExtraSettings.MESSAGE_DETAILS_MARGIN_MAX
+        )
     }
 
     fun destroy() {
@@ -402,7 +422,7 @@ private class HchatExtraHooker(
                 val timestamp = (param.args?.getOrNull(1) as? Number)?.toLong()
                     ?.takeIf { it in RED_PACKET_TIME_MILLIS_RANGE }
                     ?: return@hookAfterOnce
-                param.result = formatRedPacketRecordTime(timestamp)
+                param.result = timed("红包时间格式化") { formatRedPacketRecordTime(timestamp) }
             } || hooked
         }
         val bindMethod = locateMethod(
@@ -516,8 +536,9 @@ private class HchatExtraHooker(
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         // The payload method belongs to a shared base adapter. Only chat rows apply.
                         if (bind in adapterBinds && adapterClass?.isInstance(param.thisObject) != true) return
-                        val state = runCatching { captureMessageDetailsBindState(param.args) }
-                            .getOrElse {
+                        val state = runCatching {
+                            timed("消息详情捕获") { captureMessageDetailsBindState(param.args) }
+                        }.getOrElse {
                                 logger("消息显示时间绑定前状态读取失败", it)
                                 MessageDetailsBindState(null)
                             }
@@ -535,7 +556,12 @@ private class HchatExtraHooker(
                         if (stack?.isEmpty() == true) messageDetailsBindStates.remove()
                         if (outer != null || !messageDetailsConfig.enabled || param.hasThrowable()) return
                         runCatching {
-                            bindBottomMessageDetails(param.thisObject, param.args, 0, state.holder, state.message)
+                            timed("消息详情绑定") {
+                                bindBottomMessageDetails(
+                                    param.thisObject, param.args, 0,
+                                    state.holder, state.message, state.root
+                                )
+                            }
                         }.onFailure { logger("消息显示时间绑定失败", it) }
                     }
                 })
@@ -551,8 +577,8 @@ private class HchatExtraHooker(
     }
 
     private fun captureMessageDetailsBindState(args: Array<Any?>?): MessageDetailsBindState {
-        val adapterHolder = messageBindHolder(args) ?: return MessageDetailsBindState(null)
-        val holderRoot = findRootView(adapterHolder) ?: return MessageDetailsBindState(null)
+        val (adapterHolder, holderRoot) = messageBindHolderAndRoot(args)
+            ?: return MessageDetailsBindState(null)
         if (isScrollingContainer(holderRoot)) return MessageDetailsBindState(null)
         val root = messageRowRoot(holderRoot)
         val holder = holderRoot.tag?.takeIf { isMessageDetailsHolder(it, root) }
@@ -565,6 +591,23 @@ private class HchatExtraHooker(
         messageDetailsRetryListeners.cancel(root)
         removeMessageDetailsFromRoot(root)
         return state
+    }
+
+    /**
+     * 内部子项计时：结果以 `hchat_extra#xxx` 出现在排查页热点里。
+     * 外层 featureId 的耗时同时保留，两者是包含关系，用来判断慢在绑定、捕获还是格式化。
+     */
+    private inline fun <T> timed(label: String, block: () -> T): T {
+        val stat = ModuleStatusStore.hookStatFor("${HchatExtraFeature.ID}#$label")
+        // 子项调用频率远低于外层 hook（红包列表可能几十次才有一次），不走 1/64 采样，
+        // 每次都记才有样本。代价只是两次 nanoTime 和几个计数器。
+        stat.recordCall()
+        val start = System.nanoTime()
+        try {
+            return block()
+        } finally {
+            stat.recordSample(System.nanoTime() - start)
+        }
     }
 
     private fun hookOnce(method: Method, block: (XC_MethodHook.MethodHookParam) -> Unit): Boolean {
@@ -823,6 +866,10 @@ private class HchatExtraHooker(
         }
     }
 
+    /** ofPattern 每次都要解析一遍 pattern，红包列表滚动时不该重复付这个成本。 */
+    private fun timeFormatter(pattern: String): DateTimeFormatter =
+        timeFormatterCache.getOrPut(pattern) { DateTimeFormatter.ofPattern(pattern) }
+
     private fun formatRedPacketRecordTime(timestamp: Long): String {
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault())
         val today = LocalDate.now()
@@ -831,7 +878,7 @@ private class HchatExtraHooker(
             localDateTime.year == today.year -> "M月d日 HH:mm:ss"
             else -> "yyyy年M月d日 HH:mm:ss"
         }
-        return localDateTime.format(DateTimeFormatter.ofPattern(pattern))
+        return localDateTime.format(timeFormatter(pattern))
     }
 
     private fun getRedPacketRecordTimeTextView(holder: Any?, timestamp: Long): TextView? {
@@ -908,7 +955,7 @@ private class HchatExtraHooker(
             .toSet()
         if (candidates.isEmpty()) return null
         val shortTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("HH:mm"))
+            .format(timeFormatter("HH:mm"))
         return findTextViewRecursive(root) { textView ->
             val text = normalizeRedPacketTimeText(textView.text)
             text in candidates || (
@@ -931,7 +978,7 @@ private class HchatExtraHooker(
             }
         }
         return patterns.mapTo(linkedSetOf()) {
-            localDateTime.format(DateTimeFormatter.ofPattern(it))
+            localDateTime.format(timeFormatter(it))
         }
     }
 
@@ -1031,12 +1078,26 @@ private class HchatExtraHooker(
         args: Array<Any?>?,
         attempt: Int,
         capturedHolder: Any? = null,
-        capturedMessage: Any? = null
+        capturedMessage: Any? = null,
+        capturedRoot: View? = null
     ): Boolean {
-        val holder = messageBindHolder(args) ?: return false
-        val holderRoot = findRootView(holder) ?: return false
-        if (isScrollingContainer(holderRoot)) return false
-        val root = messageRowRoot(holderRoot)
+        // 绑定前状态里已经反射解析过 holder 与行根容器，命中时直接复用，
+        // 不再为每条消息重复 findRootView / 父链遍历。重试路径仍走完整解析。
+        val holder: Any
+        val holderRoot: View
+        if (capturedRoot != null) {
+            holderRoot = capturedRoot
+            // 捕获阶段 holder 可能没解析出来（行 tag 不是 holder），这不算失败，补一次解析。
+            holder = capturedHolder
+                ?: messageBindHolderAndRoot(args)?.first
+                ?: return false
+        } else {
+            val resolved = messageBindHolderAndRoot(args) ?: return false
+            holder = resolved.first
+            holderRoot = resolved.second
+            if (isScrollingContainer(holderRoot)) return false
+        }
+        val root = capturedRoot ?: messageRowRoot(holderRoot)
         messageDetailsRetryListeners.cancel(root)
         val nativeMessage = capturedMessage ?: resolveMessageFromBindArgs(args)
             ?: resolveMessageFromAdapter(bindObject, messageBindPosition(args))
@@ -1315,6 +1376,24 @@ private class HchatExtraHooker(
             (label.parent as? ViewGroup)?.removeView(label)
             relativeRoot.addView(label)
         }
+        val anchorId = ensureViewId(anchor)
+        val timeAnchorId = timeAnchor?.let(::ensureViewId)
+        // 布局规则、间距、字号都没变时复用上次结果：setLayoutParams 会向整行请求重新布局，
+        // 滚动时每条消息都设一次会把列表变成持续的测量/布局。
+        var signature = anchorId
+        signature = signature * 31 + (timeAnchorId ?: 0)
+        signature = signature * 31 + if (isSelf) 1 else 0
+        signature = signature * 31 + messageDetailsConfig.marginLeftDp
+        signature = signature * 31 + messageDetailsConfig.marginTopDp
+        signature = signature * 31 + messageDetailsConfig.marginRightDp
+        signature = signature * 31 + messageDetailsConfig.marginBottomDp
+        signature = signature * 31 + (messageDetailsConfig.textSizeSp * 100).toInt()
+        signature = signature * 31 + (label.resources.displayMetrics.scaledDensity * 100).toInt()
+        if ((label.getTag(TAG_MESSAGE_DETAILS_LAYOUT) as? Int) == signature) {
+            applyMessageDetailsReservedPadding(anchor, label.measuredHeight)
+            return anchor
+        }
+        label.setTag(TAG_MESSAGE_DETAILS_LAYOUT, signature)
         val params = RelativeLayout.LayoutParams(
             RelativeLayout.LayoutParams.WRAP_CONTENT,
             RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -1322,11 +1401,11 @@ private class HchatExtraHooker(
         // 与 XChat 一致：优先接在微信原时间下方；无可用时间锚点时贴头像容器顶部。
         params.addRule(
             if (timeAnchor != null) RelativeLayout.BELOW else RelativeLayout.ALIGN_TOP,
-            ensureViewId(timeAnchor ?: anchor)
+            timeAnchorId ?: anchorId
         )
         params.addRule(
             if (isSelf) RelativeLayout.ALIGN_RIGHT else RelativeLayout.ALIGN_LEFT,
-            ensureViewId(anchor)
+            anchorId
         )
         params.leftMargin = dp(relativeRoot.context, messageDetailsConfig.marginLeftDp.toFloat())
         params.topMargin = dp(relativeRoot.context, messageDetailsConfig.marginTopDp.toFloat())
@@ -1401,6 +1480,18 @@ private class HchatExtraHooker(
     }
 
     private fun removeMessageDetailsFromRoot(root: View) {
+        // 常规路径：标签就挂在行根容器里，按子树找一次即可，
+        // 不必为每条消息遍历整张绑定表（滚动时那是几十到上百次比较）。
+        var removed = false
+        if (root is ViewGroup) {
+            while (true) {
+                val label = root.findViewWithTag(TAG_MESSAGE_DETAILS_VIEW) as? TextView ?: break
+                removeMessageDetailsLabel(label)
+                removed = true
+            }
+        }
+        if (removed) return
+        // 兜底：标签被微信挪到行外时只按绑定表清理。
         val labels = synchronized(messageDetailsBindings) {
             messageDetailsBindings.entries.filter { it.value.root === root }.map { it.key }
         }
@@ -1434,10 +1525,17 @@ private class HchatExtraHooker(
             ?: args.firstOrNull { it is Int } as? Int
     }
 
-    private fun messageBindHolder(args: Array<Any?>?): Any? {
+    private fun messageBindHolder(args: Array<Any?>?): Any? = messageBindHolderAndRoot(args)?.first
+
+    /** 解析 holder 时顺手带出行根容器，避免对同一对象再反射一次。 */
+    private fun messageBindHolderAndRoot(args: Array<Any?>?): Pair<Any, View>? {
         args ?: return null
-        return args.getOrNull(0)?.takeIf { findRootView(it) != null }
-            ?: args.firstOrNull { arg -> arg != null && findRootView(arg) != null }
+        args.getOrNull(0)?.let { first -> findRootView(first)?.let { return first to it } }
+        for (arg in args) {
+            if (arg == null) continue
+            findRootView(arg)?.let { return arg to it }
+        }
+        return null
     }
 
     private fun resolveMessageFromAdapter(bindObject: Any?, position: Int?): Any? {
@@ -1488,8 +1586,30 @@ private class HchatExtraHooker(
     }
 
     private fun findRootView(holder: Any): View? {
-        (KavaReflector.readField(holder, "itemView") as? View)?.let { return it }
-        return KavaReflector.readField(findRootField(holder.javaClass), holder) as? View
+        val clazz = holder.javaClass
+        holderRootFieldCache[clazz]?.let { return KavaReflector.readField(it, holder) as? View }
+        if (holderRootMissing.contains(clazz)) return null
+        // 首条消息付一次按名字查字段的代价，之后直接走缓存的 Field.get。
+        (KavaReflector.readField(holder, "itemView") as? View)?.let { view ->
+            findItemViewField(clazz)?.let { field -> holderRootFieldCache[clazz] = field }
+            return view
+        }
+        val field = findRootField(clazz)
+        if (field == null) {
+            holderRootMissing.add(clazz)
+            return null
+        }
+        holderRootFieldCache[clazz] = field
+        return KavaReflector.readField(field, holder) as? View
+    }
+
+    private fun findItemViewField(clazz: Class<*>): Field? {
+        var current: Class<*>? = clazz
+        while (current != null && current != Any::class.java) {
+            KavaReflector.declaredFields(current).firstOrNull { it.name == "itemView" }?.let { return it }
+            current = current.superclass
+        }
+        return null
     }
 
     private fun findRootField(clazz: Class<*>): Field? {
@@ -3047,6 +3167,9 @@ private class HchatExtraHooker(
     companion object {
         private const val PREF_GROUP_MEMBER_HISTORY = "hchat_group_member_history"
         private const val TAG_MESSAGE_DETAILS_VIEW = "hchat_message_details_view"
+
+        /** 记录上次布局参数签名，命中时跳过 setLayoutParams 与同步测量。 */
+        private const val TAG_MESSAGE_DETAILS_LAYOUT = 0x4A484354
         private const val LV_BUFFER_STRING_MAX_LENGTH = 3072
         private val MESSAGE_DETAILS_TOKEN_PATTERN = Regex("\\$\\{([A-Za-z][A-Za-z0-9]*)\\}|\\$([A-Za-z][A-Za-z0-9]*)")
         private val AT_USER_LIST_PATTERN = Regex(
